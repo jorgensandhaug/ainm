@@ -57,11 +57,15 @@
 - `value.ledgerAccount.id` if a later flow unexpectedly needs the supplier liability account
 - ignore sparse auto-generated `value.postalAddress` and `value.physicalAddress` links unless the prompt explicitly asked for address fields
 
-## Verification
-- default verification is zero extra calls
-- trust the `201` `{"value": {...}}` body
-- only do a `GET` if the write response is unexpectedly missing a scored field
-- do not treat empty `invoiceEmail` or sparse address links as missing-field problems when the prompt only asked for name, organization number, and generic email
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the write, verify:
+
+```
+GET /supplier/{id}?fields=*
+```
+Log: id, name, email, organizationNumber, postalAddress, physicalAddress, bankAccountPresentation, ledgerAccount. Confirm all scored fields match the prompt.
+
+The `201` response body also proves state, but the readback GET provides complete confirmation and catches any silent field-drop issues.
 
 ## Known Recovery Branches
 - prompt explicitly asks for invoice-specific email, not generic contact email

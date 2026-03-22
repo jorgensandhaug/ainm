@@ -159,6 +159,12 @@ Exact-match tasks should now prefer the trusted standard:
   - 5 calls, 0 errors, outstanding=0 — 2nd confirmation of `POST /invoice` path with proactive hedge
   - confirms the 5-call hedge path is stable as the recommended default; 4-call path (skip hedge) would have sufficed here but risks 422 + retry on fresh accounts
 
+## Scoring Note
+- **GET calls do not count against the efficiency score** — only writes (POST/PUT/DELETE) are scored
+- use GETs liberally to gather information, verify state, and log important details
+- the optimization target is minimizing write calls and errors, not total calls
+- the old `POST /order` + `PUT /order/:invoice` path had **2 writes**; the `POST /invoice` path has **1 write**
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
@@ -166,39 +172,46 @@ Exact-match tasks should now prefer the trusted standard:
    - `GET /product`
    - `GET /invoice/paymentType`
    - `POST /invoice`
-2. Resolve the customer
+2. Resolve the customer (GET — free)
    - usually `GET /customer?organizationNumber=...&fields=*`
-3. Resolve the products from prompt refs with VAT info
+   - log: customer id, name, organizationNumber
+3. Resolve the products from prompt refs with VAT info (GET — free)
    - use `GET /product?number=<ref1>,<ref2>&fields=*,vatType(*)` with comma-separated prompt refs; verify the returned count matches the expected count
    - `vatType(*)` expands each product's VAT type to include `percentage` — needed to compute the exact `paidAmount`
    - if any are missing, fall back to `GET /product?count=1000&fields=*,vatType(*)` and filter locally by `number` response field
    - do not rely on the `productNumber` field since it is often null/undefined in fresh accounts; `productNumber` is not even a valid ProductDTO `fields` value (returns 400)
    - do not use `number=X&number=Y` (repeated query params) — this uses non-OR semantics and only returns the first value
-4. Resolve one usable payment type
+   - log: each product's id, number, name, vatType.percentage
+4. Resolve one usable payment type (GET — free)
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
    - just use the first available payment type — do NOT filter by `isIncoming` (that field does not exist)
    - do not reject the candidate just because `creditAccount` is `null`
-5. Proactive bank-account hedge (recommended for fresh accounts)
+   - log: selected payment type id, description, debitAccount.number
+5. Proactive bank-account hedge (GET — free; PUT only if repair needed)
    - `GET /ledger/account?isBankAccount=true&fields=*`
    - find the invoice bank account (`isInvoiceAccount=true`, usually number `1920`)
    - if `bankAccountNumber` is missing/empty, repair with `PUT /ledger/account/{id}` using `{ "bankAccountNumber": "12345678903" }`
-   - if `bankAccountNumber` already exists, skip the PUT (0 extra cost beyond the GET)
+   - if `bankAccountNumber` already exists, skip the PUT (0 write cost)
    - this avoids the catastrophic 422 + script-restart waste that hit the 2026-03-22 production run (11 calls instead of 6)
+   - log: account number, bankAccountNumber present/absent, whether PUT repair was needed
 6. Compute the exact invoice total including VAT
    - `paidAmount = Σ(unitPriceExcludingVat_i × count_i × (1 + vatType.percentage_i / 100))`
    - use the `percentage` from each product's expanded `vatType(*)` response
-7. Create order, invoice, and register payment in one call
+   - log: per-line breakdown (unitPrice × count × (1 + vatPct%)) and final total
+7. Create order, invoice, and register payment in one call (**1 WRITE**)
    - `POST /invoice?sendToCustomer=false&paymentTypeId=<id>&paidAmount=<computed total>`
    - body: `{ invoiceDate, invoiceDueDate, orders: [{ customer: { id }, orderDate, deliveryDate, orderLines: [...] }] }`
    - `POST /invoice` creates the order and invoice atomically, and `paymentTypeId` + `paidAmount` register the payment in the same write
    - do NOT use `paidAmount=0.01` with `POST /invoice` — unlike `PUT /order/:invoice`, there is no `paymentTypeIdRestAmount` param, so it only pays the literal amount
    - do NOT overpay — setting `paidAmount` higher than the actual total creates negative outstanding (a credit)
    - **CRITICAL**: the script MUST include inline recovery for the `bankkontonummer` 422 even if the proactive hedge is used — defense in depth against unexpected bank-account state
-8. Reuse the invoice write response
-   - verify `amountCurrencyOutstanding` first, otherwise `amountOutstanding`
-   - use invoice totals/lines in that response as verification where available
+   - log from response: invoice id, invoiceNumber, amount, amountExcludingVat, amountOutstanding, amountCurrencyOutstanding, orders[0].id, orderLines count, isCharged, amountRoundoff
+8. Readback verification (GET — free)
+   - `GET /invoice/{id}?fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))`
+   - log: customer name/org, each order line (description, product name/number, unitPrice, count), amounts, outstanding
+   - verify: customer linked correctly, products linked correctly, amounts match, outstanding = 0
 9. Stop when remaining outstanding amount is `0`
-   - if outstanding ≠ 0 due to rounding, fall back to `PUT /invoice/{id}/:payment` to settle the remainder (adds 1 call)
+   - if outstanding ≠ 0 due to rounding, fall back to `PUT /invoice/{id}/:payment` to settle the remainder (adds 1 write)
 
 ## Exact-Match Fast Path
 
@@ -207,16 +220,16 @@ Exact-match tasks should now prefer the trusted standard:
   - the existing products by numeric refs
   - the order line prices
   - the need to invoice and fully pay immediately
-- the recommended path is **5 Tripletex API calls** (with proactive bank-account hedge):
-  1. `GET /customer?organizationNumber=...&fields=*`
-  2. `GET /product?number=<ref1>,<ref2>&fields=*,vatType(*)` — comma-separated refs, OR semantics, VAT percentage included
-  3. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-  4. `GET /ledger/account?isBankAccount=true&fields=*` — conditionally `PUT` to repair bank account if missing
-  5. `POST /invoice?sendToCustomer=false&paymentTypeId=<id>&paidAmount=<computed total>` with embedded `orders[].orderLines`
-- the absolute minimum is 4 calls (skip step 4), but risks 422 + retry (7 calls + 1 error) on fresh accounts — the proactive hedge is safer and cheaper in expectation
-- if the same run already holds a proven valid incoming `paymentTypeId` for the same company and currency, drop to 4 calls by skipping step 3
-- if the bank account repair is needed, the total becomes 6 calls (5 + 1 PUT) with 0 errors — still better than the reactive 7 + 1 error
-- If the invoice response already proves the charged lines/totals and outstanding amount, that same write response is enough; do not automatically add a follow-up payment or verification read
+- **write call count: 1** (just `POST /invoice`) — GETs are free
+- the recommended path:
+  1. `GET /customer?organizationNumber=...&fields=*` (free)
+  2. `GET /product?number=<ref1>,<ref2>&fields=*,vatType(*)` (free) — comma-separated refs, OR semantics, VAT percentage included
+  3. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` (free)
+  4. `GET /ledger/account?isBankAccount=true&fields=*` (free) — conditionally `PUT` to repair bank account if missing (1 write only if needed)
+  5. `POST /invoice?sendToCustomer=false&paymentTypeId=<id>&paidAmount=<computed total>` with embedded `orders[].orderLines` — **1 write**
+  6. `GET /invoice/{id}?fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))` (free) — readback verification + logging
+- if bank account repair is needed (step 4), add 1 write (`PUT /ledger/account`) — total 2 writes, 0 errors
+- always do the readback GET (step 6) — it's free and confirms full state for scoring transparency
 
 ## Invoice Payload Notes
 

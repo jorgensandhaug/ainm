@@ -19,15 +19,22 @@
 - the task explicitly requires sending the invoice — use `./trusted-standards/create-and-send-customer-invoice.md` instead
 - the prompt gives only a service description (e.g. "Systemutvikling") without referencing existing products by number — use `./trusted-standards/create-and-send-customer-invoice.md` or `./trusted-standards/create-customer-invoice.md` instead; `POST /invoice` handles description-only order lines natively without needing a product
 
+## Scoring Note
+- **GET calls do not count against the efficiency score** — only writes (POST/PUT/DELETE) are scored
+- use GETs liberally to gather information, verify state, and log important details
+- the optimization target is minimizing write calls and errors, not total calls
+
 ## Standard Flow
-1. `GET /customer?organizationNumber=...&fields=*` if the prompt identifies the customer by organization number
-2. `GET /product?number=<ref1>,<ref2>&fields=*,vatType(*)` using comma-separated prompt refs; verify that the returned count matches the expected count, and confirm each product name from the prompt as a secondary check; the expanded `vatType(*)` returns the VAT `percentage` needed to compute the exact invoice total
-3. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-4. `GET /ledger/account?isBankAccount=true&fields=*` — proactive bank-account hedge; if the invoice bank account (`isInvoiceAccount=true`, usually number `1920`) lacks a `bankAccountNumber`, repair with `PUT /ledger/account/{id}` using `{ "bankAccountNumber": "12345678903" }` before the invoice write; skip the PUT if `bankAccountNumber` already exists
-5. compute `paidAmount = Σ(unitPriceExcludingVat_i × count_i × (1 + vatType.percentage_i / 100))` from the resolved products
-6. `POST /invoice?sendToCustomer=false&paymentTypeId=<id>&paidAmount=<computed total>` with body containing embedded `orders[]` with `orderLines`
-7. verify `amountCurrencyOutstanding=0` or `amountOutstanding=0` from the invoice write response
-8. stop
+1. `GET /customer?organizationNumber=...&fields=*` if the prompt identifies the customer by organization number; log customer id, name, organization number
+2. `GET /product?number=<ref1>,<ref2>&fields=*,vatType(*)` using comma-separated prompt refs; verify that the returned count matches the expected count, and confirm each product name from the prompt as a secondary check; the expanded `vatType(*)` returns the VAT `percentage` needed to compute the exact invoice total; log each product's id, number, name, and vatType.percentage
+3. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` — log the selected payment type id, description, and debit/credit account numbers
+4. `GET /ledger/account?isBankAccount=true&fields=*` — proactive bank-account hedge; if the invoice bank account (`isInvoiceAccount=true`, usually number `1920`) lacks a `bankAccountNumber`, repair with `PUT /ledger/account/{id}` using `{ "bankAccountNumber": "12345678903" }` before the invoice write; skip the PUT if `bankAccountNumber` already exists; log account number, bankAccountNumber presence, and whether repair was needed
+5. compute `paidAmount = Σ(unitPriceExcludingVat_i × count_i × (1 + vatType.percentage_i / 100))` from the resolved products; log the per-line breakdown and total
+6. `POST /invoice?sendToCustomer=false&paymentTypeId=<id>&paidAmount=<computed total>` with body containing embedded `orders[]` with `orderLines` — **this is the only write call**
+7. log from POST /invoice response: invoice id, invoiceNumber, amount, amountExcludingVat, amountOutstanding, amountCurrencyOutstanding, orders[0].id, orderLines count, isCharged, amountRoundoff
+8. `GET /invoice/{id}?fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))` — readback to verify and log full state: customer name/org linked correctly, each order line description + product name/number + unitPrice, amounts match prompt expectations
+9. verify `amountCurrencyOutstanding=0` or `amountOutstanding=0`
+10. stop
 
 ## Payload Rules
 - on `POST /invoice`, send body:
@@ -63,9 +70,14 @@
   - invoice totals if needed for proof
 
 ## Verification
-- default verification is zero extra calls after the combined invoice write
-- trust the invoice write response when it proves remaining outstanding amount is `0`
-- do not add a follow-up `GET /invoice/{id}` unless the task explicitly scores expanded linked fields that the write response omits
+- **always do a readback GET after the invoice write** — GETs are free and the readback confirms full state
+- `GET /invoice/{id}?fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))` verifies:
+  - customer is correctly linked (name, organizationNumber)
+  - order exists with correct order lines
+  - each order line has the correct product (name, number), description, count, unitPrice
+  - amounts match expectations (amountExcludingVat = prompt ex-VAT total, amount = computed inc-VAT total)
+  - amountOutstanding = 0
+- log all key fields from the readback for debugging and scoring transparency
 
 ## Known Recovery Branches
 - if `POST /invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:
@@ -79,13 +91,15 @@
 ## OpenAPI / Sandbox Status
 - `POST /invoice`, `/invoice/paymentType`, and `/invoice/{id}/:payment` verified in `./openapi.json`
 - `POST /invoice` accepts `paymentTypeId`, `paidAmount`, and `sendToCustomer` as query parameters; the request body accepts embedded `orders[]` with `orderLines[]` — the order and invoice are created in one call
-- the recommended exact-match path is **5 Tripletex API calls** (with proactive bank-account hedge):
-  1. `GET /customer?organizationNumber=...&fields=*`
-  2. `GET /product?number=<ref1>,<ref2>&fields=*,vatType(*)` — note `vatType(*)` to get VAT percentage
-  3. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-  4. `GET /ledger/account?isBankAccount=true&fields=*` — proactive hedge; conditionally `PUT` to repair if `bankAccountNumber` is missing
-  5. `POST /invoice?sendToCustomer=false&paymentTypeId=<id>&paidAmount=<computed total>` with embedded orders
-- the minimum is **4 calls** when skipping the hedge, but risks 422 + retry (7 calls) on fresh accounts with no bank account configured
+- **GET calls are free** (do not count against efficiency score) — only writes (POST/PUT/DELETE) are scored
+- the recommended exact-match path has **1 write call** (POST /invoice) plus free GETs for data gathering and verification:
+  1. `GET /customer?organizationNumber=...&fields=*` (free)
+  2. `GET /product?number=<ref1>,<ref2>&fields=*,vatType(*)` (free)
+  3. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` (free)
+  4. `GET /ledger/account?isBankAccount=true&fields=*` (free) — proactive hedge; conditionally `PUT` to repair if `bankAccountNumber` is missing (this PUT is a write if needed)
+  5. `POST /invoice?sendToCustomer=false&paymentTypeId=<id>&paidAmount=<computed total>` with embedded orders — **the only required write**
+  6. `GET /invoice/{id}?fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))` (free) — readback verification + logging
+- the old 5-call path (`POST /order` + `PUT /order/:invoice`) had **2 writes**; the `POST /invoice` path has **1 write** — this is the primary efficiency gain
 - the `paidAmount` must be the exact invoice total including VAT, computed as `Σ(unitPrice × count × (1 + vatType.percentage/100))` from the resolved products; `vatType(*)` on the product lookup provides the percentage
 - do NOT use `paidAmount=0.01` with `POST /invoice` — unlike `PUT /order/:invoice`, `POST /invoice` has no `paymentTypeIdRestAmount` parameter, so it only pays the literal `paidAmount`; 0.01 leaves the rest outstanding
 - do NOT overpay — setting `paidAmount` higher than the invoice total creates negative outstanding (a credit), not a cap at zero

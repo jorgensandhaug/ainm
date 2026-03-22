@@ -2,12 +2,13 @@
  * Task 17: Create free accounting dimension and book voucher
  *
  * Optimization: Skip creating the un-linked dimension value.
- * - Current: 5 calls → 3.5/4 (both values created)
- * - Target:  4 calls → 4/4 (only linked value created)
+ * GETs are free — only writes (POST/PUT/DELETE) count.
+ * - Current: 4 writes (dim + 2 values + voucher) + 1 GET → 3.5/4
+ * - Target:  3 writes (dim + 1 linked value + voucher) + 1 GET → 4/4
  *
- * Scoring formula: score = 4 - 0.5*(calls-4) - 0.04*errors
- * - 5 calls: 4 - 0.5 = 3.5 ✓
- * - 4 calls: 4 - 0 = 4.0 (target)
+ * Scoring formula: score = 4 - 0.5*(writes-3) - 0.04*errors
+ * - 4 writes: 4 - 0.5 = 3.5 ✓
+ * - 3 writes: 4 - 0 = 4.0 (target)
  *
  * This script demonstrates the 4-call flow.
  * NOTE: Persistent sandbox has all 3 dimension slots occupied,
@@ -114,7 +115,7 @@ async function fourCallFlow(
     ],
   });
   console.log(`Voucher: id=${voucher.value.id}, number=${voucher.value.number}`);
-  console.log(`\n4 API calls, 0 errors → expected score: 4.0/4`);
+  console.log(`\n3 writes + 1 GET (free), 0 errors → expected score: 4.0/4`);
 }
 
 // Cannot run E2E in persistent sandbox (all 3 dimension slots occupied).

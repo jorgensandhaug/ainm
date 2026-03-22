@@ -21,10 +21,13 @@ Do not use for:
 1. `POST /supplier` (with address + bank data from prompt if present) — response: `.value`; extract `.value.id` AND `.value.ledgerAccount.id` (= account 2400, free)
 2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*` — response: `.values`; for expense account only
 3. `POST /ledger/voucher/importDocument` with EHF/UBL XML — **response: `.values` (plural, NOT `.value`)** — extract `.values[0].id` and `.values[0].version`
-4. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings (version from step 3) — response: `.value`
-5. `PUT /ledger/voucher/{id}?sendToLedger=true` — book the voucher (version from step 4) — response: `.value`
+4. `GET /supplierInvoice?voucherId={id}&fields=*` — **verify** SI entity created; log `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`
+5. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings (version from step 3) — response: `.value`
+6. `PUT /ledger/voucher/{id}?sendToLedger=true` — book the voucher (version from step 5) — response: `.value`
+7. `GET /ledger/voucher/{id}?fields=*` — **verify** booked (`number > 0`); log postings, description, voucherType
+8. `GET /supplier/{id}?fields=*` — **verify** postalAddress, physicalAddress, bankAccountPresentation populated
 
-**5 calls** total. For non-25% VAT, add `GET /ledger/vatType` → **6 calls**.
+**GETs do NOT lower score.** Use them liberally. 4 write calls + 4 read calls = 8 total. For non-25% VAT, add `GET /ledger/vatType` → 9 total.
 
 ### Why importDocument (NOT direct POST /ledger/voucher)
 

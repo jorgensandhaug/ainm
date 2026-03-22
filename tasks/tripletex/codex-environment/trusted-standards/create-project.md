@@ -55,9 +55,13 @@
 - `value.projectManager.id`
 - fixed-price fields if present
 
-## Verification
-- default verification is zero extra calls
-- trust the write response if it already proves `name`, `startDate`, `customer.id`, and `projectManager.id`
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the write, verify:
+
+```
+GET /project/{id}?fields=*,customer(id,name,organizationNumber),projectManager(id,firstName,lastName,email)
+```
+Log: id, name, startDate, customer, projectManager, isFixedPrice, fixedprice. Confirm all fields match the prompt.
 
 ## Known Recovery Branches
 - if project-manager assignment is validated strictly, resolve with `assignableProjectManagers=true`

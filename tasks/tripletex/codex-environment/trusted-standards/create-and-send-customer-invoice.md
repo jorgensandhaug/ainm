@@ -61,10 +61,15 @@
 - totals from the invoice write response
 - keep the resolved `customer.id` and filtered outgoing `vatType.id` in memory until the invoice write has either succeeded or been conclusively blocked; a local helper bug is not a reason to repeat those reads in the same run
 
-## Verification
-- default verification is zero extra calls
-- treat a successful `POST /invoice` with default `sendToCustomer=true` as the winning send path for this task shape
-- do not add an automatic follow-up `PUT /invoice/{id}/:send`
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the invoice write, verify:
+
+```
+GET /invoice/{id}?fields=*,customer(id,name,organizationNumber),orderLines(*),orders(*,orderLines(*))
+```
+Log: invoiceNumber, amountExcludingVatCurrency, amountCurrency, customer, order lines, isSent. Confirm all fields match the prompt.
+
+Treat a successful `POST /invoice` with default `sendToCustomer=true` as the winning send path. Do not add an automatic follow-up `PUT /invoice/{id}/:send`.
 
 ## Known Recovery Branches
 - if invoice creation fails with missing company bank account:

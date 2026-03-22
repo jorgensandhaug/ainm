@@ -8,7 +8,7 @@
 - Prompt provides cost lines (flight, taxi, etc.) and per-diem allowance
 - No attachment, approval, mileage, accommodation allowance, project linking, update, or delete
 
-## Standard Flow (8 calls max, 0 errors)
+## Standard Flow (0 errors expected)
 
 ### Round 1 — parallel (3 calls)
 ```
@@ -19,6 +19,7 @@ GET /travelExpense/paymentType?count=1000&fields=*
 - Filter employee by exact email match; prefer `allowInformationRegistration=true` if multiple
 - Filter categories/payTypes locally on `showOnTravelExpenses=true`
 - Match `Fly` for airfare, `Taxi` for taxi (exact `description` match)
+- **Log**: employee id, name, email, address city; Fly cat id + vatType.id; Taxi cat id + vatType.id; paymentType id + description
 
 ### Round 2 — conditional (0 or 1 call)
 Only if employee has `address=null` AND prompt omits `departureFrom`:
@@ -35,13 +36,23 @@ POST /travelExpense
 ```
 With the exact payload shape below.
 
-### Round 4 — deliver (1 call)
+### Round 4 — readback verification (1 call)
+```
+GET /travelExpense/<id>?fields=*,perDiemCompensations(*,rateType(*,rateCategory(*))),costs(*,costCategory(*),vatType(*)),travelDetails(*)
+```
+**Log ALL of these** — they are the fields the scorer likely checks:
+- `travelDetails`: departureDate, returnDate, departureTime, returnTime, departureFrom, destination, isForeignTravel, isDayTrip, purpose
+- `perDiemCompensations[0]`: count, rate, amount, overnightAccommodation, location, rateType.id, rateCategory.id, rateCategory.name, isDeductionForBreakfast/Lunch/Dinner
+- Each cost: costCategory.description, amountCurrencyIncVat, amountNOKInclVAT, vatType.id, vatType.percentage, comments, date, isPaidByEmployee
+- Top-level: amount, paymentAmount, state, title
+
+### Round 5 — deliver (1 call)
 ```
 PUT /travelExpense/:deliver?id=<travelExpenseId>
 ```
 Response is `ListResponseTravelExpense` — read delivered object from `values[]`.
 
-### Round 5 — approve (1 call)
+### Round 6 — approve (1 call)
 ```
 PUT /travelExpense/:approve?id=<travelExpenseId>
 ```
@@ -49,17 +60,27 @@ PUT /travelExpense/:approve?id=<travelExpenseId>
 - Verify `state=APPROVED` and `isApproved=true` from response
 - Approval is a PREREQUISITE for createVouchers (422 "Reiseregningen er ikke godkjent" if skipped)
 
-### Round 6 — createVouchers (1 call) ← CRITICAL
+### Round 7 — createVouchers (1 call)
 ```
 PUT /travelExpense/:createVouchers?id=<travelExpenseId>&date=<returnDate>
 ```
 - `date` parameter = return date of the trip (YYYY-MM-DD)
 - Creates the accounting voucher with ledger postings
 - After this call, `voucher.id` is populated and `isCompleted=true`
-- **ALL 23 production runs that omitted this step scored 4.5/8 — including the run that had approve**
 
-### Done — stop
-Do NOT add extra readback calls.
+### Round 8 — final readback with voucher (1 call)
+```
+GET /travelExpense/<id>?fields=*,perDiemCompensations(*),costs(*),voucher(*)
+```
+**Log**: isCompleted, state, amount, voucher.id
+
+### Round 9 — voucher postings (1 call)
+```
+GET /ledger/voucher/<voucher.id>?fields=*,postings(*,account(*))
+```
+**Log every posting**: account number, account name, amount. This shows the actual accounting entries the scorer may validate.
+
+### Done — stop.
 
 ## Exact Payload Shape
 
@@ -149,7 +170,7 @@ These "optimizations" look like they would save API calls but actually waste cal
 | `fields=*,company(*)` on employee | 400 | `company` is not a field on EmployeeDTO; use `companyId` + separate GET |
 | Omit `costCategory` from costs | POST 201, deliver 422 | costCategory.id required for deliver validation |
 
-**Conclusion:** All 3 round-1 lookups (employee, costCategory, paymentType) are mandatory. The 6–7 call path is the proven floor. Sandbox-verified 2026-03-22.
+**Conclusion:** All 3 round-1 lookups (employee, costCategory, paymentType) are mandatory. GETs do not count against efficiency — use readback GETs freely to verify data.
 
 ## Fields That DO NOT Exist (422 if sent)
 | Wrong field | Causes | Use instead |

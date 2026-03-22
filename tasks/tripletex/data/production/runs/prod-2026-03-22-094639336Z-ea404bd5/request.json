@@ -1,0 +1,8 @@
+{
+  "prompt": "The customer Ridgepoint Ltd (org no. 989339028) has complained about the invoice for \"Maintenance\" (19650 NOK excl. VAT). Issue a full credit note that reverses the entire invoice.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "HW2fY1BL-126U040_8V32eE-XV0Hqqjxq0ICvk9KjW0"
+  }
+}

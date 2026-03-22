@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-093000828Z-0e6ed43b",
+  "request_id": "c86db360",
+  "prompt_raw": "Utfør månedsavslutning for mars 2026. Periodiser forskuddsbetalt kostnad (11150 kr per måned fra konto 1700 til kostkonto). Bokfør månedlig avskrivning for et driftsmiddel med anskaffelseskost 147250 kr og levetid 5 år (lineær avskrivning til konto 6020). Kontroller at saldobalansen går i null. Bokfør også en lønnsavsetning (debet lønnskostnad konto 5000, kredit påløpt lønn konto 2900).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T09:31:01Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T09:30:00.881Z",
+  "after_captured_at": "2026-03-22T09:31:32.614Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "26",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T09:31:32.617Z"
+}

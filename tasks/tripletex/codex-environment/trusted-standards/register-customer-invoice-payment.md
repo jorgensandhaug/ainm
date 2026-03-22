@@ -56,8 +56,13 @@
 - outstanding amount from invoice locate step
 - post-payment remaining amount from write response
 
-## Verification
-- default verification is zero extra calls after payment write if response proves `amountOutstanding=0` or equivalent final state
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the payment write, verify:
+
+```
+GET /invoice/{id}?fields=id,invoiceNumber,amountCurrency,amountCurrencyOutstanding,amountOutstanding,customer(id,name)
+```
+Log: invoiceNumber, amountCurrencyOutstanding (should be 0 for full payment), customer. Confirm payment was applied correctly.
 
 ## Known Recovery Branches
 - if a larger multi-step flow already created order/invoice but failed before payment, resume at invoice locate step, do not rebuild earlier objects

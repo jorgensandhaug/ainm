@@ -79,11 +79,17 @@
 - original invoice linkage from `value.creditedInvoice`
 - `value.isCreditNote`
 
-## Verification
-- default verification is zero extra calls after the credit-note write
-- trust the write response when it proves:
-  - `isCreditNote=true`
-  - `creditedInvoice=<original invoice id>`
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the credit-note write, verify:
+
+```
+GET /invoice/{creditNoteId}?fields=id,invoiceNumber,isCreditNote,creditedInvoice,amountCurrency,amountExcludingVatCurrency,customer(id,name,organizationNumber)
+```
+Log: credit note number, isCreditNote, creditedInvoice, amounts, customer. Also verify the original invoice is now credited:
+```
+GET /invoice/{originalInvoiceId}?fields=id,invoiceNumber,isCredited
+```
+Log: isCredited (should be true).
 
 ## Known Recovery Branches
 - if the invoice locate step returns multiple candidates with DIFFERENT customers, amounts, or descriptions, add one extra targeted resolver such as `GET /customer?organizationNumber=...&fields=*`

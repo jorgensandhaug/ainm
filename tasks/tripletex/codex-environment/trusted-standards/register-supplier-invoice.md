@@ -24,10 +24,15 @@
 1. `POST /supplier` (with address + bank data if present in prompt) — response is `.value` (singular); extract `supplier.id` AND `supplier.ledgerAccount.id` (this IS account 2400's id — no extra GET needed)
 2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*` — response is `.values` (plural); extract `.values[0].id`
 3. `POST /ledger/voucher/importDocument` with a valid minimal EHF/UBL XML invoice — **response is `.values` (plural, NOT `.value`)** — extract `.values[0].id` and `.values[0].version`
-4. `PUT /ledger/voucher/{id}?sendToLedger=false` with `version` (from step 3) + `postings` (set correct accounts, amounts, VAT) — response is `.value` (singular); extract `.value.version`
-5. `PUT /ledger/voucher/{id}?sendToLedger=true` with `version` (from step 4 response) + `voucherType: { name: "Leverandørfaktura" }` — this BOOKS the voucher — response is `.value` (singular)
+4. `GET /supplierInvoice?voucherId={voucherId}&fields=*` — **verification**: confirm SI entity was created; log `id`, `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`, `invoiceDueDate`
+5. `PUT /ledger/voucher/{id}?sendToLedger=false` with `version` (from step 3) + `postings` (set correct accounts, amounts, VAT) — response is `.value` (singular); extract `.value.version`
+6. `PUT /ledger/voucher/{id}?sendToLedger=true` with `version` (from step 5 response) + `voucherType: { name: "Leverandørfaktura" }` — this BOOKS the voucher — response is `.value` (singular)
+7. `GET /ledger/voucher/{id}?fields=*` — **verification**: confirm `number > 0` (booked), log postings, description, voucherType
+8. `GET /supplier/{supplierId}?fields=*` — **verification**: confirm `postalAddress`, `physicalAddress`, `bankAccountPresentation` all populated
 
-For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3, making it a 6-call path.
+For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3.
+
+**GETs do NOT lower the score.** Use them liberally for verification and logging. The verification GETs (steps 4, 7, 8) catch problems early and provide diagnostic data for debugging failed runs.
 
 Use this create-first flow when the real task is fresh-account-like and the prompt gives only supplier business fields without saying the supplier already exists.
 
@@ -58,17 +63,12 @@ The correct sequence is:
 1. `PUT /ledger/voucher/{id}?sendToLedger=false` — sets postings (version from importDocument response)
 2. `PUT /ledger/voucher/{id}?sendToLedger=true` — books the voucher (version from step 1 response)
 
-## Minimal-Call Claim
-- for the exact fresh-account-like shape with **25% incoming VAT**, the canonical path is **5** API calls
-- that 5-call path is:
-  1. `POST /supplier` — also provides `ledgerAccount.id` (account 2400) — do NOT waste a separate GET for it
-  2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*` — for the expense account only
-  3. `POST /ledger/voucher/importDocument` with EHF XML
-  4. `PUT /ledger/voucher/{id}?sendToLedger=false` with postings (version from step 3)
-  5. `PUT /ledger/voucher/{id}?sendToLedger=true` with voucherType (version from step 4) — BOOKS
+## Call Counts
+- **Write calls**: 4 (POST supplier, POST importDocument, PUT postings, PUT book)
+- **Verification GETs**: 3 (GET supplierInvoice, GET voucher, GET supplier) — these do NOT lower score
+- **Lookup GETs**: 1 (GET account) — required for expense account id
+- **Total**: 8 calls for 25% VAT, 9 for non-25% VAT
 - `vatType.id=1` is the standard 25% incoming VAT type; stable across every sandbox and production instance tested
-- for **non-25% VAT**, add `GET /ledger/vatType`, making the path **6** calls
-- for the common existing-supplier shape with 25% VAT, the canonical path is also **5** calls, with step 1 replaced by `GET /supplier?...`
 
 ## XML Rules
 - the XML must be a valid EHF/UBL invoice — not a dummy blob
@@ -137,10 +137,25 @@ The correct sequence is:
 - `bankAccountPresentation`: use `[{ bban: "<11-digit-number>" }]` inside the same `POST /supplier`
   - do NOT use the deprecated `bankAccounts` string array field — it silently does nothing
 
-## Verification
-- the booking PUT response proves the voucher is booked (`number > 0`)
-- the importDocument step creates the supplierInvoice entity automatically — no extra GET needed
-- only add additional GET calls if the write response contradicts the intended state
+## Verification (GETs are FREE — use them)
+
+GETs do NOT count against scoring. ALWAYS verify after writes:
+
+1. **After importDocument** (step 4): `GET /supplierInvoice?voucherId={id}&fields=*`
+   - Confirm: `count > 0`, SI entity exists
+   - Log: `id`, `amount` (should be -gross), `amountExcludingVat` (should be -net), `invoiceNumber`, `kidOrReceiverReference`, `invoiceDueDate`, `outstandingAmount`
+   - If count=0: importDocument failed silently — STOP, do not proceed
+
+2. **After booking** (step 7): `GET /ledger/voucher/{id}?fields=*`
+   - Confirm: `number > 0` (booked)
+   - Log: `description`, `voucherType.name`, all postings with `account.number`, `amount`, `amountGross`, `vatType`
+   - If number=0: booking failed — investigate
+
+3. **After all writes** (step 8): `GET /supplier/{id}?fields=*`
+   - Confirm: `postalAddress` populated, `physicalAddress` populated, `bankAccountPresentation` populated (if bank account was in prompt)
+   - Log: full address fields, country.id
+
+**Log everything** — console.log the full JSON response from each verification GET. This data is critical for debugging failed production runs.
 
 ## Known Recovery Branches
 - if the run is explicit-existing-supplier or retry/persistent-account and the supplier lookup returns zero hits, create the supplier once and continue with the returned ids

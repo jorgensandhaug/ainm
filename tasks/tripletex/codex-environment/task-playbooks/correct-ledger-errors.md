@@ -31,15 +31,22 @@ Also extract the period: typically Jan–Feb 2026, so `DATE_FROM=2026-01-01`, `D
 ## Execution
 
 1. Read the trusted standard (`correct-ledger-errors.md`)
-2. It contains a complete, runnable script template (~240 lines)
+2. It contains a complete, runnable script template
 3. Fill in the 10 extracted values + BASE/TOKEN
-4. Run it — 3 API calls, 0 expected errors
+4. Run it — 1 POST (scored) + GETs for detection & verification (free)
 
 **Do not rewrite the detection logic.** The template handles all edge cases. Just fill in constants and run.
 
+The template includes:
+- **Pre-POST validation**: checks balance sums to 0, all account IDs resolved
+- **Post-POST verification**: re-fetches all vouchers and computes per-account totals to confirm all 4 checks will pass
+- **Detailed logging**: every candidate voucher logged with full posting breakdown for debugging
+
 ## Scoring (6 points max)
 
-4 correctness checks (0.75 each = 3.0 max) + efficiency bonus (3 calls = 3.0 max):
+GETs are FREE — only POST/PUT/DELETE count for efficiency. This script uses 1 POST = max efficiency.
+
+4 correctness checks (0.75 each = 3.0 max) + efficiency bonus (1 POST = 3.0 max):
 - **Check 1**: wrong-account source zeroed, target has the amount
 - **Check 2**: duplicate reversed (net effect = single entry)
 - **Check 3**: account 2710 has ≥ `MV_EXCL_VAT * 0.25`

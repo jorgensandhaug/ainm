@@ -87,11 +87,19 @@
   - `value.amountCurrencyOutstanding`
   - `value.projectInvoiceDetails`
 
-## Verification
-- default verification is zero extra calls after the successful invoice write
-- stop after `POST /invoice` succeeds
-- do not add a default `GET /invoice/{id}` just because the invoice write response keeps `orders[0].project` sparse or null
-- only add `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` when the prompt explicitly scores linked project fields that the write response omits or later workflow truly depends on them
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the invoice write, verify:
+
+```
+GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*),customer(id,name,organizationNumber)
+```
+Log: invoiceNumber, amountExcludingVatCurrency, amountCurrency, amountCurrencyOutstanding, customer, project linkage, order lines. Confirm all amounts match prompt expectations.
+
+Also verify the project update if applicable:
+```
+GET /project/{id}?fields=*,customer(id,name)
+```
+Log: fixedprice, isFixedPrice, customer. Confirm the fixed price was set correctly.
 
 ## Known Recovery Branches
 - if `POST /invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:

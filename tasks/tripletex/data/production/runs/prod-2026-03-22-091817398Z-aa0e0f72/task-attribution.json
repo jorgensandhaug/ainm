@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-091817398Z-aa0e0f72",
+  "request_id": "4955f056",
+  "prompt_raw": "Me har ein ny tilsett som heiter Bjørn Neset, fødd 21. February 1996. Opprett vedkomande som tilsett med e-post bjrn.neset@example.org og startdato 16. June 2026.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T09:19:08Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T09:18:17.503Z",
+  "after_captured_at": "2026-03-22T09:19:38.997Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "01",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T09:19:38.999Z"
+}

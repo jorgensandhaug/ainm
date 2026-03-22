@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-093525286Z-2d8d3783",
+  "request_id": "02065bcb",
+  "prompt_raw": "Vi har oppdaget feil i hovedboken for januar og februar 2026. Gå gjennom alle bilag og finn de 4 feilene: en postering på feil konto (konto 7140 brukt i stedet for 7100, beløp 5850 kr), et duplisert bilag (konto 7300, beløp 1200 kr), en manglende MVA-linje (konto 6540, beløp ekskl. 13000 kr mangler MVA på konto 2710), og et feil beløp (konto 7100, 19050 kr bokført i stedet for 7100 kr). Korriger alle feil med riktige bilag.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T09:37:37Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T09:35:25.345Z",
+  "after_captured_at": "2026-03-22T09:38:07.856Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "24",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T09:38:07.859Z"
+}

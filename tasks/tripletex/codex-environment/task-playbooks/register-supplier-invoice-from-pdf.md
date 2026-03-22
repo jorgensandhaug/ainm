@@ -7,23 +7,26 @@
 - PDF contains: supplier name, org number, address, bank account, invoice number, dates, amounts, expense account
 - if prompt has all data inline (no PDF) → use `register-supplier-invoice.md` instead
 
-## Proven Best Path (5 calls, 25% VAT)
+## Proven Best Path (6 writes + free GETs, 25% VAT)
 1. `POST /supplier` — with postalAddress + physicalAddress + country:{id:161} + bankAccountPresentation → extract `supplierId` AND `ledgerAccount.id` (this is account 2400)
-2. `GET /ledger/account?number=<expense-acct>&isApplicableForSupplierInvoice=true&fields=id,number` — expense account only; credit-side 2400 comes from step 1
-3. `POST /ledger/voucher/importDocument` — EHF/UBL XML → response is `.values[0]` (NOT `.value`)
-4. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings with vatType:{id:1}; credit account = `ledgerAccount.id` from step 1
-5. `PUT /ledger/voucher/{id}?sendToLedger=true` — book with `{ version, voucherType: { name: "Leverandørfaktura" } }`
+2. `GET /ledger/account?number=<expense-acct>&isApplicableForSupplierInvoice=true&fields=id,number` — expense account only; credit-side 2400 comes from step 1 (free GET)
+3. `POST /ledger/voucher/importDocument` — EHF/UBL XML with PaymentMeans → response is `.values[0]` (NOT `.value`)
+4. `POST /ledger/voucher/{voucherId}/attachment` — upload original PDF as FormData
+5. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings with vatType:{id:1}; credit account = `ledgerAccount.id` from step 1
+6. `PUT /ledger/voucher/{id}?sendToLedger=true` — book with `{ version, voucherType: { name: "Leverandørfaktura" } }`
+7. Verification GETs (free): supplier, voucher, supplierInvoice (search by invoiceNumber), postings
 
 ## Critical Rules
-- **TIMEOUT**: After reading the trusted standard, IMMEDIATELY write the script and run it. Do NOT read additional files. 2 runs (4c255d98, de228487) scored 0% by timing out without ever executing a script.
-- **PaymentMeans is REQUIRED in the EHF XML** — without it, `kidOrReceiverReference` on the SI entity stays empty and Check 5 fails. Add `<cac:PaymentMeans>` with `<cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>` and `<cac:PayeeFinancialAccount><cbc:ID>${bankAccount}</cbc:ID></cac:PayeeFinancialAccount>`. Check 5 had NEVER passed across 11 runs; this is the fix (sandbox-verified 2026-03-22).
-- MUST set both `postalAddress` AND `physicalAddress` with `country: { id: 161 }` — all runs that omitted physicalAddress failed
-- importDocument response is `.values[0]` — using `.value` crashes and creates orphaned SI entity
+- **TIMEOUT**: After reading the trusted standard, IMMEDIATELY write the script and run it. Do NOT read additional files. 2 runs scored 0% by timing out.
+- **PaymentMeans is REQUIRED in the EHF XML** — without it, `kidOrReceiverReference` stays empty and Check 5 fails. Sandbox-verified 2026-03-22: PaymentMeans populates `kidOrReceiverReference`.
+- **Upload original PDF** via `POST /ledger/voucher/{voucherId}/attachment` with FormData (201). Do NOT use `POST /document` (404) or PUT voucher document field (422 immutable).
+- MUST set both `postalAddress` AND `physicalAddress` with `country: { id: 161 }`
+- importDocument response is `.values[0]` — using `.value` crashes and creates orphaned SI
 - Do NOT combine postings + sendToLedger=true in one PUT — 422
-- Do NOT include postings in the booking step — only version + voucherType
-- Use `account: { id }` not `account: { number }` — the GET call is mandatory
+- Use `account: { id }` not `account: { number }` — GET is mandatory
 - Use `bankAccountPresentation: [{ bban }]` not deprecated `bankAccounts`
-- Do NOT waste a separate GET for account 2400 — extract `ledgerAccount.id` from POST /supplier response
+- Extract `ledgerAccount.id` from POST /supplier response — do NOT GET account 2400
+- **Search supplierInvoice by `invoiceNumber`**, NOT `supplierId` — supplierId filter has timing lag
 
 ## Production Run History
 
@@ -43,10 +46,12 @@
 
 **ROOT CAUSE of persistent Check 5 failure**: Missing `<cac:PaymentMeans>` in the EHF XML leaves `kidOrReceiverReference` empty on the supplierInvoice entity. Check 5 has NEVER passed across 11 runs. Fix: add PaymentMeans with `PaymentID=${invoiceNumber}` and `PayeeFinancialAccount/ID=${bankAccount}`. Sandbox-verified 2026-03-22.
 
-**Best path to 10/10:** importDocument (with PaymentMeans) + physicalAddress + country + booking = 5 calls. Extract `ledgerAccount.id` from POST /supplier response — do NOT waste a separate GET for account 2400.
+**Best path to 10/10:** importDocument (with PaymentMeans + PDF attachment) + physicalAddress + country + booking + verification GETs = 6 writes + free GETs. Extract `ledgerAccount.id` from POST /supplier response.
 
-## Sandbox-Verified Optimization Attempts (2026-03-22)
-- Combined PUT (postings + sendToLedger=true in one call) → **422** ("Bilag uten posteringer kan ikke bli sendt til hovedbok"). Cannot reduce steps 4+5 to 1 call.
-- `account: { number: 6300 }` without id → **422** ("postings.account.name: Kan ikke være null"). GET for expense account ID is mandatory.
-- `account: { number: 6300, name: "Leie lokale" }` without id → **422** ("Feltet må fylles ut"). API strictly requires `account: { id }`.
-- **5 calls is the proven minimum** for this task shape. No further reduction is possible.
+## Sandbox-Verified Fixes (2026-03-22)
+- **PaymentMeans → kidOrReceiverReference = CONFIRMED**: `<cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>` populates `kidOrReceiverReference` on the SI entity. All 11 prior runs omitted this and Check 5 failed.
+- **PDF attachment upload**: `POST /ledger/voucher/{voucherId}/attachment` with FormData → 201. Sets `attachment.mimeType=application/pdf` while preserving `ediDocument` (the XML).
+- **Verification GETs are FREE**: Add GET supplier, GET voucher, GET supplierInvoice (by invoiceNumber), GET postings after booking to confirm all fields.
+- Combined PUT (postings + sendToLedger=true) → **422**. Cannot reduce steps 5+6 to 1.
+- `account: { number }` without id → **422**. GET for expense account ID is mandatory.
+- **Awaiting first production run with PaymentMeans + PDF attachment to confirm 10/10.**

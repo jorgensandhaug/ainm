@@ -96,8 +96,22 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
 - 1 account missing: 1 GET + 1 POST (create) + 1 POST (voucher) = **3 calls**
 - 2+ accounts missing: same 3 calls (batch create)
 
+## Verification (GETs are FREE — use them)
+
+After the voucher POST, verify the created state:
+
+```
+GET /ledger/voucher/{id}?fields=id,number,date,description,postings(row,account(number,name),amountGross,amountGrossCurrency)
+```
+**Log every posting** — account number, name, amount. Confirm 6 postings with correct accounts and amounts.
+
+Optionally verify trial balance (GETs are free now):
+```
+GET /balanceSheet?dateFrom=YYYY-MM-01&dateTo=YYYY-MM+1-01&accountNumberFrom=1000&accountNumberTo=9999&fields=account(number,name),balanceOut&count=500
+```
+Log all non-zero `balanceOut` accounts. The voucher postings are balanced by construction so this should sum to zero.
+
 ## Do NOT
-- **Do NOT GET trial balance**: `GET /balanceSheet` does not create state. Scoring checks ledger postings only. The voucher postings are balanced by construction, so the trial balance is zero. Skipping this GET saves 1 call. Production 2026-03-21 confirmed: no balanceSheet GET, no correctness penalty.
 - **Do NOT use row 0**: Row 0 is system-generated (VAT). Triggers 422.
 - **Do NOT use account number/name without id**: `account: { number: 5000 }` or `account: { number: 5000, name: "..." }` without `id` → 422. Always resolve IDs first.
 - **Do NOT batch-create vouchers**: `/ledger/voucher/list` is PUT-only. Each voucher is `POST /ledger/voucher`.

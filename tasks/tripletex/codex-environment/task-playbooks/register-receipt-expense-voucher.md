@@ -60,9 +60,9 @@ The receipts show "herav MVA 25%: X" which means "of which VAT = X" — the VAT 
 
 ---
 
-## Step 3 — Execute the 4-Call Flow
+## Step 3 — Execute the API Flow
 
-All branches follow the same 4-call structure:
+GETs are free (don't affect score). Use them liberally to verify and log.
 
 ### Call 1: Create department
 ```
@@ -72,6 +72,7 @@ Body: { "name": "<department-name-from-prompt>", "departmentNumber": -1 }
 - On 409 Conflict: department already exists → `GET /department?name=<name>&isInactive=false&fields=*`
 - **WARNING**: GET is a substring search. If prompt says "Drift", results may include "Drift sandbox copy". Filter locally for exact `name == "Drift"`.
 - Extract `departmentId` from response.
+- **Log**: `department: id=<id>, name=<name>`
 
 ### Call 2: Resolve account IDs
 ```
@@ -79,21 +80,47 @@ GET /ledger/account?number=<expense-acct>,1920&fields=id,number,name,vatType(*),
 ```
 - Extract `expenseAccountId`, `bankAccountId` (1920), and for Branch B/C/D: `vatType.id` from the expense account.
 - For Branch C (7140): the account's default `vatType.id` is typically `12` (12%, lav sats). **Use this value. Do NOT override to 1.**
+- **Log**: `expenseAccount: id=<id>, number=<num>, vatType.id=<vtid>, vatLocked=<bool>` and `bankAccount: id=<id>, number=1920`
 
 ### Call 3: Book the voucher
 ```
 POST /ledger/voucher?sendToLedger=true     ← MUST include ?sendToLedger=true
 ```
 See payload shapes below.
+- **Log**: `voucher: id=<id>, number=<num>`
 
-### Call 4: Upload receipt attachment
+### Call 4: Verify voucher (GET — free, doesn't count)
+```
+GET /ledger/voucher/{voucherId}?fields=id,number,date,description,postings(row,amount,amountCurrency,amountGross,amountGrossCurrency,account(id,number,name),department(id,name),vatType(id,number,name,percentage),systemGenerated)
+```
+**Log every posting** — this is critical for debugging:
+```
+posting row=1: account=<number>(<name>) amountGross=<val> amount=<val> vatType=<id>(<pct>%) dept=<name>
+posting row=2: account=1920 amountGross=<val> amount=<val>
+posting row=3: [AUTO-VAT] account=<number> amount=<val>  (if present)
+```
+**Verify against expectations:**
+- [ ] Expense posting account number matches branch (7360/6540/7140/6860)
+- [ ] `amountGross` = receipt line amount (NOT multiplied)
+- [ ] `vatType.id` matches branch expectation (null for A, from-account for B/C/D)
+- [ ] `department.name` matches prompt department
+- [ ] For B/C/D: auto-VAT posting exists on correct account (2710 or 2712)
+
+### Call 5: Upload receipt attachment
 ```
 POST /ledger/voucher/{voucherId}/attachment
 Content-Type: multipart/form-data
 Body: file=<receipt-pdf-from-prompt-files>
 ```
 - Use the actual receipt file from the prompt's attached files.
-- Extract `attachmentId` from `response.value.attachment.id`.
+- **Log**: `attachment: id=<id>`
+
+### Call 6: Verify attachment (GET — free, doesn't count)
+```
+GET /ledger/voucher/{voucherId}?fields=id,number,attachment(id,fileName)
+```
+- **Log**: `attachment confirmed: id=<id>, fileName=<name>`
+- Verify `attachment.id > 0`
 
 ---
 
@@ -198,17 +225,19 @@ Tripletex auto-computes: `amount` = amountGross / 1.25, plus a 3rd posting on `2
 
 ---
 
-## Verification
+## Verification — Use the GET Readback (Calls 4 & 6)
 
-The voucher POST response already proves all scored fields. No extra GET needed unless a field is missing.
+The verification GETs are free (don't affect score). Always do them. Log all fields.
 
-| Check | What scorer looks for | Where to verify |
+| Check | What scorer looks for | Verify from GET readback |
 |---|---|---|
-| 1 — Voucher exists & booked | `voucher.id` > 0 and `voucher.number` > 0 | POST response `value.id`, `value.number` |
-| 2 — Correct expense account | Expense posting on correct account number | POST response `value.postings[0].account` |
-| 3 — Amount & VAT treatment | Correct `amountGross`, `vatType.id`, auto-VAT posting | POST response `value.postings` |
-| 4 — Correct department | Expense posting has correct department | POST response `value.postings[0].department` |
-| 5 — Attachment present | `attachment.id` > 0 | Attachment POST response `value.attachment.id` |
+| 1 — Voucher exists & booked | `voucher.id` > 0 and `voucher.number` > 0 | Call 4: `id`, `number` |
+| 2 — Correct expense account | Expense posting on correct account number | Call 4: `postings[0].account.number` |
+| 3 — Amount & VAT treatment | Correct `amountGross`, `vatType.id`, auto-VAT posting | Call 4: `amountGross`, `vatType`, system-generated posting |
+| 4 — Correct department | Expense posting has correct department | Call 4: `postings[0].department.name` |
+| 5 — Attachment present | `attachment.id` > 0 | Call 6: `attachment.id` |
+
+If any check fails in the GET readback, you have a bug. Fix it before the run ends.
 
 ---
 

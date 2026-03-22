@@ -51,34 +51,79 @@
 - **Why this matters:** The scorer may pre-create departments before running checks. If the agent creates a DUPLICATE department with a different ID, the employee is linked to the wrong department → Check 10 fails. In accounting software, departments are organizational entities that exist before employees join — you ASSIGN employees to existing departments, not create duplicates.
 - **Production evidence:** Check 10 has NEVER passed in any task 19 run. All runs used `POST /department` (always creates new). The strategy code uses GET-first and would reuse pre-existing departments. Sandbox-verified 2026-03-22: duplicate departments get different IDs; GET-first correctly finds and reuses the pre-existing one.
 
-## Standard Flow (5-6 calls when hardcoded, 6-7 when dynamic lookup needed)
+## Standard Flow
+
+**GETs are FREE — they do NOT count against efficiency.** Use them for pre-reads AND post-write verification. Only POSTs count (minimum 2-3 POSTs).
 
 ```
-Step 1 (parallel):
+Step 1 (parallel — all free GETs):
   GET /division?count=1&fields=id
-  GET /department?name=<dept-name>&isInactive=false&count=1000&fields=*    ← REUSE existing dept
+  GET /department?name=<dept-name>&isInactive=false&count=1000&fields=*
   GET /salary/settings?fields=municipality
   (if occupation code NOT in hardcoded table):
     GET /employee/employment/occupationCode?nameNO=<name>&count=10&fields=id,nameNO
 
-Step 2 (conditional — only if Step 1 found NO exact department match):
+Step 2 (conditional POST — only if Step 1 found NO exact department match):
   POST /department  { name: "<dept-name>" }
 
-Step 3:
+Step 3 (POST):
   POST /employee    (see unified payload below — include email, payrollTaxMunicipalityId)
 
-Step 4:
+Step 4 (POST):
   POST /employee/standardTime  { employee: { id: <empId> }, fromDate: "<startDate>", hoursPerDay: <hours or 7.5> }
 
-Step 5:
-  Stop. No verification GETs needed.
+Step 5 (parallel verification — all free GETs, ALWAYS do these):
+  GET /employee/<empId>?fields=*,department(*),employments(*)
+  GET /employee/standardTime?employeeId=<empId>&fields=*
+
+Step 6 (one more free GET — needs employmentId from Step 5):
+  Extract employmentId from Step 5: employments[0].id
+  GET /employee/employment/details?employmentId=<employmentId>&fields=*
+  → This returns the FULL employment details including occupationCode, payrollTaxMunicipalityId, annualSalary etc.
+  → The Step 5 employee readback does NOT expand employmentDetails (returns only {id, url} stubs).
 ```
 
 **Department resolution logic (Step 1→2):**
 - From Step 1 GET /department response: scan `values[]` for an entry whose `name` exactly matches the department name (case-insensitive).
 - If found: use its `id` directly. If multiple matches, pick the one with the HIGHEST `id`.
 - If NOT found (0 matches or no exact match): proceed to Step 2 and POST to create it.
-- This adds 0 or 1 extra call vs the old POST-always approach.
+
+**Verification readback (Steps 5-6) — MUST DO, GETs are free:**
+Run Step 5 GETs in parallel. Then use the employmentId from Step 5 to run Step 6. Log all responses and check:
+
+From GET /employee (Step 5):
+
+| Field | Path | Expected |
+|-------|------|----------|
+| firstName | .firstName | matches PDF |
+| lastName | .lastName | matches PDF |
+| dateOfBirth | .dateOfBirth | matches PDF |
+| email | .email | matches PDF (if provided) |
+| department.name | .department.name | matches prompted dept |
+| NIN | .nationalIdentityNumber | matches PDF |
+| bankAccount | .bankAccountNumber | matches PDF |
+| startDate | .employments[0].startDate | matches PDF |
+
+From GET /employee/employment/details (Step 6):
+
+| Field | Path | Expected |
+|-------|------|----------|
+| employmentType | .employmentType | ORDINARY |
+| employmentForm | .employmentForm | PERMANENT |
+| remunerationType | .remunerationType | MONTHLY_WAGE |
+| workingHoursScheme | .workingHoursScheme | NOT_SHIFT |
+| annualSalary | .annualSalary | matches PDF |
+| percentage | .percentageOfFullTimeEquivalent | matches PDF |
+| occupationCode | .occupationCode.id | NOT null, matches sent id |
+| payrollTaxMunicipalityId | .payrollTaxMunicipalityId.id | NOT null (if municipality in settings) |
+
+From GET /employee/standardTime (Step 5):
+
+| Field | Path | Expected |
+|-------|------|----------|
+| hoursPerDay | .values[0].hoursPerDay | 7.5 or PDF value |
+
+If ANY field is null or wrong, log `WARNING: <field> = <actual>, expected <expected>`. This makes debugging from run traces trivial and catches silent failures like `occupationCode: { code: "..." }` → null.
 
 ## Complete Payload (copy-paste and fill in)
 
@@ -212,4 +257,5 @@ Eliminated hypotheses:
 - **Check 10 re-attribution**: Check 10 is NOT about standardTime (21c3fea8 called standardTime but Check 10 still failed). Strong hypothesis: Check 10 = department (all runs POST-always → always fails). a2367369 also POST-always → also Check 10 fail, consistent.
 - **Task 19 standardTime fix verified 2026-03-22**: unconditional standardTime POST → hoursPerDay=7.5 confirmed stored
 - Strategy code updated 2026-03-22: standardTime POST now unconditional (defaults to 7.5 when not specified)
-- 5-6 calls is the new minimum: GET /division + GET /department + GET /salary/settings (parallel) → [optional POST /department] → POST /employee → POST /employee/standardTime
+- POSTs: 2-3 minimum (employee + standardTime + optional dept). GETs: 6-7 (all free). Total calls: 8-10 but only POSTs count.
+- **Readback field expansion verified 2026-03-22**: `fields=*,department(*),employments(*)` returns department.name but employmentDetails are stubs ({id,url} only). Must use separate `GET /employee/employment/details?employmentId=<id>&fields=*` for full details (occupationCode, payrollTaxMunicipalityId, annualSalary etc.)

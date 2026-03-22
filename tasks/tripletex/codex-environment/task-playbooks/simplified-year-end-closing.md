@@ -62,114 +62,53 @@ After the initial `GET /ledger/account`, check which accounts were NOT returned 
 Standard names for commonly missing accounts:
 - 1209: "Akkumulerte avskrivninger"
 
-## Minimum API Flow (8–10 calls)
+## API Flow (GETs are FREE — use them for verification and logging)
 
-### Phase 0: Module Activation (1 POST) — CRITICAL
-0. `POST /company/salesmodules` with body `{ "name": "YEAR_END_REPORTING_AS" }`
-   - Activates year-end reporting for AS companies
-   - 201 = activated, 409 = already active (both OK — not an error)
-   - If proxy returns 404/405, endpoint may not be available — continue with pipeline
-   - **14 production runs WITHOUT this step all scored 6/10 — this is the top hypothesis for fixing checks 4+5**
+### Phase 0: Module Activation + Baseline (1 POST + 2 GETs)
+0a. `POST /company/salesmodules` with body `{ "name": "YEAR_END_REPORTING_AS" }`
+   - 201 = activated, 409 = already active (both OK)
+   - **14 production runs WITHOUT this step all scored 6/10 — top hypothesis for checks 4+5**
+
+0b. `GET /yearEnd?year=YYYY&fields=*` — log baseline yearEnd state before any vouchers
+
+0c. `GET /company/modules?fields=*` — verify module activation
 
 ### Phase 1: Account lookup (1 GET)
-1. `GET /ledger/account?number=<all-needed>&fields=id,number,name`
-   - Include ALL accounts: depreciation cost, accumulated depreciation, prepaid, expense contra, tax expense, tax payable, AND result disposition
-   - Example: `number=1209,6010,1700,6300,7500,8700,2920,8800,2050`
-   - Include BOTH 6300 and 7500 so the correct contra is already resolved after reading 1700's name
-   - Check which accounts were returned
-   - Read account 1700's name to determine the prepaid contra
+1. `GET /ledger/account?number=1209,6010,1700,6300,7500,8700,2920,8800,2050&fields=id,number,name`
+   - Log every returned account number+name
+   - Read 1700's name to determine prepaid contra
 
-### Phase 1b: Create missing accounts (0–1 call)
-2. If any accounts from step 1 were NOT returned:
-   - 1 missing → `POST /ledger/account`
-   - 2+ missing → `POST /ledger/account/list` (batch create, single call)
-   - Reuse returned IDs from the create response
-   - Typically only 1209 is missing
+### Phase 1b: Create missing accounts (0–1 POST)
+2. Typically only 1209 is missing. Create if needed.
 
-### Phase 2: Four POSTs — depreciation + prepaid (4 calls)
+### Phase 2: Depreciation + prepaid (4 POSTs + verification GETs)
 3–5. Three `POST /ledger/voucher` for depreciation (one per asset):
-```json
-{
-  "date": "YYYY-12-31",
-  "description": "Avskrivning <asset> YYYY",
-  "postings": [
-    { "row": 1, "account": { "id": "<depCostAcctId>" }, "amountGross": "<amount>", "amountGrossCurrency": "<amount>", "description": "Avskrivning <asset>" },
-    { "row": 2, "account": { "id": "<accumDepAcctId>" }, "amountGross": "-<amount>", "amountGrossCurrency": "-<amount>", "description": "Akk. avskrivning <asset>" }
-  ]
-}
-```
+   - DR 6010 / CR 1209 for each calculated amount
+   - After each POST, `GET /ledger/voucher/<id>?fields=*` to verify and log
 
-6. One `POST /ledger/voucher` for prepaid expense reversal:
-```json
-{
-  "date": "YYYY-12-31",
-  "description": "Periodisering forskuddsbetalte kostnader",
-  "postings": [
-    { "row": 1, "account": { "id": "<expenseContraId>" }, "amountGross": "<prepaidAmount>", "amountGrossCurrency": "<prepaidAmount>", "description": "Periodisering leiekostnad" },
-    { "row": 2, "account": { "id": "<prepaidAcctId>" }, "amountGross": "-<prepaidAmount>", "amountGrossCurrency": "-<prepaidAmount>", "description": "Forskuddsbetalte kostnader" }
-  ]
-}
-```
+6. One `POST /ledger/voucher` for prepaid reversal:
+   - DR contra (6300 or 7500) / CR 1700 for prepaid amount
+   - GET-verify after POST
 
 ### Phase 3: Balance sheet for tax (1 GET — POST-THEN-READ)
 7. `GET /balanceSheet?dateFrom=YYYY-01-01&dateTo=YYYY+1-01-01&accountNumberFrom=3000&accountNumberTo=8299&fields=*,account(id,number,name)&count=1000`
-   - Read AFTER posting depreciation + prepaid vouchers
-   - The balance sheet now includes those entries — no manual adjustment needed
-   - **Range 3000-8299**: excludes tax accounts (8300+) and disposition (8800+)
-   - `accountNumberTo` is INCLUSIVE, so 8299 excludes 8300
-   - Sum `balanceOut` across all returned rows
-   - `preTaxProfit = -(sumOfBalanceOut)`
-   - `taxAmount = Math.round(Math.max(0, preTaxProfit) * 0.22)`
+   - **Log every row with non-zero balanceOut**
+   - Sum balanceOut → preTaxProfit = -(sum) → taxAmount = Math.round(max(0, preTaxProfit) * 0.22)
+   - **Log: sumBalanceOut, preTaxProfit, taxAmount**
 
-### Phase 4: Tax voucher (0–1 POST)
-8. One `POST /ledger/voucher` for tax expense (only if `taxAmount > 0`):
-```json
-{
-  "date": "YYYY-12-31",
-  "description": "Skattekostnad YYYY",
-  "postings": [
-    { "row": 1, "account": { "id": "<8700_id>" }, "amountGross": "<taxAmount>", "amountGrossCurrency": "<taxAmount>", "description": "Skattekostnad" },
-    { "row": 2, "account": { "id": "<2920_id>" }, "amountGross": "-<taxAmount>", "amountGrossCurrency": "-<taxAmount>", "description": "Betalbar skatt" }
-  ]
-}
-```
+### Phase 4: Tax voucher (0–1 POST + verification GET)
+8. DR 8700 / CR 2920 for taxAmount (only if > 0). GET-verify after POST.
 
-### Phase 5: Result disposition voucher (1 POST) — MANDATORY
-9. Compute `postTaxResult = preTaxProfit - taxAmount` (local, no API call needed).
-   One `POST /ledger/voucher` for result disposition:
+### Phase 5: Result disposition (1 POST)
+9. postTaxResult = preTaxProfit - taxAmount. Use 8800/2050 (NOT 8960).
+   - Profit: DR 8800 / CR 2050
+   - Loss: DR 2050 / CR 8800
+   - Zero: skip
 
-**CRITICAL: Use 8800 "Årsresultat" — NOT 8960 "Overføringer annen egenkapital".**
-
-**If postTaxResult > 0 (profit):**
-```json
-{
-  "date": "YYYY-12-31",
-  "description": "Disponering av årsresultat YYYY",
-  "postings": [
-    { "row": 1, "account": { "id": "<8800_id>" }, "amountGross": "<postTaxResult>", "amountGrossCurrency": "<postTaxResult>", "description": "Årsresultat" },
-    { "row": 2, "account": { "id": "<2050_id>" }, "amountGross": "-<postTaxResult>", "amountGrossCurrency": "-<postTaxResult>", "description": "Annen egenkapital" }
-  ]
-}
-```
-
-**If postTaxResult < 0 (loss):**
-```json
-{
-  "date": "YYYY-12-31",
-  "description": "Disponering av årsresultat YYYY",
-  "postings": [
-    { "row": 1, "account": { "id": "<2050_id>" }, "amountGross": "<|postTaxResult|>", "amountGrossCurrency": "<|postTaxResult|>", "description": "Annen egenkapital" },
-    { "row": 2, "account": { "id": "<8800_id>" }, "amountGross": "-<|postTaxResult|>", "amountGrossCurrency": "-<|postTaxResult|>", "description": "Årsresultat" }
-  ]
-}
-```
-
-**If postTaxResult == 0**: skip the voucher.
-
-## Call Count Summary
-- Only 1209 missing: 1 POST (module) + 1 GET (accounts) + 1 POST (create 1209) + 4 POST (vouchers) + 1 GET (BS) + 1 POST (tax) + 1 POST (disposition) = **10 calls**
-- All accounts exist: 1 POST (module) + 1 GET + 4 POST + 1 GET + 1 POST + 1 POST = **9 calls**
-- Tax result ≤ 0: subtract 1 POST (tax), keep 1 POST (disposition) = **8 or 9 calls**
+### Phase 6: Final State Verification (3 GETs) — CRITICAL FOR DIAGNOSTICS
+10. `GET /yearEnd?year=YYYY&fields=*` — log FINAL yearEnd state, compare with baseline
+11. `GET /balanceSheet?dateFrom=YYYY-01-01&dateTo=YYYY+1-01-01&accountNumberFrom=1000&accountNumberTo=9999&fields=account(number,name),balanceOut&count=2000` — log ALL non-zero accounts
+12. `GET /ledger/voucher?dateFrom=YYYY-12-31&dateTo=YYYY+1-01-01&fields=id,number,date,description,postings(row,account(number,name),amountGross)&count=50` — log ALL year-end vouchers
 
 ## Critical Pitfalls
 - **2-decimal rounding for depreciation**: Use `Math.round(cost / life * 100) / 100`, NOT `Math.round(cost / life)`. Integer rounding loses fractional amounts and causes scoring failures.

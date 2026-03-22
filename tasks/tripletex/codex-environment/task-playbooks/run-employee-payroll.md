@@ -198,11 +198,12 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
    - sandbox proof 2026-03-21: with `row` → voucher number=387; without `row` → `422 systemgenererte`
 9. Reuse the write response first
    - keep the returned transaction id
-   - the salary transaction POST 201 proves the payslip was created; the voucher POST proves the ledger entries exist; do not add verification GETs by default
-10. Verification is only justified if:
-   - the POST returned a non-201 status and partial state might exist
-   - the task explicitly asks the agent to report back the created amounts
-   - if needed: `GET /salary/payslip/{payslipId}?fields=*,specifications(*,salaryType(*))` for full line-level proof
+   - the salary transaction POST 201 proves the payslip was created; the voucher POST proves the ledger entries exist
+10. **Verification GETs (free — ALWAYS do these)**:
+   - `GET /salary/payslip/{payslipId}?fields=*,specifications(*,salaryType(*))` — log grossAmount, netAmount, each specification (salaryType.name, amount, rate, count), Skattetrekk
+   - `GET /ledger/voucher/{voucherId}?fields=*,postings(*,account(number,name)),voucherType(id,name)` — log voucherType, all postings (account 5000 debits + 1920 credit)
+   - `GET /salary/transaction/{txId}?fields=*` — log transaction id, year, month, payslip count
+   - GETs are free and do not count against the score — use them to confirm the full state
 
 ## Recommended Payload Shape
 
@@ -255,21 +256,25 @@ Replace the ids and amounts with the task-specific values.
   - identifies one existing employee by email
   - asks to run payroll for one month
   - gives a base salary and one bonus amount
-- the winning flow for payroll-ready employees (5 calls, 2 rounds):
-  1. `Promise.all`: `GET /employee?email=...&count=10&fields=*` + `GET /salary/type?count=1000&fields=*` + `GET /ledger/account?number=5000,1920&count=10&fields=*`
-  2. `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` + `POST /ledger/voucher?sendToLedger=true` with `voucherType: { name: "Lønnsbilag" }` — independent writes run in parallel; voucher postings MUST use `amountGross`/`amountGrossCurrency` with explicit `row: 1, 2, 3`
-  - if employments are too sparse after step 1, insert a conditional `GET /employee/employment` between steps 1 and 2 (6 calls, 3 rounds)
-- for the underconfigured branch (8 calls, 4 rounds):
-  1. `Promise.all`: `GET /employee?email=...&count=10&fields=*` + `GET /salary/type?count=1000&fields=*` + `GET /ledger/account?number=5000,1920&count=10&fields=*` — all independent reads in one round
-  2. `Promise.all`: `POST /division` (always create, skip GET) + `PUT /employee/{id}` with `dateOfBirth: "1990-01-01"`
-  3. `POST /employee/employment` with inline `employmentDetails[]` (needs division.id from step 2)
-  4. `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` + `POST /ledger/voucher?sendToLedger=true` with `voucherType: { name: "Lønnsbilag" }` — independent writes run in parallel; voucher postings MUST use `amountGross`/`amountGrossCurrency` (not just `amount`) with explicit `row: 1, 2, 3`
-  - NOTE: `voucherType: { name }` stores null on readback but scorer does NOT check voucherType — production runs 2b1b0da1 and 08a38984 both scored 4/4 with null type; do NOT add GET /ledger/voucherType — wastes 1 call; sandbox-verified 2026-03-22
-  - do NOT add verification GETs — POST 201 proves the state
-  - production proof (08a38984, 2026-03-22): 8 calls, 0 errors, 4/4 checks — optimal path for underconfigured branch
-  - production proof (2b1b0da1): 11-call version scored 8/8, normalized 2.333/4.0, 4/4 checks; confirmed Check 5 verifies ledger entries
-- DEPRECATED fallback-permitted no-division branch: DO NOT USE — creates no payslip; always use the 8-call salary path with `POST /division` instead
-- do not add verification GETs by default; POST 201 already proves the state
+- **Scoring model (updated 2026-03-22): GETs are free — only writes (POST/PUT/DELETE) count toward efficiency score. Use GETs liberally for verification and logging.**
+- the winning flow for payroll-ready employees (**2 writes**):
+  1. `Promise.all`: `GET /employee` + `GET /salary/type` + `GET /ledger/account` + `GET /ledger/voucherType?name=Lønnsbilag` — 4 free reads
+  2. `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` + `POST /ledger/voucher?sendToLedger=true` with `voucherType: { id }` — **2 writes**; voucher postings MUST use `amountGross`/`amountGrossCurrency` with explicit `row: 1, 2, 3`
+  3. Verify: `Promise.all`: `GET /salary/payslip/{id}?fields=*,specifications(*,salaryType(*))` + `GET /ledger/voucher/{id}?fields=*,postings(*,account(*)),voucherType(*)` + `GET /salary/transaction/{id}?fields=*` — free verification
+  - if employments too sparse after step 1, insert `GET /employee/employment` (still 2 writes)
+- for the underconfigured branch (**5 writes**):
+  1. `Promise.all`: `GET /employee` + `GET /salary/type` + `GET /ledger/account` + `GET /ledger/voucherType?name=Lønnsbilag` — 4 free reads
+  2. `Promise.all`: `POST /division` (always create, skip GET) + `PUT /employee/{id}` with `dateOfBirth: "1990-01-01"` — **2 writes**
+     - verify: `GET /employee/{id}?fields=id,firstName,lastName,dateOfBirth` — free
+  3. `POST /employee/employment` with inline `employmentDetails[]` — **1 write**
+     - verify: `GET /employee/employment/{id}?fields=*,employmentDetails(*)` — free
+  4. `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` + `POST /ledger/voucher?sendToLedger=true` with `voucherType: { id }` — **2 writes**; voucher postings MUST use `amountGross`/`amountGrossCurrency` with explicit `row: 1, 2, 3`
+  5. Verify: `Promise.all`: `GET /salary/payslip/{id}?fields=*,specifications(*,salaryType(*))` + `GET /ledger/voucher/{id}?fields=*,postings(*,account(id,number,name)),voucherType(id,name)` + `GET /salary/transaction/{id}?fields=*` — free
+  - sandbox proof on 2026-03-22: 5 writes, 0 errors, 14/14 checks; voucherType correctly persisted via { id }
+  - production proof (08a38984): 8 calls, 0 errors, 4/4 checks (pre-optimization scoring model)
+  - production proof (2b1b0da1): 11-call version scored 2.333/4.0, 4/4 checks; Check 5 verifies ledger entries
+- DEPRECATED fallback-permitted no-division branch: DO NOT USE — creates no payslip; always use the 5-write salary path with `POST /division` instead
+- ALWAYS add verification GETs after writes — they are free and help confirm state and log important details
 - only branch into feature/module investigation after a live `403`
 
 ## Payroll Prerequisite Trap
@@ -300,10 +305,10 @@ Replace the ids and amounts with the task-specific values.
 - `POST /salary/transaction`
   - expect `ResponseWrapperSalaryTransaction`
   - response is always sparse: only transaction id, date, year, month, and payslip link stubs (id + url) — never amounts or specifications
-  - POST 201 proves the state was created correctly; do not add verification GETs by default
-- if verification is explicitly needed:
-  - `GET /salary/payslip/{id}?fields=*,specifications(*,salaryType(*))` for full line-level proof including amounts
-  - `GET /salary/payslip/{id}?fields=*` keeps `specifications[]` as link-only objects; do not mistake that sparse shape for missing salary lines
+- **ALWAYS verify after writes (GETs are free)**:
+  - `GET /salary/payslip/{id}?fields=*,specifications(*,salaryType(*))` — full line-level proof including amounts, Skattetrekk
+  - `GET /ledger/voucher/{id}?fields=*,postings(*,account(number,name)),voucherType(id,name)` — voucher postings and type
+  - `GET /salary/payslip/{id}?fields=*` keeps `specifications[]` as link-only objects; use `fields=*,specifications(*,salaryType(*))` for expansion
 
 ## Avoidable Mistakes
 

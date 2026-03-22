@@ -76,7 +76,9 @@ All 4 production runs using 7360 for Kaffemøte scored 0/10.
 
 ---
 
-## Standard Flow — 4 API Calls
+## Standard Flow — 4 Write Calls + Free Verification GETs
+
+GETs are free (don't affect score). Use them to verify and log everything.
 
 ### Call 1: Create or resolve department
 **Option A (fresh account):** `POST /department` with `{ "name": "<dept>", "departmentNumber": -1 }`
@@ -84,6 +86,7 @@ All 4 production runs using 7360 for Kaffemøte scored 0/10.
 **Option B (existing):** `GET /department?name=<dept>&isInactive=false&fields=*`
 - **TRAP**: this is a substring search. "Drift" returns "Drift sandbox copy" too. Filter results locally for exact `name == "<dept>"`.
 - Extract `departmentId`.
+- **Log**: `department: id=<id>, name=<name>`
 
 ### Call 2: Resolve account IDs and vatType
 ```
@@ -92,6 +95,7 @@ GET /ledger/account?number=<expense-acct>,1920&fields=id,number,name,vatType(*),
 - Extract `expenseAccountId`, `bankAccountId` (for 1920)
 - For Branch B/C/D: extract `vatType.id` from the expense account response — use this directly, no separate GET /ledger/vatType needed
 - For Branch C (7140): the default `vatType.id` is typically `12` (12% lav sats). Use this value as-is.
+- **Log**: `expenseAccount: id=<id>, number=<num>, vatType.id=<vtid>, vatLocked=<bool>` and `bankAccount: id=<id>, number=1920`
 
 ### Call 3: Create and book the voucher
 ```
@@ -109,12 +113,30 @@ POST /ledger/voucher?sendToLedger=true
 - [ ] `date` = receipt date
 - [ ] `description` = receipt line text
 
+### Call 3b: Verify voucher (GET — free)
+```
+GET /ledger/voucher/{voucherId}?fields=id,number,date,description,postings(row,amount,amountCurrency,amountGross,amountGrossCurrency,account(id,number,name),department(id,name),vatType(id,number,name,percentage),systemGenerated)
+```
+**Log every posting** for debugging. Verify:
+- [ ] Expense posting `account.number` matches branch (7360/6540/7140/6860)
+- [ ] `amountGross` = receipt line amount (NOT multiplied)
+- [ ] `vatType.id` correct for branch
+- [ ] `department.name` matches prompt
+- [ ] For B/C/D: auto-VAT posting exists on correct account (2710 or 2712)
+
 ### Call 4: Upload receipt attachment
 ```
 POST /ledger/voucher/{voucherId}/attachment
 Content-Type: multipart/form-data
 Body: file=<receipt-file>
 ```
+
+### Call 4b: Verify attachment (GET — free)
+```
+GET /ledger/voucher/{voucherId}?fields=id,attachment(id,fileName)
+```
+- **Log**: `attachment: id=<id>, fileName=<name>`
+- Verify `attachment.id > 0`
 
 ---
 
@@ -267,23 +289,19 @@ Do NOT use:
 
 ---
 
-## Verification
+## Verification — Use the Free GET Readbacks
 
-The POST /ledger/voucher response proves all 5 scoring checks — no extra GET needed:
+GETs are free. Always do Calls 3b and 4b to verify all scored fields.
 
-| Check | Scorer field | Source |
+| Check | What scorer looks for | Verify from GET readback |
 |---|---|---|
-| 1 — Voucher exists & booked | `id` > 0, `number` > 0 | voucher POST response |
-| 2 — Correct expense account | posting account number | voucher POST response |
-| 3 — Amount & VAT | `amountGross` = receipt line, `vatType.id`, auto-VAT posting | voucher POST response |
-| 4 — Correct department | posting department | voucher POST response |
-| 5 — Attachment | `attachment.id` > 0 | attachment POST response |
+| 1 — Voucher exists & booked | `id` > 0, `number` > 0 | Call 3b: `id`, `number` |
+| 2 — Correct expense account | posting account number | Call 3b: `postings[0].account.number` |
+| 3 — Amount & VAT | `amountGross` = receipt line, `vatType.id`, auto-VAT posting | Call 3b: all posting fields |
+| 4 — Correct department | posting department | Call 3b: `postings[0].department.name` |
+| 5 — Attachment | `attachment.id` > 0 | Call 4b: `attachment.id` |
 
-## Reuse From Write Response
-- `POST /department`: `value.id`, `value.name`
-- `GET /ledger/account`: account IDs + `vatType.id` (for B/C/D)
-- `POST /ledger/voucher`: `value.id`, `value.number`, posting details
-- `POST /attachment`: `value.attachment.id`
+If any check fails in the GET readback, you have a bug. Fix it before the run ends.
 
 ---
 

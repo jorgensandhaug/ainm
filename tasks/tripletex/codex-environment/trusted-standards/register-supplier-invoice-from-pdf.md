@@ -9,14 +9,16 @@
 - prompt mentions "supplier invoice" + "PDF" (any language) + has a PDF attachment
 - if prompt has all data inline (no PDF) → use `./register-supplier-invoice.md` instead
 
-## Flow (5 calls, 25% VAT)
+## Flow (6 writes + free GETs, 25% VAT)
 1. `POST /supplier` — with postalAddress + physicalAddress + country + bankAccountPresentation → **extract `supplierId` AND `ledgerAccount.id`** (the supplier ledger account, always 2400)
-2. `GET /ledger/account?number=<expense-acct-from-PDF>&isApplicableForSupplierInvoice=true&fields=id,number` → `.values[0].id` (expense account only; credit-side account 2400 comes from step 1's `ledgerAccount.id`)
-3. `POST /ledger/voucher/importDocument` — FormData with EHF XML → **`.values[0].id`** and **`.values[0].version`** (NOT `.value`)
-4. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings → `.value.version`
-5. `PUT /ledger/voucher/{id}?sendToLedger=true` — book with `{ version, voucherType: { name: "Leverandørfaktura" } }`
+2. `GET /ledger/account?number=<expense-acct-from-PDF>&isApplicableForSupplierInvoice=true&fields=id,number` → `.values[0].id` (free GET)
+3. `POST /ledger/voucher/importDocument` — FormData with EHF XML (MUST include PaymentMeans) → **`.values[0].id`** and **`.values[0].version`** (NOT `.value`)
+4. `POST /ledger/voucher/{voucherId}/attachment` — upload original PDF as FormData
+5. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings → `.value.version`
+6. `PUT /ledger/voucher/{id}?sendToLedger=true` — book with `{ version, voucherType: { name: "Leverandørfaktura" } }`
+7. Verification GETs (free): GET supplier, GET voucher, GET supplierInvoice, GET postings — log all fields
 
-**Do NOT add a separate GET for account 2400** — the supplier POST response always includes `ledgerAccount: { id: <2400-id> }`. Using a separate GET wastes a call (6 instead of 5).
+**Do NOT add a separate GET for account 2400** — the supplier POST response always includes `ledgerAccount: { id: <2400-id> }`.
 
 For non-25% VAT, add `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<date>&fields=*` between steps 2–3.
 
@@ -119,7 +121,19 @@ const voucherId = imp.values[0].id;   // NOT .value — CRITICAL
 const version1 = imp.values[0].version;
 ```
 
-## Step 4: Set Postings (sendToLedger=false)
+## Step 4: Upload PDF Attachment
+```typescript
+const fs = require("fs");
+const pdfData = fs.readFileSync(pdfPath); // path to the PDF attachment from prompt
+const pdfForm = new FormData();
+pdfForm.append("file", new Blob([pdfData], { type: "application/pdf" }), "leverandorfaktura.pdf");
+const attRes = await fetch(`${BASE}/ledger/voucher/${voucherId}/attachment`, {
+  method: "POST", headers: { Authorization: AUTH }, body: pdfForm,
+});
+console.log("Attachment upload status:", attRes.status); // expect 201
+```
+
+## Step 5: Set Postings (sendToLedger=false)
 ```json
 {
   "version": "<version1 from step 3>",
@@ -142,9 +156,28 @@ const version1 = imp.values[0].version;
 ```
 **Row 2 credit account**: use `response.value.ledgerAccount.id` from the POST /supplier response (step 1). This is always account 2400. Do NOT make a separate GET for it.
 
-## Step 5: Book (sendToLedger=true)
-Body: `{ "version": <version-from-step-4-response>, "voucherType": { "name": "Leverandørfaktura" } }`
-Do NOT include postings — causes 422. Use version from step 4 response, not step 3.
+## Step 6: Book (sendToLedger=true)
+Body: `{ "version": <version-from-step-5-response>, "voucherType": { "name": "Leverandørfaktura" } }`
+Do NOT include postings — causes 422. Use version from step 5 response, not step 3.
+
+## Step 7: Verification GETs (free — do not count against score)
+After booking, run verification GETs to confirm all entities and log key fields:
+```typescript
+// Verify supplier
+const vs = await fetch(`${BASE}/supplier/${supplierId}?fields=id,name,organizationNumber,postalAddress(addressLine1,postalCode,city,country(id)),physicalAddress(addressLine1,postalCode,city,country(id)),bankAccountPresentation`, { headers: { Authorization: AUTH } });
+console.log("Supplier:", JSON.stringify((await vs.json()).value));
+
+// Verify voucher
+const vv = await fetch(`${BASE}/ledger/voucher/${voucherId}?fields=id,number,description,date,vendorInvoiceNumber,document,attachment,ediDocument,voucherType(id,name)`, { headers: { Authorization: AUTH } });
+console.log("Voucher:", JSON.stringify((await vv.json()).value));
+
+// Verify supplierInvoice (search by invoiceNumber — supplierId filter may lag)
+const si = await fetch(`${BASE}/supplierInvoice?invoiceDateFrom=2025-01-01&invoiceDateTo=2027-12-31&invoiceNumber=${invoiceNumber}&fields=id,invoiceNumber,invoiceDate,invoiceDueDate,amount,amountCurrency,amountExcludingVat,amountExcludingVatCurrency,outstandingAmount,kidOrReceiverReference,isCreditNote,supplier(id,name),voucher(id,number),orderLines(id,description)`, { headers: { Authorization: AUTH } });
+const siData = await si.json();
+console.log("SupplierInvoice:", JSON.stringify(siData.values?.[0]));
+console.log("kidOrReceiverReference:", siData.values?.[0]?.kidOrReceiverReference);
+```
+**IMPORTANT**: Search supplierInvoice by `invoiceNumber`, NOT by `supplierId` — the supplierId filter has a timing issue and may return 0 results immediately after booking.
 
 ## Pitfalls
 - **TIMEOUT KILLS**: Two production runs (prod-4c255d98, prod-de228487) scored 0% with 0 API calls because the agent read the standard then stalled in thinking for 5 minutes. After reading this file, IMMEDIATELY write the script and execute it. Do not read any other files.
@@ -156,4 +189,5 @@ Do NOT include postings — causes 422. Use version from step 4 response, not st
 - `bankAccounts` string array is deprecated — use `bankAccountPresentation: [{ bban }]`
 - Preserve exact description casing from PDF
 - Do NOT make a separate GET for account 2400 — extract `ledgerAccount.id` from POST /supplier response
-- **5 calls is the proven minimum** — sandbox-verified 2026-03-22: combining steps 4+5 → 422; using `account:{number}` or `account:{number,name}` without id → 422. Do NOT attempt to reduce below 5 calls.
+- **6 writes is the proven flow** — sandbox-verified 2026-03-22: combining steps 5+6 → 422; using `account:{number}` without id → 422. GETs are free and do not count.
+- **PDF attachment upload**: use `POST /ledger/voucher/{voucherId}/attachment` with FormData, NOT `POST /document` (404) or PUT voucher with document field (422 immutable)

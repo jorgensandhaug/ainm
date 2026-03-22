@@ -1,0 +1,1 @@
+Score reflection written. Key finding: perfect correctness (6/6 checks, 8/8 raw), but normalized_score 2.53/4.0 due to the 422 bank-account error costing ~1.47 points. Best score for task 09 already at 4.0 from a prior 3-call run. Proactive bank-account check would yield 5 calls / 0 errors instead of 6 calls / 1 error.

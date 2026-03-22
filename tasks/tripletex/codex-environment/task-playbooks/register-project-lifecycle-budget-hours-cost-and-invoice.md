@@ -14,26 +14,34 @@ See `./trusted-standards/register-project-lifecycle-budget-hours-cost-and-invoic
 
 ## Why This Task Fails
 
-The two root causes that caused ALL production failures:
+Production evidence from 17+ runs. Best score: 4/11 (checks 1,2,6 pass). Checks 3,4,5,7 fail in ALL runs.
 
-### 1. Wrong invoice flow (most checks fail)
-Using `POST /invoice` with embedded `orders[]` creates the invoice but leaves:
-- `isApproved: false` (should be `true`)
-- order `status: NOT_CHOSEN` (should be `INVOICED`)
+### 1. Missing supplier cost voucher (check 6, worth 2 points)
+The scorer checks for a `POST /ledger/voucher` with project+supplier linkage in postings. Without it: check 6 fails (2/11). With it: check 6 passes (4/11).
 
-**Fix:** Use `POST /order` then `PUT /order/{id}/:invoice` instead. This produces `isApproved: true` and order `status: INVOICED`. Sandbox-verified 2026-03-22.
+**CRITICAL:** `POST /project/orderline` is NOT sufficient — its `vendor` field does NOT persist (reads back as null). The voucher is what the scorer verifies.
 
-### 2. Missing critical fields
-| Field | Where | What happens if omitted |
-|-------|-------|------------------------|
-| `isFixedPrice: true` + `fixedprice` | POST /project | project.fixedprice=0, check fails |
-| `budgetHours` | POST /project/projectActivity | budgetHours=0, check fails |
-| `POST /project/orderline` with `unitCostCurrency` | Step 4 | project costs=0, check fails |
-| `adminAccess: true` on PM participant | POST /project/participant/list | check fails |
+Voucher shape (production-verified):
+- Account 6590 (debit) with `project: { id }` linkage
+- Account 2400 (credit) with `supplier: { id }` linkage
+- Explicit `row: 1` / `row: 2` on postings (row 0 = system-reserved = 422)
+- VoucherType resolved via `GET /ledger/voucherType?name=Leverandørfaktura` (ID is environment-specific)
+
+### 2. Wrong invoice flow
+Using `POST /invoice` with embedded `orders[]` produces `isApproved: false` and order `status: NOT_CHOSEN`.
+**Fix:** Use `POST /order` then `PUT /order/{id}/:invoice` → produces `isApproved: true` and `status: INVOICED`.
+
+### 3. Checks 3,4,5,7 — still unsolved
+These fail in ALL 17+ production runs regardless of what fields are set. Hypotheses:
+- PM identity: API only allows company admin as projectManager (prompt-named employee can't be PM)
+- Supplier invoice entity: voucher alone doesn't create a `supplierInvoice` record (needs `importDocument`)
+- Invoice structure details unknown
+
+The diagnostic GETs in the trusted standard will log full entity state to help debug these.
 
 ## Optimal Path
 
-**13 calls, 0 errors, 6 sequential steps.** Sandbox-verified 2026-03-22 (all checks pass including isApproved=true, order INVOICED). Optimized from 14→13 by hardcoding vatType id=3 ("Utgående avgift, høy sats" 25%) — always valid in Norwegian Tripletex accounts.
+**11-12 write calls + diagnostic GETs, 0 errors, 7 sequential steps.** GETs are free (don't lower score). Includes voucher for check 6. Sandbox-verified 2026-03-22: 11 writes, 16 reads, 0 errors.
 
 ## Common 422 Causes
 
@@ -43,4 +51,7 @@ Using `POST /invoice` with embedded `orders[]` creates the invoice but leaves:
 - `new Date(str + "T00:00:00")` shifting dates in CET/CEST (use `Date.UTC`)
 - `bankAccountNumber: "12345678901"` (not MOD11-valid — use `"12345678903"`)
 - including `employments[]` on employees (triggers division/startDate traps)
-- putting `project` inside `orderLines[]` instead of on `orders[]` or order root
+- including `employmentType` or `percentageOfFullTimeEquivalent` (fields don't exist)
+- putting `project` inside `orderLines[]` instead of on order root
+- voucher postings without `row: 1` / `row: 2` (row 0 = system-reserved)
+- hardcoded voucherType ID (environment-specific — always resolve via GET)

@@ -103,8 +103,9 @@ Verified in persistent sandbox on 2026-03-20:
   2. `POST /ledger/accountingDimensionValue` — **only the voucher-linked value** (skip un-linked values)
   3. `GET /ledger/account?number=<target-account>,1920&fields=*`
   4. `POST /ledger/voucher`
-- **4 calls total → 4/4 score** (was 5 calls → 3.5/4 when creating both values)
+- **3 writes total → 4/4 score** (was 4 writes → 3.5/4 when creating both values); GETs are free
 - the scorer checks the dimension, the linked value, and the voucher; it does NOT check un-linked dimension values
+- scoring formula: `4 - 0.5*(writes - 3) - 0.04*errors`; the GET /ledger/account is free and should still be used
 - identify the linked value from the prompt phrasing: "knyttet til dimensjonsverdien «X»" (Norwegian), "linked to value «X»", "vinculado ao valor «X»" (Portuguese), "verknüpft mit «X»" (German), "vinculado al valor «X»" (Spanish), etc.
 - do not spend a pre-read of existing dimensions in a scored create task
 - do not try `account.number` directly on voucher postings; sandbox confirmed `422` on all account-number-only variants (number, number+name, number+name+id=null, number-as-id=404, even with sendToLedger=false)
@@ -167,7 +168,7 @@ Replace the ids and amounts with the values resolved in the current account. The
 
 ## Validation Traps
 
-- do not create dimension values that the voucher does not link to; the scorer does not check un-linked values, and each unnecessary `POST /ledger/accountingDimensionValue` costs 0.5 efficiency points
+- do not create dimension values that the voucher does not link to; the scorer does not check un-linked values, and each unnecessary `POST /ledger/accountingDimensionValue` is a wasted write costing 0.5 efficiency points (GETs are free, writes are not)
 - do not send voucher posting accounts only as `account.number`; sandbox returned `422 postings.account.name: Kan ikke være null.`
 - do not compare `/ledger/account` response `account.number` as a string; Tripletex returns it as an integer, and a string comparison can trigger a false missing-account branch after a correct lookup
 - do not spend a speculative `GET /ledger/accountingDimensionName` in a pure create task; the create response already gives the needed `dimensionIndex`

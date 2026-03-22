@@ -55,11 +55,15 @@
 - returned defaults like `invoiceSendMethod` if later logic unexpectedly needs them
 - ignore any sparse auto-generated `value.physicalAddress` link unless the prompt explicitly asked for a separate physical/visiting address
 
-## Verification
-- default verification is zero extra calls
-- trust the `201` `{"value": {...}}` body
-- only do a `GET` if the write response is unexpectedly missing a scored field
-- if `value.physicalAddress` appears as a link-only object after sending only `postalAddress`, do not treat that as a missing-field problem
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the write, verify:
+
+```
+GET /customer/{id}?fields=*
+```
+Log: id, name, email, organizationNumber, postalAddress, physicalAddress, invoiceSendMethod, description. Confirm all scored fields match the prompt.
+
+The `201` response body also proves state, but the readback GET provides complete confirmation.
 
 ## Known Recovery Branches
 - customer delivery validation if prompt explicitly implies EHF/invoice delivery constraints

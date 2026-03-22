@@ -75,9 +75,13 @@ Total: **3 API calls** (1 ledger read + 1 employee read + 1 batch project create
   - returned `project.projectManager.id`
   - returned `project.projectActivities[].id`
 
-## Verification
-- default verification is zero extra calls
-- trust `POST /project/list` for project ids, names, `isInternal`, manager linkage, and inline activity ids
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the project creation, verify:
+
+```
+GET /project?isInternal=true&count=10&fields=*,projectActivities(*,activity(*)),projectManager(id,firstName,lastName)
+```
+Log: each project's id, name, isInternal, projectManager, and activity details (name, isChargeable). Confirm all created projects match the prompt's expense analysis results.
 
 ## Known Pitfalls
 - `POST /project` without `projectManager` is not a safe shortcut for internal projects; both production and persistent sandbox returned `422` with `Feltet "Prosjektleder" må fylles ut.`

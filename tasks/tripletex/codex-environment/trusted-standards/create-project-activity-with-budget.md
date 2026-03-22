@@ -62,14 +62,13 @@
 - `value.budgetHours`
 - `value.budgetFeeCurrency`
 
-## Verification
-- default verification is zero extra calls
-- trust the write response if it already proves:
-  - project-activity id
-  - linked project id
-  - activity id or name
-  - `budgetHours`
-  - `budgetFeeCurrency`
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the write, verify:
+
+```
+GET /project/projectActivity/{id}?fields=*,activity(*),project(id,name)
+```
+Log: id, project linkage, activity name, budgetHours, budgetFeeCurrency. Confirm all values match the prompt.
 
 ## OpenAPI / Sandbox Status
 - `/project/projectActivity` `POST` is present in `./openapi.json`

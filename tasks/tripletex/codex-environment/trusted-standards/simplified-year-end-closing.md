@@ -102,32 +102,40 @@ Account 8800 is the standard result transfer account for forenklet årsoppgjør.
 
 Accounts 8800 and 2050 exist in the standard Tripletex chart. Include them in the initial account lookup.
 
-## Canonical API Flow (8–10 calls)
+## Canonical API Flow
 
-### Phase 0: Module Activation (1 POST) — CRITICAL
-0. `POST /company/salesmodules` with body `{ "name": "YEAR_END_REPORTING_AS" }`
+**GETs are FREE — use them liberally for verification and logging.**
+
+### Phase 0: Module Activation + Baseline State (1 POST + 2 GETs)
+0a. `POST /company/salesmodules` with body `{ "name": "YEAR_END_REPORTING_AS" }`
    - Activates the year-end reporting module for AS (aksjeselskap)
    - Returns 201 if activated, 409 if already active — both are success
    - **MUST be called before any other year-end operations**
-   - This is the PRIMARY UNTESTED HYPOTHESIS for fixing checks 4+5 (14 production runs without module activation all score 6/10)
-   - If the proxy returns 404 or 405, the endpoint may not be available — continue with the rest of the pipeline
+   - If the proxy returns 404 or 405, log and continue
+
+0b. `GET /yearEnd?year=YYYY&fields=*` — **log the BASELINE yearEnd state** before any vouchers
+   - Log: `status`, `annualResult`, `taxCost`, `operatingExpense`, `yearEndReportPosting`
+   - This gives us before-state for debugging checks 4+5
+
+0c. `GET /company/modules?fields=*` — **verify module activation took effect**
+   - Log all `true` flags, especially `moduleFixedAssetRegister`
 
 ### Phase 1: Account lookup (1 GET)
 1. `GET /ledger/account?number=<all-needed>&fields=id,number,name`
    - Include ALL accounts: depreciation cost, accumulated depreciation, prepaid, expense contra, tax expense, tax payable, AND result disposition
    - Example: `number=1209,6010,1700,6300,7500,8700,2920,8800,2050`
    - Include BOTH 6300 and 7500 so the correct contra is already resolved after reading 1700's name
-   - Check which accounts were returned
+   - Check which accounts were returned — **log every account number+name**
    - Read account 1700's name to determine the prepaid contra (see Prepaid Expense Contra Account)
 
-### Phase 1b: Create missing accounts (0–1 call)
+### Phase 1b: Create missing accounts (0–1 POST)
 2. If any accounts from step 1 were NOT returned:
    - 1 missing → `POST /ledger/account`
    - 2+ missing → `POST /ledger/account/list` (batch create, single call)
    - Reuse returned IDs from the create response
    - Typically only 1209 is missing
 
-### Phase 2: Four POSTs — depreciation + prepaid (4 calls)
+### Phase 2: Depreciation + prepaid vouchers (4 POSTs + 4 verification GETs)
 3–5. Three `POST /ledger/voucher` for depreciation (one per asset):
 ```json
 {
@@ -152,17 +160,21 @@ Accounts 8800 and 2050 exist in the standard Tripletex chart. Include them in th
 }
 ```
 
+**After each POST**, do a `GET /ledger/voucher/<id>?fields=id,number,date,description,postings(row,account(id,number,name),amountGross,amount)` and log the full response to confirm the posting was recorded correctly.
+
 ### Phase 3: Balance sheet for tax (1 GET — POST-THEN-READ)
 7. `GET /balanceSheet?dateFrom=YYYY-01-01&dateTo=YYYY+1-01-01&accountNumberFrom=3000&accountNumberTo=8299&fields=*,account(id,number,name)&count=1000`
    - Read AFTER posting depreciation + prepaid vouchers (post-then-read)
    - The balance sheet now reflects all posted entries — no manual adjustment needed
    - **Range 3000-8299**: excludes tax accounts (8300+) and disposition (8800+)
    - `accountNumberTo` is INCLUSIVE, so 8299 excludes 8300
+   - **Log every row with non-zero balanceOut**: `account.number account.name: balanceOut=X`
    - Sum `balanceOut` across all returned rows
    - `preTaxProfit = -(sumOfBalanceOut)`
    - `taxAmount = Math.round(Math.max(0, preTaxProfit) * 0.22)`
+   - **Log: sumBalanceOut, preTaxProfit, taxAmount**
 
-### Phase 4: Tax voucher (0–1 POST)
+### Phase 4: Tax voucher (0–1 POST + verification GET)
 8. One `POST /ledger/voucher` for tax expense (only if `taxAmount > 0`):
 ```json
 {
@@ -174,6 +186,7 @@ Accounts 8800 and 2050 exist in the standard Tripletex chart. Include them in th
   ]
 }
 ```
+After POST, GET the voucher back and log full postings.
 
 ### Phase 5: Result disposition voucher (1 POST) — MANDATORY
 9. Compute `postTaxResult = preTaxProfit - taxAmount` (local, no API call needed).
@@ -205,11 +218,17 @@ Accounts 8800 and 2050 exist in the standard Tripletex chart. Include them in th
 
 **If postTaxResult == 0**: skip the voucher.
 
-## Call Count Summary
-- Only 1209 missing: 1 POST (module) + 1 GET (accounts) + 1 POST (create 1209) + 4 POST (vouchers) + 1 GET (BS) + 1 POST (tax) + 1 POST (disposition) = **10 calls**
-- All accounts exist: 1 POST (module) + 1 GET + 4 POST + 1 GET + 1 POST + 1 POST = **9 calls**
-- Tax result ≤ 0: subtract 1 POST (tax), keep 1 POST (disposition) = **8 or 9 calls**
-- Module already active (409): same call count — 409 is still 1 call but not an error
+### Phase 6: Final State Verification (3 GETs) — CRITICAL FOR DIAGNOSTICS
+10. `GET /yearEnd?year=YYYY&fields=*` — **log the FINAL yearEnd state**
+    - Log ALL fields with non-null/non-zero values
+    - Compare with baseline from Phase 0b
+    - Especially log: `status`, `annualResult`, `taxCost.sumAmount`, `operatingExpense.sumAmount`, `yearEndReportPosting`
+
+11. `GET /balanceSheet?dateFrom=YYYY-01-01&dateTo=YYYY+1-01-01&accountNumberFrom=1000&accountNumberTo=9999&fields=account(number,name),balanceIn,balanceOut&count=2000`
+    - **Log ALL accounts with non-zero balanceOut** — gives complete picture of final state
+
+12. `GET /ledger/voucher?dateFrom=YYYY-12-31&dateTo=YYYY+1-01-01&fields=id,number,date,description,postings(row,account(number,name),amountGross)&count=50`
+    - **Log ALL vouchers** posted on the year-end date with their postings
 
 ## Do NOT
 - **Do NOT use integer rounding**: `Math.round(cost / life)` loses fractional amounts. Use `Math.round(cost / life * 100) / 100`.

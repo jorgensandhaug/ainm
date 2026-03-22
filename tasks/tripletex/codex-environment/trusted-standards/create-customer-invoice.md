@@ -55,10 +55,13 @@
 - sparse line objects still prove line count, not full line details
 - if the payload already fixed `product`, `description`, `count`, `unitPriceExcludingVatCurrency`, and explicit line `vatType`, and the write response returns decisive totals (`amountExcludingVatCurrency` / `amountCurrency`), that is enough to stop on a create-only task
 
-## Verification
-- default verification is zero extra calls if invoice totals/existence are enough
-- sparse `orderLines` alone are not a reason to fetch the invoice again when the payload already fixed the line data and the write response totals match the intended VAT mix
-- use one immediate expanded `GET /invoice/{id}` only when exact scored line details still need proof or the write response is too thin to prove the financial outcome
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the invoice write, verify:
+
+```
+GET /invoice/{id}?fields=*,customer(id,name,organizationNumber),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))
+```
+Log: invoiceNumber, amountExcludingVatCurrency, amountCurrency, customer, each order line (description, count, unitPrice, product, vatType). Confirm all totals match the intended VAT mix.
 
 ## Known Recovery Branches
 - if the first attempted API call returns `403` with body `{"error":"Invalid or expired token"}`, stop; the run is blocked by unusable credentials, not by invoice-flow uncertainty

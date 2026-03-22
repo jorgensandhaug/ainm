@@ -79,15 +79,25 @@
 - from `PUT /invoice/{id}/:payment`:
   - remaining outstanding amount after the partial payment
 
-## Verification
-- default verification is zero extra calls after the payment write
-- trust the voucher write response when it already proves:
-  - voucher id and number
-  - one `1500` posting with `customer.id`
-  - one `3400` posting
-  - prompt fee amount / negative prompt fee amount
-- trust the fee-invoice write response when it already proves `amountCurrency=<prompt-fee>` and a new fee invoice number
-- trust the payment write response when it reduces outstanding by exactly `5000` from the locate-read amount
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After all writes, verify the final state:
+
+```
+GET /ledger/voucher/{voucherId}?fields=id,number,date,description,postings(row,account(number,name),amountGross,customer(id,name))
+```
+Log: voucher number, posting accounts (1500/3400), amounts, customer linkage.
+
+```
+GET /invoice/{feeInvoiceId}?fields=id,invoiceNumber,amountCurrency,amountExcludingVatCurrency,customer(id,name),isSent
+```
+Log: fee invoice number, amount, customer.
+
+```
+GET /invoice/{overdueInvoiceId}?fields=id,invoiceNumber,amountCurrencyOutstanding,amountOutstanding
+```
+Log: remaining outstanding after partial payment.
+
+These verification GETs catch silent failures and provide diagnostic data for debugging.
 
 ## Known Recovery Branches
 - if the first invoice read returns zero overdue invoices or more than one overdue invoice, stop treating the task as an exact-match standard

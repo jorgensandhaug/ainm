@@ -58,13 +58,16 @@ Use `"MONTHLY_WAGE"` for **both** tilbudsbrev and arbeidskontrakt. The NOT_CHOSE
 
 ## Standard Flow
 
-1. **Parallel prerequisites**: `GET /division?count=1&fields=id` + `GET /department?name=X&isInactive=false&count=1000&fields=*` + `GET /salary/settings?fields=municipality` + (optional occupation code lookup)
-2. **Resolve department**: If GET found exact match → use its id. If not → `POST /department { name: X }`.
-3. **Create employee**: `POST /employee` with email, nested `employmentDetails[]` including occupation code, remunerationType, salary, percentage, **payrollTaxMunicipalityId** (from salary/settings)
-4. **Standard worktime**: `POST /employee/standardTime` with hours from PDF or default 7.5
-5. **Stop**
+**GETs are FREE — do not count against efficiency.** Only POSTs count.
 
-Total: 5-6 calls (hardcoded occ code) or 6-7 calls (dynamic lookup). The GET /department adds 0 extra calls when dept doesn't exist (POST needed anyway) or saves 0 calls when it does (GET replaces POST).
+1. **Parallel pre-reads (free)**: `GET /division`, `GET /department?name=X`, `GET /salary/settings?fields=municipality`, (optional occ code lookup)
+2. **Resolve department**: If GET found exact match → use its id. If not → `POST /department { name: X }`.
+3. **Create employee**: `POST /employee` with email, nested `employmentDetails[]` including occupation code, remunerationType, salary, percentage, **payrollTaxMunicipalityId**
+4. **Standard worktime**: `POST /employee/standardTime` with hours from PDF or default 7.5
+5. **Verification readback (free)**: `GET /employee/<id>?fields=*,department(*),employments(*)` + `GET /employee/standardTime?employeeId=<id>&fields=*`
+6. **Employment details readback (free)**: `GET /employee/employment/details?employmentId=<id>&fields=*` — verify occupationCode, payrollTaxMunicipalityId, salary, percentage all stored correctly
+
+POSTs: 2-3 (employee + standardTime + optional department). GETs: 6-7 (all free).
 
 ## Division Handling
 - Always pre-read `GET /division?count=1&fields=id`

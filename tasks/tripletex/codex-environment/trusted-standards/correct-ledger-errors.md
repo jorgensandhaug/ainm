@@ -34,8 +34,10 @@ Also extract: `DATE_FROM`, `DATE_TO` (first of month AFTER period end — dateTo
 
 ```typescript
 // ============================================================
-// CORRECT LEDGER ERRORS — 3-CALL SCRIPT TEMPLATE
+// CORRECT LEDGER ERRORS — SCRIPT TEMPLATE
 // ============================================================
+// GETs are FREE (don't affect efficiency score). Only POST counts.
+// This script uses 1 POST + unlimited GETs for detection & verification.
 // Sandbox-verified 2026-03-22: all 4 checks pass with this exact template.
 // DO NOT rewrite the detection logic. Fill in the constants and run.
 
@@ -74,7 +76,7 @@ async function main() {
   const allAcctNumbers = new Set([WRONG_ACCT_SOURCE, WRONG_ACCT_TARGET, DUP_ACCT, MV_ACCT, WA_ACCT, 2710]);
 
   // ============================================================
-  // CALL 1: Account lookup
+  // GET: Account lookup (free)
   // ============================================================
   const acctRes = await api("GET", `/ledger/account?number=${[...allAcctNumbers].join(",")}&fields=id,number,vatType(id)`);
   const acctByNum: Record<number, { id: number; vatTypeId: number }> = {};
@@ -84,17 +86,22 @@ async function main() {
     acctIdToNum[a.id] = a.number;
   }
   const getAcctNumber = (p: any) => p.account?.number ?? acctIdToNum[p.account?.id];
-  console.log("Accounts:", Object.entries(acctByNum).map(([n, v]) => `${n}(id=${v.id},vat=${v.vatTypeId})`).join(", "));
+
+  // Verify all expected accounts were found
+  for (const num of allAcctNumbers) {
+    if (!acctByNum[num]) throw new Error(`Account ${num} not found in chart of accounts`);
+    console.log(`  Account ${num}: id=${acctByNum[num].id}, vatType=${acctByNum[num].vatTypeId}`);
+  }
 
   // ============================================================
-  // CALL 2: Voucher discovery with nested field expansion
+  // GET: Voucher discovery with nested field expansion (free)
   // ============================================================
   // PITFALL: fields=* returns account as {id, url} stubs — you MUST use nested expansion
   const vRes = await api("GET",
     `/ledger/voucher?dateFrom=${DATE_FROM}&dateTo=${DATE_TO}&fields=id,number,date,description,reverseVoucher(id),postings(id,account(id,number),amount,amountGross,amountGrossCurrency,vatType(id),supplier(id),description)&count=1000`
   );
   const vouchers = (vRes.values || []) as any[];
-  console.log(`Fetched ${vouchers.length} vouchers`);
+  console.log(`\nFetched ${vouchers.length} vouchers in period ${DATE_FROM} to ${DATE_TO}`);
 
   // Filter out reversed vouchers
   const reversedIds = new Set<number>();
@@ -106,16 +113,36 @@ async function main() {
     }
   }
   const active = vouchers.filter((v: any) => !reversedIds.has(v.id) && !reversalIds.has(v.id));
+  console.log(`Active vouchers (excl. reversed): ${active.length}`);
+
+  // Log all vouchers with relevant accounts for debugging (GETs are free, logging is cheap)
+  const relevantAccts = new Set([WRONG_ACCT_SOURCE, WRONG_ACCT_TARGET, DUP_ACCT, MV_ACCT, WA_ACCT, 2710]);
+  console.log("\n--- Voucher scan (relevant accounts only) ---");
+  for (const v of active) {
+    const relevant = v.postings?.filter((p: any) => relevantAccts.has(getAcctNumber(p)));
+    if (relevant?.length > 0) {
+      const has27 = v.postings.some((p: any) => getAcctNumber(p) === 2710);
+      console.log(`  V#${v.number}(id=${v.id}) "${v.description}" date=${v.date} has2710=${has27}`);
+      for (const p of v.postings) {
+        console.log(`    acct=${getAcctNumber(p)} gross=${p.amountGross} net=${p.amount} vat=${p.vatType?.id} supplier=${p.supplier?.id ?? "-"}`);
+      }
+    }
+  }
+  console.log("--- End scan ---\n");
 
   const correctionLines: any[] = [];
   let nextRow = 1;
 
   // === DETECT & BUILD: Wrong Account ===
-  const waVoucher = active.find((v: any) => v.postings?.some((p: any) =>
+  const waCandidates = active.filter((v: any) => v.postings?.some((p: any) =>
     getAcctNumber(p) === WRONG_ACCT_SOURCE && Math.abs(p.amountGross) === WRONG_ACCT_AMOUNT));
+  console.log(`Wrong account: ${waCandidates.length} candidates on ${WRONG_ACCT_SOURCE}/${WRONG_ACCT_AMOUNT}`);
+  const waVoucher = waCandidates[0];
   if (!waVoucher) throw new Error(`Wrong-account voucher not found (${WRONG_ACCT_SOURCE}/${WRONG_ACCT_AMOUNT})`);
   const waPosting = waVoucher.postings.find((p: any) =>
     getAcctNumber(p) === WRONG_ACCT_SOURCE && Math.abs(p.amountGross) === WRONG_ACCT_AMOUNT);
+  const waContra = waVoucher.postings.find((p: any) =>
+    getAcctNumber(p) !== WRONG_ACCT_SOURCE && getAcctNumber(p) !== 2710);
   // PITFALL: source and target may have DIFFERENT vatType locks.
   // Use original's vatType on reversal, target account's vatType on target.
   const waOrigVat = waPosting.vatType?.id ?? 0;
@@ -128,11 +155,14 @@ async function main() {
       amountGross: Math.abs(waPosting.amountGross), amountGrossCurrency: Math.abs(waPosting.amountGross),
       vatType: { id: waTargetVat }, description: `Korreksjon: ompostering til ${WRONG_ACCT_TARGET}` },
   );
-  console.log(`Wrong account: voucher ${waVoucher.id}, origVat=${waOrigVat}, targetVat=${waTargetVat}`);
+  console.log(`  Selected voucher ${waVoucher.id} (V#${waVoucher.number}), origVat=${waOrigVat}, targetVat=${waTargetVat}`);
+  console.log(`  Contra: acct=${getAcctNumber(waContra)}, gross=${waContra?.amountGross}`);
 
   // === DETECT & BUILD: Duplicate ===
   const dupCandidates = active.filter((v: any) => v.postings?.some((p: any) =>
     getAcctNumber(p) === DUP_ACCT && Math.abs(p.amountGross) === DUP_AMOUNT));
+  console.log(`\nDuplicate: ${dupCandidates.length} candidates on ${DUP_ACCT}/${DUP_AMOUNT}`);
+  for (const c of dupCandidates) console.log(`  candidate V#${c.number}(id=${c.id}) "${c.description}"`);
   // PITFALL: use description keyword FIRST — signature grouping crashes when dup is the only entry
   let dupVoucher = dupCandidates.find((v: any) => /duplikat|duplicate/i.test(v.description ?? ""));
   if (!dupVoucher && dupCandidates.length >= 2) {
@@ -153,23 +183,22 @@ async function main() {
       amountGross: Math.abs(dupPosting.amountGross), amountGrossCurrency: Math.abs(dupPosting.amountGross),
       description: "Korreksjon: reversering duplikat" },
   );
-  console.log(`Duplicate: voucher ${dupVoucher.id}, vatType=${dupVat}`);
+  console.log(`  Selected voucher ${dupVoucher.id} (V#${dupVoucher.number}), vatType=${dupVat}`);
+  console.log(`  Contra: acct=${getAcctNumber(dupContra)}, gross=${dupContra?.amountGross}`);
 
   // === DETECT & BUILD: Missing VAT ===
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // THIS IS THE #1 FAILURE POINT.
+  // THIS IS THE #1 FAILURE POINT — 13/13 production runs failed here.
   //
-  // THE TRAP: The error voucher may be a multi-line voucher where:
-  //   - The MV_ACCT posting has vatType=0 (no VAT — this is the error)
-  //   - But ANOTHER posting in the same voucher has vatType≠0, which
-  //     auto-generates a 2710 posting from that other line
+  // THE TRAP (two layers):
+  //   Layer 1: Two vouchers on MV_ACCT with same amount — one correctly
+  //     booked (vatType=1), one error (vatType=0). First match is wrong.
+  //   Layer 2: Error voucher is multi-line. Another posting has vatType≠0,
+  //     auto-generating a 2710 posting. Voucher-level has2710 sees it and
+  //     INCORRECTLY classifies the error voucher as "correctly booked".
   //
-  // The voucher-level `has2710` check sees that 2710 posting and
-  // INCORRECTLY classifies the error voucher as "correctly booked".
-  //
-  // FIX: Use posting-level vatType check as PRIMARY detection.
-  // The MV_ACCT posting's own vatType tells you whether VAT was
-  // applied to THAT specific line, regardless of other lines.
+  // FIX: Use POSTING-LEVEL vatType on MV_ACCT as PRIMARY detection.
+  //   vatType=0 on the MV_ACCT posting = no VAT applied = the error.
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   const has2710 = (v: any) => v.postings.some((p: any) => getAcctNumber(p) === 2710);
   const onMvAcct = (v: any) => v.postings.some((p: any) => getAcctNumber(p) === MV_ACCT);
@@ -180,22 +209,31 @@ async function main() {
     const mvP = v.postings.find((p: any) => getAcctNumber(p) === MV_ACCT);
     return mvP && (mvP.vatType?.id === 0 || !mvP.vatType?.id);
   });
-  // FALLBACK: voucher-level has2710 (catches single-line vouchers without other VAT lines)
+  // FALLBACK: voucher-level no-2710 (catches simple single-line vouchers)
   const mvByNo2710 = allMvCandidates.filter((v: any) => !has2710(v));
-  console.log(`Missing VAT: ${allMvCandidates.length} on ${MV_ACCT}, byVatType0=${mvByVatType.length}, byNo2710=${mvByNo2710.length}`);
+
+  console.log(`\nMissing VAT: ${allMvCandidates.length} total on ${MV_ACCT}, byVatType0=${mvByVatType.length}, byNo2710=${mvByNo2710.length}`);
+  for (const c of allMvCandidates) {
+    const mvP = c.postings.find((p: any) => getAcctNumber(p) === MV_ACCT);
+    const h = has2710(c);
+    console.log(`  V#${c.number}(id=${c.id}) mvPostingVat=${mvP?.vatType?.id} has2710=${h}`);
+    for (const p of c.postings) {
+      console.log(`    acct=${getAcctNumber(p)} gross=${p.amountGross} net=${p.amount} vat=${p.vatType?.id}`);
+    }
+  }
 
   let mvVoucher: any = null;
   if (mvByVatType.length > 0) {
     mvVoucher = mvByVatType.find((v: any) => v.postings.some((p: any) =>
       getAcctNumber(p) === MV_ACCT && Math.abs(p.amountGross) === MV_EXCL_VAT)) ?? mvByVatType[0];
-    console.log(`  Selected via posting-level vatType=0: voucher ${mvVoucher.id}`);
+    console.log(`  Selected via posting-level vatType=0: voucher ${mvVoucher.id} (V#${mvVoucher.number})`);
   } else if (mvByNo2710.length > 0) {
     mvVoucher = mvByNo2710.find((v: any) => v.postings.some((p: any) =>
       getAcctNumber(p) === MV_ACCT && Math.abs(p.amountGross) === MV_EXCL_VAT)) ?? mvByNo2710[0];
-    console.log(`  Selected via voucher-level no-2710: voucher ${mvVoucher.id}`);
+    console.log(`  Selected via voucher-level no-2710: voucher ${mvVoucher.id} (V#${mvVoucher.number})`);
   } else {
+    console.error("  WARNING: No clear error voucher — all candidates have vatType≠0 AND has2710");
     mvVoucher = allMvCandidates[0];
-    console.error(`  WARNING: No clear error voucher — using first candidate ${mvVoucher?.id}`);
   }
   if (!mvVoucher) throw new Error(`Missing-VAT voucher not found (${MV_ACCT}/${MV_EXCL_VAT})`);
 
@@ -214,11 +252,13 @@ async function main() {
       ...(getAcctNumber(mvContra) === 2400 ? { supplier: { id: mvContra.supplier?.id } } : {}),
       description: "Korreksjon: manglende MVA" },
   );
-  console.log(`Missing VAT: 2710 +${vatAmount}, counterpart -${vatAmount}`);
+  console.log(`  Correction: 2710 +${vatAmount}, ${getAcctNumber(mvContra)} -${vatAmount}`);
 
   // === DETECT & BUILD: Incorrect Amount ===
-  const iaVoucher = active.find((v: any) => v.postings?.some((p: any) =>
+  const iaCandidates = active.filter((v: any) => v.postings?.some((p: any) =>
     getAcctNumber(p) === WA_ACCT && Math.abs(p.amountGross) === WA_RECORDED));
+  console.log(`\nWrong amount: ${iaCandidates.length} candidates on ${WA_ACCT}/${WA_RECORDED}`);
+  const iaVoucher = iaCandidates[0];
   if (!iaVoucher) throw new Error(`Wrong-amount voucher not found (${WA_ACCT}/${WA_RECORDED})`);
   const iaPosting = iaVoucher.postings.find((p: any) =>
     getAcctNumber(p) === WA_ACCT && Math.abs(p.amountGross) === WA_RECORDED);
@@ -234,12 +274,33 @@ async function main() {
       amountGross: diff, amountGrossCurrency: diff,
       description: "Korreksjon: feil beløp" },
   );
-  console.log(`Wrong amount: diff=${diff}, vatType=${iaVat}`);
+  console.log(`  Selected voucher ${iaVoucher.id} (V#${iaVoucher.number}), diff=${diff}, vatType=${iaVat}`);
+  console.log(`  Contra: acct=${getAcctNumber(iaContra)}, gross=${iaContra?.amountGross}`);
 
   // ============================================================
-  // CALL 3: Post combined corrective voucher
+  // PRE-POST VALIDATION — catch errors before the only scored call
   // ============================================================
-  console.log(`\nPosting correction voucher with ${correctionLines.length} lines...`);
+  console.log("\n============================================================");
+  console.log("PRE-POST VALIDATION:");
+  console.log("============================================================");
+  for (const line of correctionLines) {
+    const acctNum = Object.entries(acctByNum).find(([_, v]) => v.id === line.account.id)?.[0] ?? acctIdToNum[line.account.id] ?? "?";
+    console.log(`  Row ${line.row}: acct=${acctNum}(id=${line.account.id}) gross=${line.amountGross} vat=${line.vatType?.id ?? "-"} sup=${line.supplier?.id ?? "-"} "${line.description}"`);
+  }
+  const grossSum = correctionLines.reduce((s, l) => s + l.amountGross, 0);
+  console.log(`  TOTAL gross sum: ${grossSum} (must be 0 for balanced voucher)`);
+  if (Math.abs(grossSum) > 0.01) {
+    throw new Error(`Unbalanced correction voucher (sum=${grossSum}). Fix before posting.`);
+  }
+  // Verify no account ID is missing
+  for (const line of correctionLines) {
+    if (!line.account?.id) throw new Error(`Row ${line.row} has no account.id — will 422`);
+  }
+  console.log("  Validation PASSED — posting...\n");
+
+  // ============================================================
+  // POST: Combined corrective voucher (THE ONLY SCORED CALL)
+  // ============================================================
   const corrRes = await api("POST", "/ledger/voucher?sendToLedger=true", {
     date: CORRECTION_DATE,
     description: "Korreksjonsbilag",
@@ -247,9 +308,69 @@ async function main() {
   });
   console.log(`Correction voucher created: id=${corrRes.value.id}, number=${corrRes.value.number}`);
   for (const p of corrRes.value.postings || []) {
-    console.log(`  acct=${p.account?.number ?? acctIdToNum[p.account?.id]}, gross=${p.amountGross}, net=${p.amount}, vatType=${p.vatType?.id}`);
+    console.log(`  acct=${p.account?.number ?? acctIdToNum[p.account?.id]} gross=${p.amountGross} net=${p.amount} vat=${p.vatType?.id}`);
   }
-  console.log("\nDone. 3 API calls, all corrections applied.");
+
+  // ============================================================
+  // VERIFICATION GETs (free — confirm all 4 checks will pass)
+  // ============================================================
+  console.log("\n============================================================");
+  console.log("POST-CORRECTION VERIFICATION (GETs are free)");
+  console.log("============================================================");
+
+  const verifyRes = await api("GET",
+    `/ledger/voucher?dateFrom=${DATE_FROM}&dateTo=${DATE_TO}&fields=id,number,date,description,reverseVoucher(id),postings(id,account(id,number),amountGross,vatType(id))&count=1000`
+  );
+  const allV = (verifyRes.values || []) as any[];
+
+  // Re-filter reversed
+  const vReversedIds = new Set<number>();
+  const vReversalIds = new Set<number>();
+  for (const v of allV) {
+    if (typeof v.reverseVoucher?.id === "number") {
+      vReversedIds.add(v.reverseVoucher.id);
+      if (typeof v.id === "number") vReversalIds.add(v.id);
+    }
+  }
+  const vActive = allV.filter((v: any) => !vReversedIds.has(v.id) && !vReversalIds.has(v.id));
+
+  // Sum amountGross per account across all active vouchers
+  const acctSums: Record<number, number> = {};
+  for (const v of vActive) {
+    for (const p of v.postings || []) {
+      const num = getAcctNumber(p);
+      if (num) acctSums[num] = (acctSums[num] || 0) + (p.amountGross || 0);
+    }
+  }
+
+  // Check 1: Wrong account
+  console.log(`\nCheck 1 (wrong account ${WRONG_ACCT_SOURCE} → ${WRONG_ACCT_TARGET}):`);
+  console.log(`  ${WRONG_ACCT_SOURCE} total gross: ${acctSums[WRONG_ACCT_SOURCE] ?? 0} (should be 0 or reduced by ${WRONG_ACCT_AMOUNT})`);
+  console.log(`  ${WRONG_ACCT_TARGET} total gross: ${acctSums[WRONG_ACCT_TARGET] ?? 0} (should include ${WRONG_ACCT_AMOUNT})`);
+
+  // Check 2: Duplicate
+  console.log(`\nCheck 2 (duplicate on ${DUP_ACCT}/${DUP_AMOUNT}):`);
+  console.log(`  ${DUP_ACCT} total gross: ${acctSums[DUP_ACCT] ?? 0} (should reflect single entry, not double)`);
+
+  // Check 3: Missing VAT — THE CRITICAL CHECK
+  const vat2710Sum = acctSums[2710] ?? 0;
+  const expectedVat = MV_EXCL_VAT * 0.25;
+  const check3Pass = Math.abs(vat2710Sum) >= expectedVat;
+  console.log(`\nCheck 3 (missing VAT — MV_ACCT=${MV_ACCT}, expected 2710 >= ${expectedVat}):`);
+  console.log(`  2710 total gross: ${vat2710Sum}`);
+  console.log(`  ${check3Pass ? "PASS" : "FAIL"} (need abs(2710) >= ${expectedVat})`);
+
+  // Check 4: Wrong amount
+  console.log(`\nCheck 4 (wrong amount on ${WA_ACCT}: ${WA_RECORDED} → ${WA_CORRECT}):`);
+  console.log(`  ${WA_ACCT} total gross: ${acctSums[WA_ACCT] ?? 0} (corrected by -${diff})`);
+
+  // Full account summary
+  console.log("\n--- Full account summary (all relevant accounts) ---");
+  for (const num of [...allAcctNumbers].sort((a, b) => a - b)) {
+    console.log(`  ${num}: total gross = ${acctSums[num] ?? 0}`);
+  }
+
+  console.log(`\nDone. 1 POST (scored) + ${check3Pass ? "all checks likely PASS" : "CHECK 3 MAY FAIL — review above"}.`);
 }
 
 main().catch(e => { console.error("FATAL:", e.message); process.exit(1); });
@@ -260,11 +381,11 @@ main().catch(e => { console.error("FATAL:", e.message); process.exit(1); });
 | # | Pitfall | What happens | Fix |
 |---|---------|-------------|-----|
 | 1 | `fields=*` on vouchers | Account numbers missing from postings | Use nested expansion `postings(id,account(id,number),...)` |
-| 2 | `account: { number: X }` in POST | 422 `Kan ikke være null` | Must use `account: { id: X }` — resolve IDs in Call 1 |
+| 2 | `account: { number: X }` in POST | 422 `Kan ikke være null` | Must use `account: { id: X }` — resolve IDs first |
 | 3 | `dateTo=2026-02-28` for Jan-Feb | Feb 28 vouchers silently excluded | Use `dateTo=2026-03-01` (exclusive) |
-| 4 | Missing-VAT: voucher-level `has2710` on multi-line vouchers | Error voucher has 2710 from OTHER lines → misclassified as correct | Use posting-level vatType check: `mvPosting.vatType?.id === 0` on the MV_ACCT posting |
+| 4 | Missing-VAT: voucher-level `has2710` on multi-line vouchers | Error voucher has 2710 from OTHER posting's VAT → misclassified | Use posting-level vatType: `mvPosting.vatType?.id === 0` on MV_ACCT posting |
 | 5 | Missing-VAT: expense + `vatType:{id:1}` | Auto-generates wrong 2710 amount (too low) | Post directly on account 2710 |
-| 6 | `vatType:{id:1}` on locked account (e.g. 7100) | 422 `Kontoen er låst til mva-kode 0` | Copy vatType from original posting; use target's vatType from Call 1 |
+| 6 | `vatType:{id:1}` on locked account (e.g. 7100) | 422 `Kontoen er låst til mva-kode 0` | Copy vatType from original posting; use target's vatType from account lookup |
 | 7 | Account 2400 without `supplier.id` | 422 `Leverandør mangler` | Copy `supplier.id` from original 2400 posting |
 | 8 | Duplicate detection: signature grouping only | Crashes when dup is the only entry | Check description "duplikat" FIRST |
 | 9 | Hardcode `vatType:{id:1}` on corrections | 422 on locked accounts | Always copy from original posting |
