@@ -294,6 +294,43 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_scale=1.5,
         blend_space="logodds",
     ),
+    # v40-v43: Budget prefix experiments with log-odds ensemble
+    "ffam_ensemble_v40": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v40",
+        mode_model="ffam_mode_v260",  # budget=(0,3,8,16,32,48)
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+    ),
+    "ffam_ensemble_v41": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v41",
+        mode_model="ffam_mode_v261",  # budget=(0,3,6,12,20,30,40,48)
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+    ),
+    "ffam_ensemble_v42": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v42",
+        mode_model="ffam_mode_v262",  # budget=(48,) only final
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+    ),
+    "ffam_ensemble_v43": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v43",
+        mode_model="ffam_mode_v263",  # budget=(0,48) binary
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+    ),
     # v33-v38: Log-odds sweep (BEST DIRECTION!)
     "ffam_ensemble_v33": FFAMEnsembleConfig(
         model_name="ffam_ensemble_v33",
