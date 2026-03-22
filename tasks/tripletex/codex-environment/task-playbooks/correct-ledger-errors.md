@@ -81,5 +81,7 @@ The template uses **4-layer detection priority**:
 - Run 463433ee (2026-03-22): 1 POST, 0 errors, 6/6 — discovered Layer 3 trap (vatType=1 error voucher)
 - Run d9638f91 (2026-03-22): 1 POST, 0 errors, 6/6 — Layer 3 matched again (6300→7100, dup 7100, MV 6500, WA 6590)
 - Run 1d00ce6b (2026-03-22): 1 POST, 0 errors, 6/6 — German prompt, 3 of 4 errors on acct 6540, Layer 3 matched
-- Template now uses 4-layer detection (sandbox-verified 2026-03-22, 3 consecutive 6/6 runs)
+- Run ce448e6b (2026-03-22): 1 POST, 0 errors, 6/6 — German prompt, DUP_ACCT=WA_ACCT=6860, Layer 3 matched
+- Template now uses 4-layer detection (sandbox-verified 2026-03-22, 4 consecutive 6/6 runs)
 - Key insight: voucher descriptions are always Norwegian regardless of prompt language — Layer 3 Norwegian keywords are sufficient
+- Key insight: same account can appear in multiple errors (e.g. DUP_ACCT=WA_ACCT) — template correctly distinguishes by amount
