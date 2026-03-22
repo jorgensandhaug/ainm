@@ -98,3 +98,4 @@
 - 2026-03-21: Norwegian prompt `Tindra AS` / `888286195` with `faktura@tindra.no` — 1 POST with mirrored email, 1 call 0 errors; 10th run using this exact standard path
 - 2026-03-21: French prompt `Colline SARL` / `915612865` with `faktura@collinesarl.no` — 1 POST with mirrored email, 1 call 0 errors; 11th run using this exact standard path; 2nd French prompt confirmed (after Rivière SARL)
 - 2026-03-21: Portuguese prompt `Luz do Sol Lda` / `962006930` with `faktura@luzdosollda.no` — 1 POST with mirrored email, 1 call 0 errors; 12th run using this exact standard path; 3rd Portuguese prompt confirmed (after Floresta Lda); all 7 prompt languages (nb/en/es/fr/pt/nn/de) now covered
+- 2026-03-22: French prompt `Lumière SARL` / `879852439` with `faktura@lumiresarl.no` — 1 POST with mirrored email, 1 call 0 errors; 13th run using this exact standard path; 3rd French prompt confirmed (after Rivière SARL, Colline SARL); sandbox re-verified same day
