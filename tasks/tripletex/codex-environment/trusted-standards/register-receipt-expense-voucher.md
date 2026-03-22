@@ -317,3 +317,11 @@ Production E2E (Branch C, run 3373fbc9 prompt): 5/5 checks, 4 calls, 0 errors �
 - 4 calls, 0 errors: POST dept → GET accounts → POST voucher → POST attachment
 - Voucher id=609304794, number=1; auto-VAT posting: 1725 on 2710
 - All 5 checks expected to pass
+
+### Production run 7ad5804f (2026-03-22, Norwegian prompt, Branch B — Whiteboard)
+- Receipt: Jernia, date 2026-06-21, Whiteboard NET=14300, Mus NET=120, total NET=14420, MVA=3605
+- Task asked for Whiteboard only → Branch B: account 6540, vatType=1 (25%), GROSS=17875
+- Department: HR (POST created, fresh account)
+- 4 calls, 0 errors: POST dept → GET accounts → POST voucher → POST attachment
+- Voucher id=609326454, number=1; auto-VAT posting: 3575 on 2710
+- All 5 checks expected to pass

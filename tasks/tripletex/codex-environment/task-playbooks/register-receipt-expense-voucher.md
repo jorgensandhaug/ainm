@@ -243,3 +243,4 @@ H1 and H4 both produce amount(net)=8750. The scorer checks vatType and VAT accou
 | 67d4ddca | C (Overnatting) | 0/10 | Missing sendToLedger |
 | 1519c2a7 | C (Togbillett) | 0/10 | Missing sendToLedger + NET as GROSS |
 | e89025d1 | B (Tastatur) | expected 10/10 | Clean run: 4 calls, 0 errors, exact standard match |
+| 7ad5804f | B (Whiteboard) | expected 10/10 | Clean run: 4 calls, 0 errors; Jernia receipt, Whiteboard NET=14300 GROSS=17875, dept HR, acct 6540 vatType=1; auto-VAT 3575 on 2710 |
