@@ -73,5 +73,59 @@ def build_named_policy(name: str) -> QueryPlanPolicy:
                 edge_density_weight=1.0,
             ),
         )
+    if normalized == "exploration_r3_settle_medium":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_settle_medium",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=6.0,
+                settlement_pair_weight=3.0,
+                port_weight=2.0,
+                coastal_settlement_weight=3.0,
+                coastline_weight=1.5,
+                terrain_entropy_weight=1.5,
+                edge_density_weight=1.5,
+                forest_weight=0.25,
+                mountain_weight=0.25,
+                ocean_penalty_weight=1.5,
+            ),
+        )
+    if normalized == "exploration_r3_settle_light":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_settle_light",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=4.0,
+                settlement_pair_weight=2.0,
+                port_weight=1.5,
+                coastal_settlement_weight=2.0,
+                coastline_weight=2.0,
+                terrain_entropy_weight=2.0,
+                edge_density_weight=2.0,
+                forest_weight=0.3,
+                mountain_weight=0.3,
+                ocean_penalty_weight=1.0,
+            ),
+        )
+    if normalized == "exploration_r3_settle_8x":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_settle_8x",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=8.0,
+                settlement_pair_weight=4.0,
+                port_weight=2.5,
+                coastal_settlement_weight=3.5,
+                coastline_weight=1.0,
+                terrain_entropy_weight=1.0,
+                edge_density_weight=1.0,
+                forest_weight=0.15,
+                mountain_weight=0.15,
+                ocean_penalty_weight=1.5,
+            ),
+        )
     msg = f"unsupported policy: {name}"
     raise ValueError(msg)

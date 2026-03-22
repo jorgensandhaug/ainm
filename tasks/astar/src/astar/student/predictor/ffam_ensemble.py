@@ -658,6 +658,39 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         blend_space="logodds",
         policy_name="exploration_r3_settle_heavy",
     ),
+    # Test settle_medium policy (agent7's v51 scored 88.10 with it)
+    "ffam_ensemble_a6_v34": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v34",
+        mode_model="ffam_mode_a6_v24",  # our best mode
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_medium",
+    ),
+    # settle_light
+    "ffam_ensemble_a6_v35": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v35",
+        mode_model="ffam_mode_a6_v24",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_light",
+    ),
+    # settle_8x
+    "ffam_ensemble_a6_v36": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v36",
+        mode_model="ffam_mode_a6_v24",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_8x",
+    ),
 }
 
 
