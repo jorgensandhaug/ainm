@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-103538130Z-c0042a94",
+  "request_id": "191930c8",
+  "prompt_raw": "Ejecute el ciclo de vida completo del proyecto 'Plataforma Datos Dorada' (Dorada SL, org. nº 970096531): 1) El proyecto tiene un presupuesto de 265000 NOK. 2) Registre horas: Alejandro González (director de proyecto, alejandro.gonzalez@example.org) 26 horas y Lucía Sánchez (consultor, lucia.sanchez@example.org) 134 horas. 3) Registre costo de proveedor de 26800 NOK de Montaña SL (org. nº 804473823). 4) Cree una factura al cliente por el proyecto.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T10:37:51Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T10:35:38.181Z",
+  "after_captured_at": "2026-03-22T10:38:21.899Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T10:38:21.900Z"
+}

@@ -1,0 +1,1 @@
+Score reflection written to the canonical path. The core finding: the 3-write optimization was a regression — Check 3 verifies ALL prompt-mentioned values exist, and skipping the un-linked value dropped the score from 3.5/4 to 1.69/4. The trusted standard and playbook have already been corrected in the prior reflection pass to always create ALL values.

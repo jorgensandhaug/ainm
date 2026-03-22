@@ -1,0 +1,8 @@
+{
+  "prompt": "We have discovered errors in the general ledger for January and February 2026. Review all vouchers and find the 4 errors: a posting to the wrong account (account 6300 used instead of 7100, amount 7750 NOK), a duplicate voucher (account 7100, amount 1700 NOK), a missing VAT line (account 6500, amount excl. 7450 NOK missing VAT on account 2710), and an incorrect amount (account 6590, 24950 NOK posted instead of 12600 NOK). Correct all errors with appropriate correction vouchers.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "D4S4eTbVi3PgmRM3RS-t4euy3IHEMDyJRqNw-NHKmnM"
+  }
+}

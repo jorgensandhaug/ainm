@@ -1,0 +1,13 @@
+{
+  "status": "launched",
+  "launched_at": "2026-03-22T10:42:51.742Z",
+  "session_id": "0d2d310c-896f-4736-98af-a19f2d3e317e",
+  "tmux_window": "prod-2026-03-22-104029218Z-210edee3-reflect",
+  "launch_script_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-104029218Z-210edee3/launch-codex-reflection.zsh",
+  "reflection_summary_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-104029218Z-210edee3/codex-reflection.summary.md",
+  "reflection_events_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-104029218Z-210edee3/codex-reflection.events.jsonl",
+  "baseline_task_complete_count": 0,
+  "provider": "claude",
+  "runtime_status_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-104029218Z-210edee3/codex-reflection.runtime-status.json",
+  "sandbox_credentials_available": true
+}

@@ -41,8 +41,8 @@
    - `PUT /project/{id}` (or `POST /project`) + `GET /ledger/account?isBankAccount=true&fields=*` (parallel, 2 calls)
    - if the invoice account (usually `1920`) has an empty `bankAccountNumber`, fix it with `PUT /ledger/account/{id}` using `bankAccountNumber: "12345678903"` before proceeding (0-1 calls)
    - on the skip-`PUT /project` branch (step 6 was skipped), do NOT add the proactive bank check; go directly to `POST /invoice`
-   - do NOT call `GET /ledger/vatType`; hardcode `vatType: { id: 3 }` (25% outgoing — standard Norwegian MVA, exists on every Tripletex account; all T15 production runs confirmed id=3; sandbox-verified 2026-03-22)
-8. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer: { id }`, and embedded `orders[]` containing `customer: { id }`, `project: { id }`, `orderDate`, `deliveryDate`, and one `orderLines[]` entry with the milestone amount and `vatType: { id: 3 }`
+   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` to resolve the correct outgoing VAT type (GETs are free and do not affect efficiency score); use the 25% row if present, otherwise use the only available row
+8. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, explicit `invoiceDueDate`, root `customer: { id }`, and embedded `orders[]` containing `customer: { id }`, `project: { id }`, `orderDate`, `deliveryDate`, and one `orderLines[]` entry with the milestone amount and `vatType: { id: <resolved-vat-id> }`
 9. stop
 
 ## Payload Rules
@@ -60,16 +60,17 @@
   - root `invoiceDate`
   - root `invoiceDueDate` (omitting fails `422`)
   - root `customer: { "id": ... }`
-  - embedded `orders: [{ customer: { "id": ... }, project: { "id": ... }, orderDate, deliveryDate, orderLines: [{ description, count: 1, unitPriceExcludingVatCurrency: <partial-amount>, vatType: { "id": 3 } }] }]`
+  - embedded `orders: [{ customer: { "id": ... }, project: { "id": ... }, orderDate, deliveryDate, orderLines: [{ description, count: 1, unitPriceExcludingVatCurrency: <partial-amount>, vatType: { "id": <resolved-from-GET> } }] }]`
   - `orders[0].customer` must be explicitly set or the endpoint returns `422 orders.customer: Kan ikke være null.`
 - for percentage-based milestone prompts:
   - compute the exact 2-decimal partial amount and send that amount directly; do not round milestone amounts to whole NOK
 - compare returned `employee.email` exactly because the endpoint filter is containing
 - compare returned `customer.organizationNumber` exactly and use prompt customer name only as a local tie-breaker when present
 - for update-shaped prompts, also compare nested `project.projectManager.email` exactly when `projectManager(*)` is expanded on the project search
-- hardcode `vatType: { id: 3 }` (25% outgoing MVA) on all order lines — do NOT call `GET /ledger/vatType`; vatType id=3 is the standard Norwegian 25% outgoing MVA rate, confirmed on every T15 production run and sandbox-verified 2026-03-22; omitting vatType entirely silently defaults to id=0 (0% VAT) which is wrong
-- if the exact update-first project read already proves project + customer + manager and also `fixedprice=<prompt-fixed-price>`, the canonical branch is `GET /project` -> `POST /invoice` in `2` total calls
-- on the update-needed branch (where `PUT /project` is required), the canonical call count is `4` (configured bank) or `5` (missing bank), because `PUT /project` + `GET /ledger/account` are parallelized (2 calls), followed by optional bank fix + `POST /invoice`
+- resolve `vatType` via `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*` — GETs are free (zero efficiency cost); use the 25% row if present; omitting vatType entirely silently defaults to id=0 (0% VAT) which is WRONG
+- SCORING INSIGHT (2026-03-22): only WRITES (PUT/POST/DELETE) count toward the efficiency score; GETs are free. Confirmed write-to-score mapping: 1 write → 4.0, 2 writes → 4.0, 3 writes → 3.3333, 4 writes → 3.0. Use GETs freely for verification.
+- if the exact update-first project read already proves project + customer + manager and also `fixedprice=<prompt-fixed-price>`, the canonical branch is: resolve VAT (GET, free), check bank (GET, free), then `POST /invoice` = **1 write → 4.0**
+- on the update-needed branch (where `PUT /project` is required), the canonical write count is **2 writes** (configured bank: PUT project + POST invoice → 4.0) or **3 writes** (missing bank: PUT project + PUT bank + POST invoice → 3.3333); add as many GETs as needed for verification — they are free
 - do not use `POST /order` + `PUT /order/:invoice` (2 calls); `POST /invoice?sendToCustomer=false` with embedded `orders[]` replaces both in 1 call — sandbox-verified on 2026-03-21
 - do not use `createOnAccount` on an order with no real order lines for this task shape
 
@@ -109,7 +110,7 @@ Log: fixedprice, isFixedPrice, customer. Confirm the fixed price was set correct
 - for the exact update-needed project-first branch, the default is the proactive hedge (parallelized with `PUT /project` + `GET /ledger/account`):
   - proactive hedge branch (DEFAULT for update-needed): `4` calls when the invoice account is already configured, `5` calls when the company bank account is missing
   - production evidence from 2026-03-20 and 2026-03-21 shows 8/10 update-needed runs had missing bank accounts; at 80% missing rate, proactive hedge is clearly the better default
-  - `GET /ledger/vatType` is no longer needed — hardcode `vatType: { id: 3 }` (25% outgoing MVA); sandbox-verified 2026-03-22: POST /invoice with hardcoded vatType=3 produces correct amountExcludingVatCurrency and amountCurrency on every branch
+  - resolve vatType via `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` (free — GETs don't affect scoring); do NOT hardcode vatType ids; omitting vatType silently defaults to id=0 (0% VAT) giving wrong amounts
 - for the exact skip-`PUT /project` branch, stay optimistic: do not add `/ledger/account`; production runs on that branch have never hit the bank-account issue, and adding it would waste a call on already-mature accounts
 
 ## OpenAPI / Sandbox Status
@@ -301,12 +302,11 @@ Log: fixedprice, isFixedPrice, customer. Confirm the fixed price was set correct
   - the skip-`PUT /project` branch completed in `3` measured calls: `GET /project` -> `GET /ledger/vatType` -> `POST /invoice`
   - both proof invoices returned `amountExcludingVatCurrency=42662.5`; the sandbox exposed outgoing VAT `25%` (id=3)
   - therefore the conditional `3/5/6`-call standard remains the minimum proven path for this task family
-- OPTIMIZATION on 2026-03-22: hardcode `vatType: { id: 3 }` (25% outgoing MVA) — eliminates `GET /ledger/vatType` on every branch:
-  - sandbox-verified: `POST /invoice` with hardcoded `vatType: { id: 3 }` produces correct `amountExcludingVatCurrency` and `amountCurrency` (= ex-VAT × 1.25)
-  - sandbox-verified: omitting `vatType` entirely defaults to id=0 (0% VAT), which gives WRONG `amountCurrency` — therefore vatType MUST be specified, but can be hardcoded to id=3
-  - vatType id=3 = "Utgående avgift, høy sats" (25%) is the standard Norwegian outgoing MVA rate; exists on every Tripletex account
-  - all T15 production runs (12+ runs across en/de/nb/nn/pt/es/fr prompts) used vatType id=3 with 25% outgoing
-  - sandbox E2E: update-needed+configured completed in `4` measured calls: `GET /project` -> `PUT /project` || `GET /ledger/account` -> `POST /invoice` (was 5)
-  - sandbox E2E: skip-PUT completed in `2` measured calls: `GET /project` -> `POST /invoice` (was 3)
-  - new canonical call counts: skip-PUT = **2**, update-needed+configured = **4**, update-needed+missing = **5**
-  - replaces the previous `3/5/6`-call standard
+- SCORING INSIGHT on 2026-03-22: only WRITES (PUT/POST/DELETE) count toward the efficiency score — GET calls are free and do not lower the score:
+  - REVERTS the previous vatType=3 hardcoding optimization — since GETs are free, `GET /ledger/vatType` costs nothing and is SAFER than hardcoding
+  - keep `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` for safe VAT resolution; omitting vatType entirely defaults to id=0 (0% VAT) which is WRONG
+  - confirmed write-to-score mapping for T15: 1 write → 4.0, 2 writes → 4.0, 3 writes → 3.3333, 4 writes → 3.0. Formula: `score = 2 × (1 + 2/writes)`
+  - `POST /invoice` with embedded `orders[]` saves 1 WRITE vs `POST /order` + `PUT /order/:invoice` — this optimization IS valid (fewer writes)
+  - canonical WRITE counts: skip-PUT+configured-bank = **1 write** (POST invoice → 4.0), skip-PUT+missing-bank = **2 writes** (PUT bank + POST invoice → 4.0), update-needed+configured-bank = **2 writes** (PUT project + POST invoice → 4.0), update-needed+missing-bank = **3 writes** (PUT project + PUT bank + POST invoice → 3.3333)
+  - add as many GETs as needed for verification and safety — they cost nothing
+  - the proactive `/ledger/account` hedge is still recommended: the GET is free, and the conditional PUT only fires when bank is missing (avoiding a 422 error + retry which would add both a write AND an error penalty)

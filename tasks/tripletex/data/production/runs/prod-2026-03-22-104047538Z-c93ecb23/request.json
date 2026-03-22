@@ -1,0 +1,8 @@
+{
+  "prompt": "Create an order for the customer Oakwood Ltd (org no. 932937204) with the products Data Advisory (3346) at 16000 NOK and Network Service (7273) at 22050 NOK. Convert the order to an invoice and register full payment.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "7VtyU0K1uLsf9wwHsEAm7-JXp3-BY4yRoA2eLeobwD8"
+  }
+}

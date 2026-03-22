@@ -24,10 +24,18 @@
    - `organizationNumber`
    - `invoiceSendMethod: "MANUAL"`
 3. if the prompt gives product numbers (e.g. "Analysis Report (9796)"):
-   - **new customer (step 2)**: batch-create all products in one call: `POST /product/list` with `[{ "name": "<description>", "number": <number> }, ...]`; in production fresh accounts these products will not exist yet; parallelize this call with steps 2 and 3a
+   - **new customer (step 2)**: batch-create all products in one call: `POST /product/list` with `[{ "name": "<description>", "number": <number> }, ...]`; in production fresh accounts these products will not exist yet; parallelize this call with step 2
    - **existing customer (step 1)**: products with the given numbers may already exist; use `GET /product?fields=id,number&count=1000` in the parallel batch, then match by `String(p.number)` client-side; if all products found, use their IDs directly (no product creation needed, saving 1 call and 0 errors); if any are missing, `POST /product/list` with only the missing ones; this avoids the `422 Produktnummeret X er i bruk` error that wastes a call and penalizes the score
-3a. resolve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`; for the existing-customer description-only variant (no products), parallelize steps 1 and 3a — they have no dependency on each other
-3b. proactive bank-account check (GETs are free, the 422 error costs 1 write + 1 error penalty): `GET /ledger/account?isBankAccount=true&fields=*`; parallelize with steps 1/3a; find the invoice account (usually `number=1920`, `isInvoiceAccount=true`); if `bankAccountNumber` is falsy (null, empty, undefined), fix it BEFORE the invoice write: `PUT /ledger/account/{id}` with `{ ...acct, bankAccountNumber: "12345678903" }`; this eliminates the 422 + retry entirely — sandbox-verified 2026-03-22; production-confirmed on Blueshore Ltd run (would have saved 1 write + 1 error)
+3a. **DO NOT call `GET /ledger/vatType`** — hardcode the VAT type ID directly based on prompt language:
+   - 25% standard: `vatType: { id: 3 }` — use for "excluding VAT" / "eksklusiv MVA" / "hors TVA" / any prompt that states a price excluding standard VAT
+   - 0% outside VAT area: `vatType: { id: 6 }` — use for "sem IVA" / "ohne MwSt." / "sin IVA" / "utenfor mva-loven"
+   - 0% exempt (within VAT law): `vatType: { id: 5 }` — use for "avgiftsfri" / "exempt"
+   - 15% food/drink: `vatType: { id: 31 }` — use for "næringsmiddel" / "alimentaire" / "alimentos"
+   - 12% low rate: `vatType: { id: 32 }`
+   - 0% export: `vatType: { id: 52 }`
+   - for product-linked lines, reuse `product.vatType.id` from the product read instead
+   - sandbox-verified 2026-03-22: vatType.id=3 (25%) succeeds in sandbox with correct amountCurrency; the old "sandbox only has id=6" observation is STALE — sandbox now has the full VAT code set (3/25%, 31/15%, 32/12%, 5/0%, 52/0%, 6/0%); this saves 1 API call vs the old `GET /ledger/vatType` approach
+3b. proactive bank-account check (GETs are free, the 422 error costs 1 write + 1 error penalty): `GET /ledger/account?isBankAccount=true&fields=*`; parallelize with step 1; find the invoice account (usually `number=1920`, `isInvoiceAccount=true`); if `bankAccountNumber` is falsy (null, empty, undefined), fix it BEFORE the invoice write: `PUT /ledger/account/{id}` with `{ ...acct, bankAccountNumber: "12345678903" }`; this eliminates the 422 + retry entirely — sandbox-verified 2026-03-22; production-confirmed on Blueshore Ltd run (would have saved 1 write + 1 error)
 4. `POST /invoice` and let the default `sendToCustomer=true` handle the send in the same write; if products were created in step 3, reference them on each order line as `product: { "id": <id-from-batch-create-response> }`; with the proactive bank-account check in step 3b, this should succeed on the first try
 5. only if the invoice write still fails with missing company bank account despite step 3b (edge case):
    - `GET /ledger/account?isBankAccount=true&fields=*` (if not already done)
@@ -48,11 +56,9 @@
   - `orders[].orderLines`
 - create lines under `orders[].orderLines`, not `invoice.orderLines`
 - if the prompt gives product numbers, each order line must include `product: { "id": <product-id> }` where the product was created in step 3 or resolved from the existing product lookup; description-only lines (no product number) should omit `product` entirely
-- when the prompt gives multiple lines with different VAT rates (e.g. 25%, 15% food, 0% exempt), select the correct `vatType.id` for each line from the filtered outgoing VAT result; production accounts expose codes 3 (25%), 31 (15%), 5 (0% exempt), 6 (0% outside), 32 (12%), 52 (0% export)
-- do not hardcode output VAT code `3`
-- do not omit direct-line `vatType` just to save the VAT lookup; a successful write can still create the wrong VAT outcome
-- for explicit no-VAT / `0%` direct-line prompts, still resolve the current account's filtered outgoing `0%` VAT row instead of assuming omission is equivalent
-- for ordinary direct-line services explicitly priced excluding VAT / MVA, select an exact `25%` row from the filtered outgoing VAT result; if no such row exists, treat the task as blocked in that account instead of falling back to `0%`
+- when the prompt gives multiple lines with different VAT rates (e.g. 25%, 15% food, 0% exempt), select the correct hardcoded `vatType.id` for each line: 3 (25%), 31 (15%), 5 (0% exempt), 6 (0% outside), 32 (12%), 52 (0% export)
+- **DO hardcode vatType IDs** — the full VAT code set is stable across both sandbox and production; `GET /ledger/vatType` is an unnecessary extra API call; sandbox-verified 2026-03-22
+- do not omit direct-line `vatType` — omission defaults to 0% (vatType.id=0); always set it explicitly
 - if creating the customer with no delivery/contact details, prefer `invoiceSendMethod: "MANUAL"` and let the invoice create do the send attempt
 
 ## Reuse From Write Response
@@ -60,7 +66,7 @@
 - `invoice.value.id`
 - `invoice.value.invoiceNumber`
 - totals from the invoice write response
-- keep the resolved `customer.id` and filtered outgoing `vatType.id` in memory until the invoice write has either succeeded or been conclusively blocked; a local helper bug is not a reason to repeat those reads in the same run
+- keep the resolved `customer.id` in memory until the invoice write has either succeeded or been conclusively blocked; a local helper bug is not a reason to repeat customer resolution in the same run; vatType IDs are hardcoded constants and never need to be re-resolved
 
 ## Verification (GETs are FREE — use them)
 GETs do not count against the score. After the invoice write, verify:
@@ -86,7 +92,7 @@ Treat a successful `POST /invoice` with default `sendToCustomer=true` as the win
 - do not branch into `PUT /invoice/{id}/:send?sendType=MANUAL` as the default path; sandbox reproduced `500` on 2026-03-20 while the same task shape succeeded through `POST /invoice` with default send behavior
 - do not assume sparse `postalAddress` or `physicalAddress` links on the customer prove that `PAPER` send is available; sandbox returned `422 Faktura kan ikke sendes via PAPER`
 - do not assume organization number alone proves EHF sendability; production returned `422 Faktura kan ikke sendes via EHF`
-- do not treat a successful `POST /invoice` without `orderLines[].vatType` as proof that VAT is correct; persistent sandbox on 2026-03-20 accepted that lower-call write and created `amountCurrency == amountExcludingVatCurrency` (`28500`) on the same task shape
+- do not omit `orderLines[].vatType` to save a call — omission defaults to 0% (vatType.id=0), not 25%; instead hardcode the correct vatType.id (e.g. `{ id: 3 }` for 25%); sandbox-verified 2026-03-22: omitting vatType created `amountCurrency == amountExcludingVatCurrency` (0% applied)
 - when the provided base URL already ends in `/v2`, do not pass endpoint paths with a leading slash into `new URL(...)`; that can drop `/v2` and waste a `404` before any real Tripletex write
 - if the first common-endpoint call comes back `404` and the path clearly fell back to host-root instead of `/v2/...`, stop and fix the client URL builder locally before making any second Tripletex call
 - for the exact one-line no-VAT service shape with prompt-only `name + organizationNumber + amount + description`, do not add a speculative customer lookup before the customer create; persistent sandbox re-verification on 2026-03-20 succeeded in `3` calls with `POST /customer`, filtered `GET /ledger/vatType`, then `POST /invoice`
