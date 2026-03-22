@@ -3663,3 +3663,23 @@ killed due to excessive runtime (30 models per fold × 8 folds = 240 models).
 
 **88.67 is the BEST score across all 7 agents.**
 **85.71 is the best single-observation score (live-applicable).**
+
+### Oracle ceiling analysis
+
+Direct replay averaging from the TEST round itself (not training):
+| n_replays | Score |
+|-----------|-------|
+| 1 | 0.50 |
+| 5 | 17.53 |
+| 10 | 37.82 |
+| 20 | 61.36 |
+| 30 | 72.50 |
+| 58 | 84.92 |
+
+**Our model at 88.67 EXCEEDS the oracle ceiling of 84.92 from 58 replays!**
+This is because the model is trained on ground truth distributions (hundreds of Monte Carlo runs by organizers), so it learns smoother, better-calibrated distributions than raw replay averaging can provide.
+
+### Remaining experiments in progress
+- Model+replay geometric blending (may squeeze marginal gains)
+- Floor 0.0001 (even lower than current 0.0003)
+- aug=10 with triple crossseed ensemble
