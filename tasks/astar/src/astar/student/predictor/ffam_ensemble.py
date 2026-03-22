@@ -45,6 +45,7 @@ class FFAMEnsembleConfig(BaseModel):
     probability_floor: float = Field(default=0.0003, gt=0.0, lt=1.0)
     adaptive_blend: bool = False
     adaptive_scale: float = Field(default=1.0, ge=0.0)
+    blend_space: str = "probability"  # "probability" or "logodds"
 
 
 FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
@@ -274,6 +275,25 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_blend=True,
         adaptive_scale=1.5,
     ),
+    # v31-v32: Log-odds space blending (different from probability space)
+    "ffam_ensemble_v31": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v31",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+    ),
+    "ffam_ensemble_v32": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v32",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.90,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+    ),
 }
 
 
@@ -332,6 +352,7 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
     probability_floor: float = Field(default=0.0003, gt=0.0, lt=1.0)
     adaptive_blend: bool = False
     adaptive_scale: float = Field(default=1.0, ge=0.0)
+    blend_space: str = "probability"
 
     @classmethod
     def fit_named_from_workspace(
@@ -382,6 +403,7 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
             probability_floor=config.probability_floor,
             adaptive_blend=config.adaptive_blend,
             adaptive_scale=config.adaptive_scale,
+            blend_space=config.blend_space,
         )
 
     def _blend_predictions(
@@ -399,15 +421,40 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
         ) / np.log(6.0)  # normalized to [0, 1]
 
         # Higher entropy → lower confidence → more kNN weight
-        # effective_mode_weight = mode_weight + (1 - mode_weight) * (1 - entropy * scale)
-        # When entropy=0 (confident): weight = 1.0
-        # When entropy=1 (uncertain): weight = mode_weight
         effective_mode_weight = np.clip(
             self.mode_weight + (1.0 - self.mode_weight) * (1.0 - self.adaptive_scale * mode_entropy),
             0.5,
             1.0,
         )
         return effective_mode_weight * mode_pred + (1.0 - effective_mode_weight) * knn_pred
+
+    def _blend_logodds(
+        self,
+        mode_pred: np.ndarray,
+        knn_pred: np.ndarray,
+    ) -> np.ndarray:
+        """Blend in log-odds space instead of probability space."""
+        floor = 1e-6
+        mode_log = np.log(np.clip(mode_pred, floor, 1.0))
+        knn_log = np.log(np.clip(knn_pred, floor, 1.0))
+
+        if self.adaptive_blend:
+            mode_entropy = -np.sum(
+                mode_pred * np.log(np.clip(mode_pred, 1e-10, 1.0)),
+                axis=-1, keepdims=True,
+            ) / np.log(6.0)
+            effective_mode_weight = np.clip(
+                self.mode_weight + (1.0 - self.mode_weight) * (1.0 - self.adaptive_scale * mode_entropy),
+                0.5,
+                1.0,
+            )
+        else:
+            effective_mode_weight = self.mode_weight
+
+        blended_log = effective_mode_weight * mode_log + (1.0 - effective_mode_weight) * knn_log
+        blended = np.exp(blended_log)
+        blended = blended / np.sum(blended, axis=-1, keepdims=True)
+        return blended
 
     def build_prediction_bundle_from_context(
         self,
@@ -420,7 +467,10 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
         for seed_index in mode_bundle.predictions_by_seed:
             mode_pred = np.asarray(mode_bundle.predictions_by_seed[seed_index], dtype=np.float64)
             knn_pred = np.asarray(knn_bundle.predictions_by_seed[seed_index], dtype=np.float64)
-            combined = self._blend_predictions(mode_pred, knn_pred)
+            if self.blend_space == "logodds":
+                combined = self._blend_logodds(mode_pred, knn_pred)
+            else:
+                combined = self._blend_predictions(mode_pred, knn_pred)
             blended[seed_index] = apply_probability_floor(combined, self.probability_floor)
 
         return PredictionBundle(
@@ -461,6 +511,7 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
             "probability_floor": self.probability_floor,
             "adaptive_blend": self.adaptive_blend,
             "adaptive_scale": self.adaptive_scale,
+            "blend_space": self.blend_space,
             "mode_checkpoint_path": str(mode_cp),
             "knn_checkpoint_path": str(knn_cp),
         }
@@ -480,4 +531,5 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
             probability_floor=meta["probability_floor"],
             adaptive_blend=meta.get("adaptive_blend", False),
             adaptive_scale=meta.get("adaptive_scale", 1.0),
+            blend_space=meta.get("blend_space", "probability"),
         )
