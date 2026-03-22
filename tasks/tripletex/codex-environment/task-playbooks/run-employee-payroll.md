@@ -137,8 +137,11 @@ Persistent-sandbox verification on 2026-03-20 proved the successful path:
   - `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` (id=6958416) + `POST /ledger/voucher?sendToLedger=true` (id=609208546, voucherType by name, amountGross+row) — round 4
   - 8 calls, 0 errors, 4 rounds — first production run achieving the proven-minimum call count
   - key optimizations that brought this from 11 to 9: (1) skip GET /division — always POST, (2) inline employmentDetails in POST employment
-  - NOTE: `voucherType: { name: "Lønnsbilag" }` stores null voucherType on readback, but scorer does NOT check voucherType (2b1b0da1 and 08a38984 both scored 4/4 with null type); do NOT add GET /ledger/voucherType — wastes 1 call
-- sandbox proof on 2026-03-22 confirmed: `salaryType: { name: "Fastlønn" }` and `salaryType: { number: 2000 }` both fail 422; `account: { number: 5000, name: "Lønn til ansatte" }` also fails 422; GET /salary/type and GET /ledger/account are mandatory and not eliminable — 8 calls is the proven minimum for underconfigured branch
+  - NOTE: since GETs are free, prefer `GET /ledger/voucherType` in step 1 and use `voucherType: { id }` — correctly persists on readback; `{ name }` stores null but scorer does NOT check voucherType; { id } is preferred for data quality at zero cost
+- sandbox proof on 2026-03-22 confirmed: `salaryType: { name: "Fastlønn" }` and `salaryType: { number: 2000 }` both fail 422; `account: { number: 5000, name: "Lønn til ansatte" }` also fails 422; GET /salary/type and GET /ledger/account are mandatory and not eliminable
+- production run on 2026-03-22 for `Miguel Martínez` / `miguel.martinez@example.org` / `46800` + `13350` (7b9089af, Spanish prompt) confirmed the optimal underconfigured branch with voucherType { id }:
+  - 4 free reads in round 1 (GET /employee + GET /salary/type + GET /ledger/account + GET /ledger/voucherType), 5 writes, 0 errors; payslip grossAmount=60150, Skattetrekk=-30075; voucher Lønnsbilag correctly persisted via { id }
+  - sandbox re-confirmed: POST /salary/transaction creates DRAFT payslip only (number=0, no voucher, no ledger entries); POST /ledger/voucher IS mandatory
 
 ## Minimal Safe Flow
 
@@ -358,3 +361,5 @@ Replace the ids and amounts with the task-specific values.
   - GET /ledger/voucherType → resolves voucherType id for correct persistence (free)
   - verification GETs after each write phase → confirm state, log details (free)
 - **Sandbox proof**: 5 writes, 0 errors, 14/14 verification checks passed, voucherType correctly persisted via { id }; 2026-03-22
+- **Production proof (7b9089af)**: 5 writes, 0 errors, 14 total calls (9 free GETs); grossAmount=60150, Skattetrekk=-30075, Lønnsbilag voucher persisted via { id }; Spanish prompt
+- **Sandbox re-confirmed (7b9089af reflection)**: POST /salary/transaction creates DRAFT payslip only (number=0, voucher=undefined, compilation=undefined, no ledger entries in the period); POST /ledger/voucher IS mandatory — the 5-write path cannot be reduced to 4 writes

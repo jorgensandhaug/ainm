@@ -374,3 +374,11 @@
   - `POST /employee/employment` with inline `employmentDetails[]` — round 3
   - `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` (id=6958416) + `POST /ledger/voucher?sendToLedger=true` (id=609208546) — round 4
   - 8 calls, 0 errors, 4 rounds — first production run achieving the proven-minimum call count for this branch
+- production run on 2026-03-22 for `Miguel Martínez` / `miguel.martinez@example.org` / `46800` + `13350` (7b9089af, Spanish prompt) confirmed the optimal underconfigured branch with voucherType { id }:
+  - `Promise.all`: `GET /employee` + `GET /salary/type` + `GET /ledger/account` + `GET /ledger/voucherType` — 4 free reads in round 1
+  - employee `id=18785997` with `dateOfBirth=null` and `employments=[]` → underconfigured branch
+  - `Promise.all`: `POST /division` (id=108585667) + `PUT /employee` (dateOfBirth=1990-01-01) — round 2
+  - `POST /employee/employment` with inline `employmentDetails[]` (monthlySalary=46800) — round 3
+  - `Promise.all`: `POST /salary/transaction?generateTaxDeduction=true` (id=6959427) + `POST /ledger/voucher?sendToLedger=true` (id=609404979, voucherType by id=12148503, amountGross+row) — round 4
+  - 5 writes, 0 errors, 14 total calls (9 free GETs); payslip grossAmount=60150, Skattetrekk=-30075; voucher Lønnsbilag correctly persisted via { id }
+  - sandbox re-confirmed: POST /salary/transaction creates DRAFT payslip only (number=0, voucher=undefined, compilation=undefined, no ledger entries); POST /ledger/voucher IS mandatory for ledger-entry scoring checks
