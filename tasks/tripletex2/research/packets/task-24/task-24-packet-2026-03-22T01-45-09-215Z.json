@@ -1,0 +1,512 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-24-packet-2026-03-22T01-45-09-215Z",
+  "createdAt": "2026-03-22T01:45:09.215Z",
+  "taskId": "24",
+  "txTaskId": "24",
+  "taskSlug": "correct-ledger-errors",
+  "taskName": "Correct ledger errors",
+  "queueEntry": {
+    "taskId": "24",
+    "txTaskId": "24",
+    "taskSlug": "correct-ledger-errors",
+    "taskName": "Correct ledger errors",
+    "priority": 20,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "bestKnownScore": 2.25,
+    "maxScore": 6,
+    "notes": [
+      "Score 2.25/6 -- gap 3.75 (62.5%).",
+      "8 attributed runs, 0 successful (0% success rate).",
+      "12 total leaderboard attempts."
+    ],
+    "researchLane": "classifier-bugfix",
+    "operatorNotes": [
+      "Known classifier mismatch looks fixable and high leverage."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "24.correct-ledger-errors.v2",
+    "strategyPath": "src/tasks/task-24/strategies/correct-ledger-errors-v2.ts",
+    "strategyStatus": "candidate",
+    "strategyName": "Correct four known Jan-Feb 2026 ledger errors – direct VAT posting",
+    "summary": "Same scan-and-correct flow as v1, but posts the missing-VAT correction directly to account 2710 instead of account 6500 with vatType, avoiding Tripletex auto-VAT splitting.",
+    "hypothesis": "v1 posts to 6500 with forceVatTypeId, causing Tripletex to auto-split the gross into net+VAT (920 to 2710 instead of 4587.50). Posting directly to 2710 without vatType avoids the split and puts the full VAT amount where the scorer expects it.",
+    "expectedCallProfile": {
+      "targetCalls": 3,
+      "maxCalls": 3
+    },
+    "stepOutline": [
+      "API call 1: GET /ledger/account for accounts 7300, 7000, 6860, 6500, and 2710.",
+      "API call 2: GET /ledger/voucher for the Jan-Feb 2026 window with posting expansion, then identify the wrong-account, duplicate, missing-VAT, and wrong-amount vouchers.",
+      "API call 3: POST /ledger/voucher?sendToLedger=true with one corrective voucher dated 2026-02-28. The missing-VAT correction posts directly to account 2710."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "24.correct-ledger-errors.v1",
+      "strategyPath": "src/tasks/task-24/strategies/correct-ledger-errors.ts",
+      "strategyStatus": "active",
+      "strategyName": "Correct four known Jan-Feb 2026 ledger errors",
+      "summary": "Loads the relevant ledger accounts, scans Jan-Feb 2026 vouchers for the four known anomalies, then posts one balanced correction voucher with id-based postings.",
+      "hypothesis": "This task family is deterministic because the prompt fixes one date window and four exact error signatures, so a single scan plus one correction voucher is enough.",
+      "expectedCallProfile": {
+        "targetCalls": 3,
+        "maxCalls": 3
+      },
+      "stepOutline": [
+        "API call 1: GET /ledger/account for accounts 7300, 7000, 6860, 6500, and 2710.",
+        "API call 2: GET /ledger/voucher for the Jan-Feb 2026 window with posting expansion, then identify the wrong-account, duplicate, missing-VAT, and wrong-amount vouchers.",
+        "API call 3: POST /ledger/voucher?sendToLedger=true with one corrective voucher dated 2026-02-28."
+      ]
+    },
+    {
+      "strategyId": "24.correct-ledger-errors.v2",
+      "strategyPath": "src/tasks/task-24/strategies/correct-ledger-errors-v2.ts",
+      "strategyStatus": "candidate",
+      "strategyName": "Correct four known Jan-Feb 2026 ledger errors – direct VAT posting",
+      "summary": "Same scan-and-correct flow as v1, but posts the missing-VAT correction directly to account 2710 instead of account 6500 with vatType, avoiding Tripletex auto-VAT splitting.",
+      "hypothesis": "v1 posts to 6500 with forceVatTypeId, causing Tripletex to auto-split the gross into net+VAT (920 to 2710 instead of 4587.50). Posting directly to 2710 without vatType avoids the split and puts the full VAT amount where the scorer expects it.",
+      "expectedCallProfile": {
+        "targetCalls": 3,
+        "maxCalls": 3
+      },
+      "stepOutline": [
+        "API call 1: GET /ledger/account for accounts 7300, 7000, 6860, 6500, and 2710.",
+        "API call 2: GET /ledger/voucher for the Jan-Feb 2026 window with posting expansion, then identify the wrong-account, duplicate, missing-VAT, and wrong-amount vouchers.",
+        "API call 3: POST /ledger/voucher?sendToLedger=true with one corrective voucher dated 2026-02-28. The missing-VAT correction posts directly to account 2710."
+      ]
+    }
+  ],
+  "baselineCallBudget": 3,
+  "optimizationObjective": {
+    "frontierSummary": "Task 24 has a score gap of 3.75/6 (62.5%). Best known score is 2.25/6 from 12 attempts with 0% success rate.",
+    "currentBestKnownScore": 2.25,
+    "maxScore": 6,
+    "scoreGap": 3.75,
+    "bestKnownCallBudget": 3,
+    "baselineCallBudget": 3,
+    "activeStrategyToBeat": {
+      "strategyId": "24.correct-ledger-errors.v2",
+      "strategyPath": "src/tasks/task-24/strategies/correct-ledger-errors-v2.ts",
+      "strategyStatus": "candidate",
+      "strategyName": "Correct four known Jan-Feb 2026 ledger errors – direct VAT posting",
+      "summary": "Same scan-and-correct flow as v1, but posts the missing-VAT correction directly to account 2710 instead of account 6500 with vatType, avoiding Tripletex auto-VAT splitting.",
+      "hypothesis": "v1 posts to 6500 with forceVatTypeId, causing Tripletex to auto-split the gross into net+VAT (920 to 2710 instead of 4587.50). Posting directly to 2710 without vatType avoids the split and puts the full VAT amount where the scorer expects it.",
+      "expectedCallProfile": {
+        "targetCalls": 3,
+        "maxCalls": 3
+      },
+      "stepOutline": [
+        "API call 1: GET /ledger/account for accounts 7300, 7000, 6860, 6500, and 2710.",
+        "API call 2: GET /ledger/voucher for the Jan-Feb 2026 window with posting expansion, then identify the wrong-account, duplicate, missing-VAT, and wrong-amount vouchers.",
+        "API call 3: POST /ledger/voucher?sendToLedger=true with one corrective voucher dated 2026-02-28. The missing-VAT correction posts directly to account 2710."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 2.25/6, or match the current correctness and score at 3 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 24.correct-ledger-errors.v2 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 2.25/6.",
+      "If score does not improve, match correctness at 3 API calls or fewer.",
+      "Compare against the active pinned strategy 24.correct-ledger-errors.v2 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-24",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-24/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-24/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-24/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-24/strategies/correct-ledger-errors-v2.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-24/strategies/correct-ledger-errors.ts",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-24/strategies/correct-ledger-errors-v2.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-24/task-24-packet-2026-03-22T01-45-09-215Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/task-policy.json",
+      "recentArtifactPaths": []
+    },
+    "offlineEvidence": {
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-133728286Z-82ff967a/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-133728286Z-82ff967a/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-133728286Z-82ff967a/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-154654788Z-0edbccb9/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-154654788Z-0edbccb9/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-154654788Z-0edbccb9/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-161912122Z-0607a659/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-161912122Z-0607a659/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-161912122Z-0607a659/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-175751200Z-397faff2/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-175751200Z-397faff2/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-175751200Z-397faff2/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182142534Z-7fed6a02/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182142534Z-7fed6a02/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182142534Z-7fed6a02/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-191608814Z-db732541/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-191608814Z-db732541/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-191608814Z-db732541/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204843788Z-3d464771/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204843788Z-3d464771/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204843788Z-3d464771/submission-score.json"
+      ]
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 0,
+    "recentArtifacts": []
+  },
+  "historicalRuns": [
+    {
+      "runId": "prod-2026-03-21-204843788Z-3d464771",
+      "createdAt": "2026-03-21T20:48:43.788Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204843788Z-3d464771",
+      "promptExcerpt": "Wir haben Fehler im Hauptbuch für Januar und Februar 2026 entdeckt. Überprüfen Sie alle Belege und finden Sie die 4 Fehler: eine Buchung auf das falsche Konto (Konto 6340 statt 6390, Betrag 3050 NOK), ein doppelter Bele…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 1/4 checks failed.",
+      "failureMode": "Check 3: failed",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "See reflection for what to change details.",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 2.25,
+        "scoreRaw": 7.5,
+        "scoreMax": 10,
+        "candidateCount": 1,
+        "feedbackComment": "1/4 checks failed.",
+        "allChecksPassed": false
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204843788Z-3d464771/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204843788Z-3d464771/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204843788Z-3d464771/codex-score-reflection.summary.md"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-204558586Z-ee909d4d",
+      "createdAt": "2026-03-21T20:45:58.586Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d",
+      "promptExcerpt": "Descobrimos erros no livro razão de janeiro e fevereiro de 2026. Revise todos os vouchers e encontre os 4 erros: um lançamento na conta errada (conta 7140 usada em vez de 7100, valor 2250 NOK), um voucher duplicado (con…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 1/4 checks failed.",
+      "failureMode": "Check 3: failed",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "See reflection for what to change details.",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 2.25,
+        "scoreRaw": 7.5,
+        "scoreMax": 10,
+        "candidateCount": 1,
+        "feedbackComment": "1/4 checks failed.",
+        "allChecksPassed": false
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/codex-score-reflection.summary.md"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-191608814Z-db732541",
+      "createdAt": "2026-03-21T19:16:08.814Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-191608814Z-db732541",
+      "promptExcerpt": "Descobrimos erros no livro razão de janeiro e fevereiro de 2026. Revise todos os vouchers e encontre os 4 erros: um lançamento na conta errada (conta 7140 usada em vez de 7100, valor 2250 NOK), um voucher duplicado (con…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 1/4 checks failed.",
+      "failureMode": "Check 3: failed",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "1. **Improve 2710 association validation**: Before applying Case B, verify the captured 2710 amount matches the expected auto-VAT for the error expense posting (gross - gross/1.25 for vatType=1). If mismatched, the 2710 is for a different line — apply Case A instead. 2. **Try Case A for \"falta IVA\"…",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 2.25,
+        "scoreRaw": 7.5,
+        "scoreMax": 10,
+        "candidateCount": 1,
+        "feedbackComment": "1/4 checks failed.",
+        "allChecksPassed": false
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-191608814Z-db732541/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-191608814Z-db732541/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-191608814Z-db732541/codex-score-reflection.summary.md"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-182142534Z-7fed6a02",
+      "createdAt": "2026-03-21T18:21:42.534Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182142534Z-7fed6a02",
+      "promptExcerpt": "Descobrimos erros no livro razão de janeiro e fevereiro de 2026. Revise todos os vouchers e encontre os 4 erros: um lançamento na conta errada (conta 6340 usada em vez de 6390, valor 2450 NOK), um voucher duplicado (con…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 1/4 checks failed.",
+      "failureMode": "Check 3: failed",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "See reflection for what to change details.",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 2.25,
+        "scoreRaw": 7.5,
+        "scoreMax": 10,
+        "candidateCount": 1,
+        "feedbackComment": "1/4 checks failed.",
+        "allChecksPassed": false
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182142534Z-7fed6a02/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182142534Z-7fed6a02/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182142534Z-7fed6a02/codex-score-reflection.summary.md"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-175751200Z-397faff2",
+      "createdAt": "2026-03-21T17:57:51.200Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-175751200Z-397faff2",
+      "promptExcerpt": "We have discovered errors in the general ledger for January and February 2026. Review all vouchers and find the 4 errors: a posting to the wrong account (account 6500 used instead of 6540, amount 7350 NOK), a duplicate…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 1/4 checks failed.",
+      "failureMode": "Check 3: failed",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "See reflection for what to change details.",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 2.25,
+        "scoreRaw": 7.5,
+        "scoreMax": 10,
+        "candidateCount": 1,
+        "feedbackComment": "1/4 checks failed.",
+        "allChecksPassed": false
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-175751200Z-397faff2/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-175751200Z-397faff2/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-175751200Z-397faff2/codex-score-reflection.summary.md"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-161912122Z-0607a659",
+      "createdAt": "2026-03-21T16:19:12.122Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-161912122Z-0607a659",
+      "promptExcerpt": "Nous avons découvert des erreurs dans le grand livre de janvier et février 2026. Vérifiez toutes les pièces et trouvez les 4 erreurs : une écriture sur le mauvais compte (compte 6540 utilisé au lieu de 6860, montant 480…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 1/4 checks failed.",
+      "failureMode": "Check 3: failed",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "See reflection for what to change details.",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 2.25,
+        "scoreRaw": 7.5,
+        "scoreMax": 10,
+        "candidateCount": 1,
+        "feedbackComment": "1/4 checks failed.",
+        "allChecksPassed": false
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-161912122Z-0607a659/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-161912122Z-0607a659/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-161912122Z-0607a659/codex-score-reflection.summary.md"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-154654788Z-0edbccb9",
+      "createdAt": "2026-03-21T15:46:54.788Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-154654788Z-0edbccb9",
+      "promptExcerpt": "Hemos descubierto errores en el libro mayor de enero y febrero de 2026. Revise todos los comprobantes y encuentre los 4 errores: un asiento en la cuenta incorrecta (cuenta 7300 usada en lugar de 7000, importe 4500 NOK),…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 1/4 checks failed.",
+      "failureMode": "Check 3: failed",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "See reflection for what to change details.",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 2.25,
+        "scoreRaw": 7.5,
+        "scoreMax": 10,
+        "candidateCount": 1,
+        "feedbackComment": "1/4 checks failed.",
+        "allChecksPassed": false
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-154654788Z-0edbccb9/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-154654788Z-0edbccb9/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-154654788Z-0edbccb9/codex-score-reflection.summary.md"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-133728286Z-82ff967a",
+      "createdAt": "2026-03-21T13:37:28.286Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-133728286Z-82ff967a",
+      "promptExcerpt": "Descobrimos erros no livro razão de janeiro e fevereiro de 2026. Revise todos os vouchers e encontre os 4 erros: um lançamento na conta errada (conta 7300 usada em vez de 7000, valor 7800 NOK), um voucher duplicado (con…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 0/0 checks passed.",
+      "failureMode": "Unknown failure.",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "See reflection for what to change details.",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 0,
+        "scoreRaw": 0,
+        "scoreMax": 1,
+        "candidateCount": 1,
+        "feedbackComment": "0/0 checks passed."
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-133728286Z-82ff967a/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-133728286Z-82ff967a/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-133728286Z-82ff967a/codex-score-reflection.summary.md"
+      ]
+    }
+  ],
+  "promptExamples": [
+    {
+      "runId": "prod-2026-03-21-204843788Z-3d464771",
+      "createdAt": "2026-03-21T20:48:43.788Z",
+      "sourcePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204843788Z-3d464771/request.json",
+      "languageHint": "German",
+      "promptText": "Wir haben Fehler im Hauptbuch für Januar und Februar 2026 entdeckt. Überprüfen Sie alle Belege und finden Sie die 4 Fehler: eine Buchung auf das falsche Konto (Konto 6340 statt 6390, Betrag 3050 NOK), ein doppelter Beleg (Konto 6860, Betrag 1650 NOK), eine fehlende MwSt.-Zeile (Konto 4500, Betrag ohne MwSt. 22900 NOK, fehlende MwSt. auf Konto 2710), und ein falscher Betrag (Konto 6860, 24450 NOK gebucht statt 10850 NOK). Korrigieren Sie alle Fehler mit entsprechenden Korrekturbuchungen.",
+      "requestPath": [],
+      "whyItMatters": "German production prompt example. Scored 2.25: 1/4 checks failed.."
+    },
+    {
+      "runId": "prod-2026-03-21-204558586Z-ee909d4d",
+      "createdAt": "2026-03-21T20:45:58.586Z",
+      "sourcePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204558586Z-ee909d4d/request.json",
+      "languageHint": "Portuguese",
+      "promptText": "Descobrimos erros no livro razão de janeiro e fevereiro de 2026. Revise todos os vouchers e encontre os 4 erros: um lançamento na conta errada (conta 7140 usada em vez de 7100, valor 2250 NOK), um voucher duplicado (conta 7000, valor 4400 NOK), uma linha de IVA em falta (conta 6500, valor sem IVA 14100 NOK falta IVA na conta 2710), e um valor incorreto (conta 6590, 13150 NOK registado em vez de 11650 NOK). Corrija todos os erros com lançamentos corretivos.",
+      "requestPath": [],
+      "whyItMatters": "Portuguese production prompt example. Scored 2.25: 1/4 checks failed.."
+    },
+    {
+      "runId": "prod-2026-03-21-175751200Z-397faff2",
+      "createdAt": "2026-03-21T17:57:51.200Z",
+      "sourcePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-175751200Z-397faff2/request.json",
+      "languageHint": "English",
+      "promptText": "We have discovered errors in the general ledger for January and February 2026. Review all vouchers and find the 4 errors: a posting to the wrong account (account 6500 used instead of 6540, amount 7350 NOK), a duplicate voucher (account 7100, amount 3200 NOK), a missing VAT line (account 6540, amount excl. 11450 NOK missing VAT on account 2710), and an incorrect amount (account 6300, 8200 NOK posted instead of 5800 NOK). Correct all errors with appropriate correction vouchers.",
+      "requestPath": [],
+      "whyItMatters": "English production prompt example. Scored 2.25: 1/4 checks failed.."
+    },
+    {
+      "runId": "prod-2026-03-21-161912122Z-0607a659",
+      "createdAt": "2026-03-21T16:19:12.122Z",
+      "sourcePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-161912122Z-0607a659/request.json",
+      "languageHint": "French",
+      "promptText": "Nous avons découvert des erreurs dans le grand livre de janvier et février 2026. Vérifiez toutes les pièces et trouvez les 4 erreurs : une écriture sur le mauvais compte (compte 6540 utilisé au lieu de 6860, montant 4800 NOK), une pièce en double (compte 7100, montant 2000 NOK), une ligne de TVA manquante (compte 4500, montant HT 14500 NOK, TVA manquante sur compte 2710), et un montant incorrect (compte 7100, 21650 NOK comptabilisé au lieu de 17900 NOK). Corrigez toutes les erreurs avec des écritures correctives.",
+      "requestPath": [],
+      "whyItMatters": "French production prompt example. Scored 2.25: 1/4 checks failed.."
+    }
+  ],
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-21T23:30:27.315Z",
+        "bestScore": 2.25,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-21-232908610Z-8ed57511"
+      },
+      {
+        "capturedAt": "2026-03-21T23:30:12.340Z",
+        "bestScore": 2.25,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-21-233012289Z-edef2e1f"
+      },
+      {
+        "capturedAt": "2026-03-21T23:29:08.712Z",
+        "bestScore": 2.25,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-21-232908610Z-8ed57511"
+      },
+      {
+        "capturedAt": "2026-03-21T23:20:27.393Z",
+        "bestScore": 2.25,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-21-231803951Z-1a623504"
+      },
+      {
+        "capturedAt": "2026-03-21T23:20:06.730Z",
+        "bestScore": 2.25,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-21-232006679Z-77175e8c"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-204843788Z-3d464771",
+      "prod-2026-03-21-204558586Z-ee909d4d",
+      "prod-2026-03-21-191608814Z-db732541",
+      "prod-2026-03-21-182142534Z-7fed6a02",
+      "prod-2026-03-21-175751200Z-397faff2"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "knownFailureModes": []
+  },
+  "frontier": {
+    "summary": "Task 24 has a score gap of 3.75/6 (62.5%). Best known score is 2.25/6 from 12 attempts with 0% success rate.",
+    "strongestKnownBranch": {
+      "label": "Best scoring branch from production evidence (3 proof runs)",
+      "apiCallCount": 0,
+      "requestPath": [],
+      "proofRunIds": [
+        "prod-2026-03-21-204843788Z-3d464771",
+        "prod-2026-03-21-204558586Z-ee909d4d",
+        "prod-2026-03-21-191608814Z-db732541"
+      ]
+    },
+    "nextHypotheses": [
+      "No successful runs yet -- investigate fundamental strategy or endpoint issues.",
+      "Large score gap indicates high improvement potential with strategy refinement."
+    ],
+    "antiPatterns": [
+      "Known failure pattern: Check 3: failed",
+      "Known failure pattern: Unknown failure."
+    ]
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Score 2.25/6 -- gap 3.75 (62.5%).",
+    "8 attributed runs, 0 successful (0% success rate).",
+    "12 total leaderboard attempts.",
+    "Known classifier mismatch looks fixable and high leverage.",
+    "Task packet built dynamically from production evidence for task 24.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 24.correct-ledger-errors.v2."
+  ]
+}

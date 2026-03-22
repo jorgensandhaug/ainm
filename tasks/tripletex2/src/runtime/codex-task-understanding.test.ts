@@ -32,6 +32,8 @@ test("buildCodexTaskUnderstandingPrompt includes the request, files, and registe
 
   assert.match(prompt, /Follow \.\/AGENTS\.md exactly\./);
   assert.match(prompt, /Registered task surfaces:/);
+  assert.match(prompt, /Attachment handling:/);
+  assert.match(prompt, /Each attachment path points to a staged local file/);
   assert.match(prompt, /Attachments:/);
   assert.match(prompt, /path: \/tmp\/run\/attachments\/01-note\.txt/);
   assert.match(prompt, /path: \/tmp\/run\/attachments\/02-invoice\.pdf/);

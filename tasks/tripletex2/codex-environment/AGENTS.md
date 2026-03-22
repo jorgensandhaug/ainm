@@ -13,6 +13,19 @@
 - Use `null` for unused fields. For zero-field resolved tasks, use `inputJson: "{}"`.
 - Allowed unresolved codes: `ambiguous-task`, `no-task-match`, `missing-required-field`, `ambiguous-field-value`, `conflicting-field-values`, `invalid-field-value`, `unreadable-file`, `unsupported-request`.
 
+## Attachment Handling
+- Attachment entries may include:
+  - `path`: absolute staged file path on local disk
+  - `hasTextContent: yes|no`: whether text was already inlined into the prompt
+  - `textContent`: pre-extracted text when available
+- `hasTextContent: no` does NOT mean the attachment is missing or unreadable. PDFs and other binary files are intentionally staged on disk without inline text.
+- When a required attachment has `hasTextContent: no`, inspect the file at `path` before deciding it is unreadable.
+- Prefer the local helper first:
+  - `bun read-attachment.ts '<absolute-path>'`
+- For PDFs, `pdftotext` is also available locally if needed.
+- Only use `code: "unreadable-file"` after a concrete read attempt against the staged `path` fails or the file is genuinely absent.
+- Never claim that no readable file was available when the prompt provided a staged `path` that you did not check.
+
 ## Retry Contract
 - First-pass classification always uses the full canonical task universe in this file. A later runtime retry does NOT mean your earlier interpretation was false.
 - If the prompt includes a `Retry context:` block, treat the listed excluded task ids as semantically real but non-eligible for final live selection in that retry.
@@ -140,7 +153,7 @@ Apply these gates in order before drilling into the detailed task table.
 - Preserve names, addresses, descriptions, emails, and other business strings exactly, including Unicode.
 - Convert numeric amounts, percentages, quantities, ids, and account numbers to numbers.
 - If quantity is clearly implicit for a single line, set `quantity: 1`.
-- Use attachment text as first-class evidence for `19`, `20`, `22`, and `23`. If the file is unreadable, return `unresolved` with `code: "unreadable-file"`.
+- Use attachment contents as first-class evidence for `19`, `20`, `22`, and `23`. Read from `textContent` when present; otherwise read the staged file at `path`. If the file is unreadable after an actual read attempt, return `unresolved` with `code: "unreadable-file"`.
 - Always copy the exact uploaded filename into `attachmentFileName`; do not rename or normalize it.
 - Only set `supplierAlreadyExists`, `departmentAlreadyExists`, or `allowManualVoucherFallback` when the prompt says so explicitly.
 - Leave optional fields unset when the prompt or attachment does not provide them.
