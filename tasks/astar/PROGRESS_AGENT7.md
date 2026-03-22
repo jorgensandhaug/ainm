@@ -3099,3 +3099,27 @@ ensemble_v15: adaptive confidence-weighted blend (3-seed MLP + 4c + adaptive kNN
 - Ensemble (fixed blend): 87.70 (+0.05)
 - Ensemble (adaptive blend): **87.72** (+0.07 from plateau)
 - **Total improvement: +9.96 points from v44** (77.76 → 87.72, +12.8%)
+
+
+### 2026-03-22T03:45Z approx
+
+## Latest Champion: ensemble_v22 = 87.73
+
+ensemble_v22: adaptive confidence-weighted blend (3-seed MLP + 4c + adaptive kNN)
+- Score: **87.7340**
+- R7: 72.7
+- mode_weight=0.88, adaptive_scale=1.5
+
+### Complete adaptive ensemble sweep:
+| Model | Score | R7 | weight | scale |
+|-------|-------|-----|--------|-------|
+| **v22** | **87.73** | 72.7 | 0.88 | 1.5 |
+| v23 | 87.73 | 72.7 | 0.92 | 2.0 |
+| v21 | 87.73 | 72.7 | 0.90 | 2.0 |
+| v20 | 87.73 | 72.7 | 0.90 | 1.5 |
+| v19 | 87.73 | 72.6 | 0.88 | 1.0 |
+| v15 | 87.72 | 72.6 | 0.90 | 1.0 |
+| v24 | 87.70 | 72.9 | 0.90 | 3.0 |
+
+Total improvement from v44: **+9.97 points** (77.76 → 87.73, +12.8%)
+Total variants tested: **270+** across 4 architectures
