@@ -31,6 +31,8 @@ interface CustomerSummary {
   id: number;
   name?: string | null;
   organizationNumber?: string | null;
+  invoicesDueIn?: number | null;
+  invoicesDueInType?: string | null;
 }
 
 interface ProjectSummary {
@@ -358,7 +360,8 @@ export const strategy = {
     );
     const vatType = chooseOutgoingVatType(vatTypeResponse.values ?? []);
 
-    const invoiceDueDate = addDays(invoiceDate, 30);
+    const invoiceDueInDays = resolveInvoiceDueInDays(project.customer);
+    const invoiceDueDate = addDays(invoiceDate, invoiceDueInDays);
 
     let repairedInvoiceBankAccount = false;
     let invoiceResponse: ResponseWrapper<InvoiceSummary>;
@@ -717,6 +720,16 @@ function splitProjectHours(
   });
 
   return entries;
+}
+
+function resolveInvoiceDueInDays(
+  customer: CustomerSummary | null | undefined,
+): number {
+  const dueIn = customer?.invoicesDueIn;
+  if (typeof dueIn === "number" && Number.isFinite(dueIn) && dueIn >= 0) {
+    return dueIn;
+  }
+  return 14;
 }
 
 function chooseOutgoingVatType(
