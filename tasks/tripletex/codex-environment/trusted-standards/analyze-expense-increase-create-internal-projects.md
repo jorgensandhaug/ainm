@@ -132,3 +132,6 @@ Log: each project's id, name, isInternal, projectManager, and activity details (
 - 11th production run `bfc6f50a` on `2026-03-22` (Portuguese prompt — "livro razão", "contas de despesa") confirmed the identical 3-call path:
   - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls
   - 11 consecutive optimal runs across en/es/pt/nb/nn/de prompts confirm this standard is fully stable and language-independent
+- 12th production run `0e9c7e59` on `2026-03-22` (Spanish prompt — "libro mayor", "cuentas de gastos") confirmed the identical 3-call path:
+  - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls + 1 free verification GET
+  - 12 consecutive optimal runs across en/es/pt/nb/nn/de prompts confirm this standard is fully stable and language-independent
