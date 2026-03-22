@@ -74,6 +74,7 @@ If `/activity/>forTimeSheet` returns `isChargeable=true`:
   - `vatType` from the filtered outgoing VAT lookup
 - do not drop `GET /ledger/vatType` from the scored default just because a `0%`-only sandbox accepts an omitted line `vatType`; that shortcut can silently create the wrong VAT result on taxable accounts
 - do not insert a default `PUT /timesheet/week/:approve`; it can return `403` even for the token owner and is not part of the proven public fast path
+- do not try to skip the activity GET by expanding activities from the project GET — `GET /project?...&fields=*,customer(*),activities(*)` returns `400` (`activities` not a valid field on ProjectDTO); `GET /project/projectActivity` returns `405` (POST-only); `/activity/>forTimeSheet` is the only valid activity resolver; sandbox-verified 2026-03-22
 
 ## Reuse From Write Response
 - from `PUT /project/hourlyRates/{id}`:
@@ -177,6 +178,8 @@ Log: invoiceNumber, customer, amountExcludingVatCurrency, amountCurrencyOutstand
   - persistent-sandbox re-proof on 2026-03-22 confirmed: `POST /invoice?sendToCustomer=false` does NOT depend on `POST /timesheet/entry` for existing entities — both succeed independently; this enables the optimized 3-step layout where timesheet and invoice run in parallel at step 3
   - persistent-sandbox re-proof on 2026-03-22 confirmed: `GET /timesheet/entry` with `dateFrom=X&dateTo=X` returns 422 because `dateTo` is exclusive (the validation message says "'From and including' value is greater than or equal 'To and excluding' value"); fix: use `dateTo=X+1` (next day)
   - the 2026-03-22 production Norwegian run `Bergvik AS` / `989231898` / `Plattformintegrasjon` / `ingrid.nilsen@example.org` / `Analyse` / `5` hours / `1400` (5e5e2c8c) matched the non-chargeable branch, completed in `8` calls (3 writes + 5 reads, with bank fix) and `0` avoidable errors, returned `amountExcludingVatCurrency=7000` plus `amountCurrency=8750` (25% VAT); this was a repeat of the exact same prompt from 2026-03-20 and confirms the path is stable; the only issue was the verification GET `dateFrom=dateTo` bug which returned 422 — fixed by using `dateTo=dateFrom+1`
+  - the 2026-03-22 production Portuguese run `Estrela Lda` / `930325325` / `Redesign do site` / `ines.rodrigues@example.org` / `Design` / `11` hours / `1000` (d1063226) matched the non-chargeable branch with the optimized 3-step layout, completed in `8` calls (3 writes + 5 reads, with bank fix) and `0` errors, returned `amountExcludingVatCurrency=11000` plus `amountCurrencyOutstanding=13750` (25% VAT); this is the 2nd consecutive run using the optimized 3-step layout with 0 errors, confirming the path is stable across Portuguese, Norwegian, German, and French prompts
+  - persistent-sandbox re-proof on 2026-03-22 confirmed: `GET /project?...&fields=*,customer(*),activities(*)` returns `400` — `activities` is not a valid expansion field on ProjectDTO; `GET /project/projectActivity` returns `405` (Method Not Allowed, POST-only); `GET /activity/>forTimeSheet` remains the ONLY valid way to resolve activity IDs for timesheet purposes; do not attempt to skip the activity GET by expanding from the project GET
 
 ## Create From Scratch Variant
 

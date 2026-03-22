@@ -93,6 +93,7 @@ Persistent-sandbox verification on 2026-03-20 showed:
 - persistent-sandbox re-proof on 2026-03-22 confirmed: `POST /invoice?sendToCustomer=false` does NOT depend on `POST /timesheet/entry` for existing entities — both succeed independently; this enables the 3-step layout where timesheet and invoice run in parallel
 - persistent-sandbox re-proof on 2026-03-22 confirmed: `GET /timesheet/entry` with `dateFrom=X&dateTo=X` returns 422 because `dateTo` is exclusive; fix: use `dateTo=X+1`
 - the 2026-03-22 production Norwegian run `Bergvik AS` / `989231898` / `Plattformintegrasjon` / `ingrid.nilsen@example.org` / `Analyse` / `5` hours / `1400` (5e5e2c8c) completed in 8 calls (3 writes + 5 reads, with bank fix), 0 avoidable errors, `amountExcludingVatCurrency=7000`, `amountCurrency=8750` (25% VAT); repeat of exact same prompt from 2026-03-20, confirming path stability; only issue was verification GET `dateFrom=dateTo` bug (422)
+- the 2026-03-22 production Portuguese run `Estrela Lda` / `930325325` / `Redesign do site` / `ines.rodrigues@example.org` / `Design` / `11` hours / `1000` (d1063226) completed in 8 calls (3 writes + 5 reads, with bank fix), 0 errors, `amountExcludingVatCurrency=11000`, `amountCurrencyOutstanding=13750` (25% VAT); 2nd consecutive optimal run using the 3-step layout; sandbox re-proof confirmed `GET /project?...&fields=*,customer(*),activities(*)` returns 400 and `GET /project/projectActivity` returns 405 — `GET /activity/>forTimeSheet` is the ONLY valid activity resolver
 
 ### Create From Scratch Variant
 
@@ -314,3 +315,4 @@ After step 2, add hourly-rate management before step 3:
 - Do not use `dateFrom=X&dateTo=X` in `GET /timesheet/entry` verification — `dateTo` is exclusive, so same date returns 422; use `dateTo=X+1` (next day); sandbox-verified 2026-03-22
 - Do move `GET /ledger/vatType` and `GET /ledger/account` into step 1 (parallel with employee + project) — they have no dependencies; placing them later adds unnecessary sequential steps
 - Do parallelize `POST /timesheet/entry` and `POST /invoice` at step 3 — invoice does NOT depend on timesheet entries existing; sandbox-verified 2026-03-22 for existing entities
+- Do not try to skip the activity GET by expanding activities from the project GET — `activities` is not a valid field on ProjectDTO (returns 400), and `GET /project/projectActivity` is POST-only (returns 405); `/activity/>forTimeSheet` is the only valid activity resolver; sandbox-verified 2026-03-22
