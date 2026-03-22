@@ -969,7 +969,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
     cells_per_seed: int = Field(default=512, ge=1)
     budget_prefixes: tuple[int, ...] = DEFAULT_BUDGET_PREFIXES
     blur_sigmas: tuple[float, float] = DEFAULT_BLUR_SIGMAS
-    ridge_lambda: float = Field(default=8.0, ge=0.0)
+    ridge_lambda: float = Field(default=4.0, ge=0.0)
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     temperature: float = Field(default=1.0, gt=0.0)
     prior_blend: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -1007,7 +1007,7 @@ class QueryResidualPredictor(BaseRoundPredictor):
         samples_per_round: int = 1,
         cells_per_seed: int = 512,
         budget_prefixes: Sequence[int] = DEFAULT_BUDGET_PREFIXES,
-        ridge_lambda: float = 8.0,
+        ridge_lambda: float = 4.0,
         model_name: str = "query_residual_v7",
         probability_floor: float = 0.01,
         temperature: float = 1.0,

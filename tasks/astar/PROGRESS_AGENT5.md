@@ -2833,7 +2833,7 @@ Score: 80.37
 | signal_scale | 0.12 | **0.10** | own sweep |
 | min_delta_scale | 0.4 | 0.4 | unchanged |
 | cells_per_seed | 256 | **512** | own sweep |
-| ridge_lambda | 8.0 | 8.0 | pending sweep |
+| ridge_lambda | 8.0 | **4.0** | own sweep |
 | samples_per_round | 1 | **2** | Agent3 |
 | policy | coverage | **exploration_r3** | Agent7 |
 
@@ -2845,8 +2845,9 @@ Score: 80.37
 | + expansion-conditioned stacking | 77.35 | +2.16 |
 | + calibration fix (t=1.0, p=0.0, b=6) | 80.37 | +3.02 |
 | + cells_per_seed=512 | 80.56 | +0.19 |
-| + signal_scale=0.10 | **80.90** | +0.34 |
-| **Total improvement** | **80.90** | **+5.71** |
+| + signal_scale=0.10 | 80.90 | +0.34 |
+| + ridge_lambda=4.0 | **81.01** | +0.11 |
+| **Total improvement** | **81.01** | **+5.82** |
   - Or tristack e30_c05/e30_c10 at 77.39 (marginal improvement)
   - Architecture: 65% QR + 35% expansion-conditioned kNN in logit space
   - Uses 1D expansion rate for regime conditioning
