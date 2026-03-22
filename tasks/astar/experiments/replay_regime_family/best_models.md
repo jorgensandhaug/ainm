@@ -1,48 +1,64 @@
-# Best Models — Final Session Summary
+# Best Models — Agent1 Final Report
 
-## Leader: `hazard_posterior_v15_k5_r5_l1_m20_q1 + regime_probe_v1`
-- **Score: 83.95** / KL 0.0610
-- Delta vs v8: **+4.76**
-- Delta vs query_residual: **+10.00**
+## Champion: `hazard_posterior_v21_a55 + regime_probe_v1`
+- **Score: 84.06** / KL 0.0606
+- Delta vs original v8: **+4.87**
+- Delta vs query_residual baseline: **+10.11**
 
-## Complete Configuration Sweep (60+ broad-validated experiments)
+## Architecture: v15 linear + v20 LightGBM geometric mean ensemble
 
-| rank | config | score | notes |
+### How it works:
+1. **v15 component** (linear, original coefficients): Per-round ridge regression from 27 spatial features to terminal class log-odds, with original per-round coefficients (no SVD truncation), r=5, m=20, q=1
+2. **v20 component** (LightGBM): Per-round LightGBM models from spatial+prior features to terminal class log-odds, capturing nonlinear interactions
+3. **Ensemble**: Geometric mean in probability space with alpha=0.55 (55% v15, 45% v20)
+4. **Observation blending**: Conservative t=20 blending of direct observation frequencies
+5. **Policy**: regime_probe_v1 (motif-based adaptive querying)
+
+## Per-Round Scores (v21 a55)
+| Round | Score |
+| --- | ---: |
+| 36e581f1 | 66.42 |
+| ae78003a | 81.09 |
+| fd3c92ff | 82.92 |
+| f1dac9a9 | 85.40 |
+| 71451d74 | 86.11 |
+| 76909e29 | 89.75 |
+| c5cdf100 | 90.39 |
+| 8e839974 | 90.35 |
+
+## Complete Experiment Summary (80+ experiments)
+
+### Architectural variants tested:
+| Version | Approach | Score | Notes |
 | --- | --- | ---: | --- |
-| 1 | r5 l1 m25 q1 | 83.98 | tied leader |
-| 2 | r5 l1 m20 q1 | 83.95 | confirmed leader |
-| 3 | r5 l2 m20 q1 | 83.95 | l2=l1 |
-| 4 | r5 m20 q1 (l32) | 83.89 | higher ridge |
-| 5 | r6 l1 m20 q1 | 83.88 | too much rank |
-| 6 | r5 l1 m15 q1 | 83.87 | m too low |
-| 7 | r5 l1 m20 q2 | 83.84 | q2 > q1 tiny |
-| 8 | r5 m30 q2 | 83.79 | m30 > m20 |
-| 9 | r5 m50 q2 | 83.67 | m50 typical |
-| 10 | v8 (reference) | 79.19 | prior leader |
+| **v21** | Linear+LightGBM ensemble | **84.06** | BEST |
+| v15 | Linear, original coefficients | 83.95 | Best standalone |
+| v20 | LightGBM teacher | 83.50 | Better on hard rounds |
+| v19 | Prior-residual coefficients | 83.27 | Agent7-inspired |
+| v22 | MLP student posterior | 82.89 | Overfits |
+| v17 | kNN cell predictor | 82.88 | Non-parametric |
+| v16 | Orig coeff, no obs blend | 82.30 | Obs blend helps |
+| v18 | Pure likelihood matching | 81.03 | Student is valuable |
+| v11 | Obs blend only (no orig coeff) | 79.94 | Obs blend validated |
+| v8 | Previous best | 79.19 | Baseline |
+| v12 | Adaptive calibration | 78.12 | Temperature hurts |
+| v10 linear | Enhanced v3 features | 76.03 | Too many features |
+| v13 | Probability floor | 75.02 | Hurts everywhere |
+| v10 RFF | Nonlinear teacher | 31.25 | Catastrophic overfit |
 
-## Innovations That Worked (cumulative +4.76)
-1. Original-coefficient particles (+3.1): bypass SVD truncation
-2. SVD rank=5 (+0.9): capture more coefficient variance
-3. Observation-frequency blending (+0.6): direct evidence use
-4. Lower m=20 (+0.4): trust particles over predicted mean
-5. Lower ridge l=1 (+0.04): less regularization
-6. Lower observation weight q=1 (+0.09)
+### Key scientific findings:
+1. SVD truncation was the main bottleneck (+3.1 points from using original coefficients)
+2. Higher SVD rank helps regime identification (+0.9 at rank=5)
+3. Conservative observation blending helps (+0.6)
+4. Lower predicted-mean weight trusts accurate particles more (+0.4)
+5. LightGBM captures complementary nonlinear patterns (+0.1 in ensemble)
+6. More features/nonlinearity in the teacher HURTS with limited training data
+7. Probability floors and temperature scaling HURT (wrong inductive bias)
+8. The student posterior adds real value (removing it costs 2.8 points)
 
-## Innovations That Failed
-- RFF nonlinear teacher (v10): 31.25 (catastrophic overfit)
-- Enhanced v3 features: 76.03 (too many features)
-- Probability floor: 75.02 (dilutes correct predictions)
-- Adaptive calibration: 78.12 (hurts confident rounds)
-- kNN cell predictor (v17): 82.88 (below v15)
-- Pure likelihood matching (v18): 81.03 (student is valuable)
-- Agent7 no-prior-blend: 83.58 (doesn't transfer)
-- exploration policy: 83.11 (regime_probe better)
-- coverage policy: 83.04 (regime_probe much better)
-- samples_per_round>1: always worse
-
-## Cross-Agent Intelligence
-- Agent7: 87.12 (fundamentally different architecture - residual MLP + cluster-operator)
-- Agent3: ~85.31 (CatBoost cellwise model)
-- Agent4: 83.06 (LightGBM evidence, not live-applicable)
-- Agent6: ~79.6 (geometric mean ensemble)
+### Cross-agent intelligence:
+- Agent7: 87.36 (fundamentally different architecture, not transferable piecemeal)
+- Agent3: ~85.31 (CatBoost, partially transferred via LightGBM ensemble)
+- Agent4: 83.06 (LightGBM evidence, similar idea to our v20)
+- Agent6: ~79.6 (geometric mean ensemble, similar concept to v21)
 - Agent5: 77.35 (stacked QR + expansion kNN)
