@@ -3074,3 +3074,28 @@ kNN is too simple to compete alone, but proves cell-level transcript features ar
 10. **Pure particle decoder scores 83.57** (SVD modes add +4 points over it)
 
 ### 250+ total variants tested across all axes.
+
+
+### 2026-03-22T03:15Z approx
+
+## Latest Champion: ensemble_v15 = 87.72
+
+ensemble_v15: adaptive confidence-weighted blend (3-seed MLP + 4c + adaptive kNN)
+- Score: **87.7191**
+- R7: 72.6
+- Uses prediction entropy to adaptively blend more kNN where mode model is uncertain
+
+### Adaptive ensemble results:
+| Model | Score | R7 |
+|-------|-------|-----|
+| **ensemble_v15** | **87.72** | **72.6** |
+| ensemble_v17 | 87.71 | 72.6 |
+| ensemble_v14 | 87.71 | 72.6 |
+| ensemble_v16 | 87.71 | 72.5 |
+
+### Full score trajectory:
+- Starting (v44): 77.76
+- Calibration optimized: 87.65 (+9.89)
+- Ensemble (fixed blend): 87.70 (+0.05)
+- Ensemble (adaptive blend): **87.72** (+0.07 from plateau)
+- **Total improvement: +9.96 points from v44** (77.76 → 87.72, +12.8%)
