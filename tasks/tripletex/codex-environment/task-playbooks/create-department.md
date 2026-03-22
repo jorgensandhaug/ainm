@@ -45,6 +45,7 @@ Production and sandbox re-verification on 2026-03-21 showed:
 Production and sandbox re-verification on 2026-03-22 showed:
 - a Norwegian prompt asking for `HR`, `Salg`, and `Økonomi` (e78d62fc) was the same exact-match flow: one `POST /department/list`, 201, 1 call 0 errors; sandbox re-verified same day
 - a Nynorsk prompt asking for `Logistikk`, `Kundeservice`, and `HR` (fc039efb) was the same exact-match flow: one `POST /department/list`, 201, 1 call 0 errors; sandbox re-verified same day
+- a Norwegian prompt asking for `Markedsføring`, `Produksjon`, and `Innkjøp` (779e69a3) was the same exact-match flow: one `POST /department/list`, 201, 1 call 0 errors; sandbox re-verified same day
 
 ## Minimal Safe Flow
 
