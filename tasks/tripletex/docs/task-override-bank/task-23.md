@@ -19,11 +19,9 @@ The prompt will provide (in any of nb/nn/en/es/pt/fr/de):
    cp ./scripts/reconcile-bank-statement.ts <RUN_SCRIPTS_DIR>/reconcile.ts
    cd <RUN_SCRIPTS_DIR> && bun run reconcile.ts <BASE_URL> <TOKEN> <CSV_FILE_PATH>
    ```
-3. **Do NOT write your own script.** The pre-built script handles ALL 9 steps of the mandatory checklist including multi-period reconciliation, batch matching, combined vouchers, and multi-language invoice matching. It was sandbox-verified END-TO-END: 11/11 matches, 0 errors, all checks passed (2026-03-22).
+3. **Do NOT write your own script.** The pre-built script handles ALL 9 steps of the mandatory checklist including multi-period reconciliation, batch matching, combined vouchers, and multi-language invoice reference matching. It was sandbox-verified END-TO-END: 11/11 matches, 0 errors, all checks passed (2026-03-22).
 
-## The 9-step mandatory checklist (all required for Check 1)
-
-Steps 1–5 alone = 0.6/6 (Check 2 only). Steps 6+7 alone also fail (proven by runs 57c8f4db, 02daaa35). **ALL of Steps 0, 6, 7, 8 are required for Check 1 (worth 8 points).**
+## The 9-step mandatory checklist
 
 | Step | Action |
 |------|--------|
@@ -32,27 +30,33 @@ Steps 1–5 alone = 0.6/6 (Check 2 only). Steps 6+7 alone also fail (proven by r
 | 3 | Match and pay customer invoices (`PUT /invoice/{id}/:payment`) |
 | 0+4+5 | ONE combined `POST /ledger/voucher`: opening balance (DR 1920 / CR 2050) + supplier payments (DR 2400 / CR 1920) + non-invoice lines (Bankgebyr 7770, Skattetrekk 2600, Renteinntekter 8050) |
 | 6 | `POST /bank/statement/import` with SBANKEN_BEDRIFT_CSV format — txn IDs are positional (CSV order) |
-| 7 | Create SEPARATE reconciliation PER accounting period + BATCH `POST /bank/reconciliation/match` per period (all txn+posting pairs in ONE call) |
+| 7 | Create SEPARATE reconciliation PER accounting period + BATCH `POST /bank/reconciliation/match` per period |
 | 8 | Close ALL reconciliations: `PUT /bank/reconciliation/{id}` with `isClosed: true` |
 
-## Why this matters — production evidence
+## Production evidence (verified from leaderboard diffs)
 
-| Run | What happened | Score |
-|-----|---------------|-------|
-| 8bf4760c, 4edaedea, c76bbef3, d1297531 | Steps 1–5 only, no bank recon | 0.6/6 |
-| 5c02a044 | Booked ALL non-invoice lines but no bank recon | 0.6/6 |
-| 57c8f4db | Bank recon created but `transactions: []` (no import/matching) | 0.6/6 |
-| 02daaa35 | Bank recon closed but no statement import or matching | 0.6/6 |
-| 1d375699 | **Timed out (0/0)** — agent spent 106s writing own 300-line script | 0/1 |
-| a986e65f | **Timed out** (Spanish prompt, same problem) | 0/1 |
-| b8a43ac0 | French prompt, v3 script, 13 mutating calls, 0 errors | ambiguous |
+**19 attempts total, best_score has NEVER exceeded 0.6/6. Check 1 has NEVER passed in production.**
 
-**Key insight**: every scored run hit 0.6/6 because Check 1 requires the FULL flow — not just vouchers.
+| Run | tx_task_id | What happened | Verified score |
+|-----|-----------|---------------|----------------|
+| 8bf4760c | 23 | Steps 1–5 only, no bank recon | 0.6/6 (2/10, Check 1 fail, Check 2 pass) |
+| 4edaedea | 23 | Steps 1–5 only, no bank recon | 0.6/6 (2/10, Check 1 fail, Check 2 pass) |
+| c76bbef3 | 23 | Steps 1–5 only, no bank recon | 0.6/6 (2/10, Check 1 fail, Check 2 pass) |
+| d1297531 | 23 | Steps 1–5 only, no bank recon | 0.6/6 (2/10, Check 1 fail, Check 2 pass) |
+| 5c02a044 | 23 | Booked ALL non-invoice lines, no bank recon | 0.6/6 (2/10, Check 1 fail, Check 2 pass) |
+| 57c8f4db | ambig | Bank recon created but `transactions: []` (no import) | ≤0.6 (leaderboard unchanged) |
+| 02daaa35 | ambig | Closed recon but no statement import or matching | ≤0.6 (leaderboard unchanged) |
+| 1d375699 | 23 | Wrote own script, 30 calls, 8 errors (single-period recon) | 0/1 (timed out at 300s) |
+| a986e65f | 23 | Pre-built script, 0 errors, full 9-step flow, 20 mutating | ≤0.6 (leaderboard 15→16, best unchanged) |
+| 0c420db1 | ambig | Invoice ref swap (Moe AS) broke both checks | 0/10 (score-reflection; leaderboard consistent) |
+| b8a43ac0 | 23 | v3 script, 0 errors, 13 mutating, full 9-step flow | ≤0.6 (leaderboard 18→19, best unchanged) |
+
+**Status**: The full 9-step flow executes correctly with 0 errors but Check 1 still fails. The root cause of Check 1 is still under investigation (see RESEARCH.md for hypotheses). The pre-built script remains the correct approach — it avoids timeouts, avoids errors, and guarantees Check 2.
 
 ## Critical facts
 
-- **CSVs always span 2 months** (e.g., Jan 16 – Feb 4). A bank transaction can ONLY match a reconciliation whose accounting period covers the transaction date. Single-period recon = 422 errors.
-- **Invoice number matching**: CSV says "Faktura 1001" but Tripletex `invoiceNumber` is `1`. Match by `csvRef % 1000` + customer name + amount. Amount-only matching is WRONG when a customer has multiple invoices (run 0c420db1 scored 0/10 from swapped Moe AS invoices).
+- **CSVs always span 2 months** (e.g., Jan 16 – Feb 4). A bank transaction can ONLY match a reconciliation whose accounting period covers the transaction date. Single-period recon = 422 errors (proven: 1d375699 had 8 match failures).
+- **Invoice reference matching is critical**: CSV "Faktura 1001" maps to Tripletex `invoiceNumber` via `csvRef % 1000`. Amount-only matching is WRONG when a customer has multiple invoices (0c420db1 scored 0/10 from swapped Moe AS invoices).
 - **Supplier prefix matching**: multi-language regex handles "Betaling Fournisseur", "Betaling Leverandør", etc.
 - `POST /bank/reconciliation/match` accepts arrays — batch ALL pairs per period in ONE call.
 - Bank import response txn IDs are positional (CSV order) — no extra GET needed.
