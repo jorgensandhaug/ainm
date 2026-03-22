@@ -221,6 +221,17 @@ Log all non-zero `balanceOut` accounts. The voucher postings are balanced by con
 - 7th optimal run for 6020→1029 variant (Runs 1, 4, 5, 6, 8, 9, 12)
 - 13 production runs total: 11 optimal, 1 blocked (creds), 1 suboptimal (Run 7, 4 calls — batch-create fix applied in Run 10)
 
+### Run 13 (2026-03-22, 1700→6300 + 6030→1209 variant, Spanish prompt, 3 calls — optimal)
+- Task: March 2026, prepaid 3500 (1700→6300), depreciation 232650/6yr (6030→1209), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET (accounts) + 1 POST (batch create 6030+1209) + 1 POST (combined 6-line voucher)
+- 0 errors. Depreciation: Math.round((232650/72)*100)/100 = 3231.25
+- Missing accounts: 6030, 1209. Existing: 1700, 5000, 2900, 6300
+- First production 1700→6300 + 6030→1209 combination (prior 6030→1209 runs used 1710 or 1720 prepaid sources)
+- Spanish prompt: "periodificación de la cuenta 1700 a gasto" → 1700→6300
+- 2nd optimal 6030→1209 production run (after Run 10); confirms batch-create path stable
+- 14 production runs total: 12 optimal, 1 blocked (creds), 1 suboptimal (Run 7, 4 calls — batch-create fix applied in Run 10)
+- Confirmed language variants: nb, nn, en, es, fr, pt, de (all 7 produce correct results)
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `account: { number: 5000 }` without `id` → 422 "postings.account.name: Kan ikke være null."
@@ -243,3 +254,4 @@ Log all non-zero `balanceOut` accounts. The voucher postings are balanced by con
   - 1710→6390 + 6030→1209 with 242900/4yr (dep 5060.42) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero, voucher deleted after verification
   - 1700→6300 + 6010→1249 with 156750/10yr (dep 1306.25) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero, voucher deleted after verification
   - 1700→6300 + 6020→1029 with 147250/5yr (dep 2454.17) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero, voucher deleted after verification
+  - 1700→6300 + 6030→1209 with 232650/6yr (dep 3231.25) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero, voucher deleted after verification (Spanish prompt variant)

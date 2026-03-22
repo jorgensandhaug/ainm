@@ -241,6 +241,18 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - 7th optimal run for 6020→1029 variant (Runs 2, 5, 6, 7, 9, 10, 13)
 - 13 production runs total: 11 optimal, 1 blocked (creds), 1 suboptimal (Run 8, batch-create fix applied in Run 11)
 
+### Run 14 (1700→6300 + 6030→1209 variant, Spanish prompt, 3 calls — optimal)
+- Task: March 2026, prepaid 3500 (1700→6300), depreciation 232650/6yr (6030→1209), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET (accounts) + 1 POST (batch create 6030+1209) + 1 POST (combined 6-line voucher)
+- 0 errors, optimal for 6030→1209 variant
+- Missing: 6030, 1209. Existing: 1700, 5000, 2900, 6300
+- Depreciation: Math.round((232650/72)*100)/100 = 3231.25
+- First production 1700→6300 + 6030→1209 combination (prior 6030→1209 runs used 1710 or 1720 prepaid sources)
+- Spanish prompt: "periodificación de la cuenta 1700 a gasto" → 1700→6300
+- 2nd optimal 6030→1209 production run (after Run 11); confirms batch-create path stable
+- 14 production runs total: 12 optimal, 1 blocked (creds), 1 suboptimal (Run 8, batch-create fix applied in Run 11)
+- Confirmed language variants: nb, nn, en, es, fr, pt, de (all 7 produce correct results)
+
 ### Sandbox confirmations
 - `account.number` + `account.name` without `id` → 422 (id is mandatory)
 - Combined 6-line voucher works, 2-call path verified when all accounts exist
@@ -255,3 +267,5 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - Account 1249 named "Andre transportmidler" in default chart; works correctly as accumulated depreciation target
 - 1710→6390 + 6030→1209 with 242900/4yr (dep 5060.42) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero
 - 1700→6300 + 6010→1249 with 156750/10yr (dep 1306.25) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero
+- Spanish "periodificación de la cuenta 1700 a gasto" maps to 1700→6300 (confirmed Run 14)
+- 1700→6300 + 6030→1209 with 232650/6yr (dep 3231.25) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero
