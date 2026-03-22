@@ -465,6 +465,64 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_scale=3.0,
         blend_space="logodds",
     ),
+    # Sweep around a6_v11 (85% + scale=2.0) which is the best
+    "ffam_ensemble_a6_v15": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v15",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.83,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    "ffam_ensemble_a6_v16": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v16",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.87,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # Scale sweep at 85%
+    "ffam_ensemble_a6_v17": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v17",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=1.0,
+        blend_space="logodds",
+    ),
+    "ffam_ensemble_a6_v18": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v18",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.5,
+        blend_space="logodds",
+    ),
+    # v19+4c with adaptive logodds
+    "ffam_ensemble_a6_v19": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v19",
+        mode_model="ffam_mode_a6_v24",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # v19+3c with adaptive logodds
+    "ffam_ensemble_a6_v20": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v20",
+        mode_model="ffam_mode_a6_v23",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
 }
 
 
