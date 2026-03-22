@@ -34,6 +34,7 @@ class EnsemblePredictor(BaseRoundPredictor):
     probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
     blend_mode: str = "geometric"  # "geometric" or "arithmetic"
     obs_blend_temperature: float = Field(default=0.0, ge=0.0)  # 0 = disabled
+    spatial_smooth_sigma: float = Field(default=0.0, ge=0.0)  # 0 = disabled
 
     @classmethod
     def fit_from_workspace(
@@ -48,6 +49,7 @@ class EnsemblePredictor(BaseRoundPredictor):
         policy_name: str = "coverage",
         blend_mode: str = "geometric",
         obs_blend_temperature: float = 0.0,
+        spatial_smooth_sigma: float = 0.0,
     ) -> EnsemblePredictor:
         if not model_names:
             raise ValueError("ensemble requires at least one component model")
@@ -78,6 +80,7 @@ class EnsemblePredictor(BaseRoundPredictor):
             probability_floor=probability_floor,
             blend_mode=blend_mode,
             obs_blend_temperature=obs_blend_temperature,
+            spatial_smooth_sigma=spatial_smooth_sigma,
         )
 
     def build_prediction_bundle_from_context(
@@ -108,7 +111,41 @@ class EnsemblePredictor(BaseRoundPredictor):
         if self.obs_blend_temperature > 0.0 and context.observations:
             blended = self._apply_obs_frequency_blend(blended, context)
 
+        # Spatial smoothing (agent7 innovation - very light sigma=0.3)
+        if self.spatial_smooth_sigma > 0.0:
+            blended = self._apply_spatial_smoothing(blended)
+
         return blended
+
+    def _apply_spatial_smoothing(self, bundle: PredictionBundle) -> PredictionBundle:
+        """Apply very light Gaussian smoothing to reduce per-cell noise."""
+        sigma = self.spatial_smooth_sigma
+        new_preds: dict[int, np.ndarray] = {}
+        for seed_index, pred in bundle.predictions_by_seed.items():
+            probs = np.asarray(pred, dtype=np.float64)
+            # Simple 3x3 weighted average (approximates Gaussian blur)
+            h, w, c = probs.shape
+            smoothed = probs.copy()
+            center_weight = 1.0
+            neighbor_weight = sigma * 0.5
+            total_w = center_weight + 8 * neighbor_weight
+            padded = np.pad(probs, ((1, 1), (1, 1), (0, 0)), mode='edge')
+            accum = center_weight * padded[1:-1, 1:-1, :]
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    if dy == 0 and dx == 0:
+                        continue
+                    accum += neighbor_weight * padded[1+dy:h+1+dy, 1+dx:w+1+dx, :]
+            smoothed = accum / total_w
+            # Re-normalize
+            sums = np.sum(smoothed, axis=-1, keepdims=True)
+            smoothed = smoothed / np.maximum(sums, 1e-12)
+            new_preds[seed_index] = apply_probability_floor(smoothed, self.probability_floor)
+        return PredictionBundle(
+            round_id=bundle.round_id,
+            model_name=bundle.model_name,
+            predictions_by_seed=new_preds,
+        )
 
     def _apply_obs_frequency_blend(
         self,

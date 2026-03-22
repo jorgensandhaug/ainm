@@ -452,6 +452,7 @@ def build_online_predictor(
             policy_name=policy_name or ensemble_spec.policy_name,
             blend_mode=ensemble_spec.blend_mode,
             obs_blend_temperature=ensemble_spec.obs_blend_temperature,
+            spatial_smooth_sigma=ensemble_spec.spatial_smooth_sigma,
         )
         return RoundPredictorAdapter(
             predictor=predictor,
