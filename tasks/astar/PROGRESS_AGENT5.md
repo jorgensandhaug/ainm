@@ -3256,3 +3256,22 @@ Per-round comparison (a5_e14 vs Agent7 v35):
 | Best ensemble | **87.86** | **ffam_ensemble_a5_e14** |
 
 **Total improvement: +13.91 points (73.95 → 87.86)**
+
+### Phase 2c: Optimization Rounds 4+ (2026-03-21)
+
+Round 4: kNN variants and weight sweep — none beat a5_e14.
+All results within ~0.06 noise band. Architecture is saturating.
+
+| Config | Score | Key Change |
+|--------|-------|------------|
+| a5_e21 | 87.8596 | mode_weight=0.83 |
+| a5_e17 | 87.8583 | kNN v7 |
+| a5_e22 | 87.8560 | mode_weight=0.82 |
+
+#### Conclusions
+
+1. Best model: **ffam_ensemble_a5_e14** = 87.8612
+2. FFAM operator manifold is ~6.7 points better than query_residual
+3. Moderate beta (18/72) slightly better than Agent7's default (12/48)
+4. 16% kNN is optimal blend weight
+5. Log-odds blending >> probability blending
