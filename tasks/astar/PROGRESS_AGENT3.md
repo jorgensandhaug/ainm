@@ -5184,7 +5184,29 @@ Per-round best (avg 10 eval):
    - The model already uses observation data as FEATURES and does a better job
    - **Lesson**: don't blend raw observations - let the model learn when to trust them
 
-537. Next experiments:
+537. Cross-entropy LGB: 89.86 (worse than MSE regression 90.15)
+   - MSE + entropy weights already handles calibration well
+   - CE objective doesn't add value over weighted MSE
+
+538. Final summary of all approaches tried in this session:
+
+**SUCCESSFUL (ordered by impact):**
+1. Multi-episode variance features (+2.13)
+2. Prediction averaging across episodes (+0.96)
+3. Training data augmentation via multi-episodes (+0.45)
+4. Deeper trees d10 (+0.10)
+5. Exploration policy vs coverage (+0.34)
+6. More training data (8→16 rounds) (+1.68)
+
+**FAILED:**
+1. Obs-blend (raw frequency blending) → -2.44
+2. Ensemble LGB+CatBoost → -0.11
+3. Smart blend (MC freq + model) → catastrophic
+4. 20+ episodes (overfits on low-replay rounds)
+5. Cross-entropy objective → -0.30
+6. More trees / deeper trees beyond d10 → diminishing returns
+
+539. Next experiments:
 
 ## Open Questions
 
