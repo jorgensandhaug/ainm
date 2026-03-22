@@ -16,15 +16,15 @@
 2. `960b8_confcurr_s2` (batch=8, seed=62/77/91/123) — 115 MB
 3. `960div_confcurr_s2` (batch=6, seed=200, different hyperparams) — 115 MB
 
-### Best Scores: 3-model + flip TTA (conf=0.0001)
+### Best Scores: 3-model + flip TTA (conf=0.0001, WBF IoU=0.60)
 
 | Metric | Value |
 |--------|-------|
-| det_AP50 | 0.9465 |
-| cls_mAP50_present (278) | 0.8215 |
-| cls_mAP50_all (356) | 0.6417 |
-| hybrid_present | 0.9091 |
-| **hybrid_all** | **0.8550** |
+| det_AP50 | 0.9477 |
+| cls_mAP50_present (278) | 0.8221 |
+| cls_mAP50_all (356) | 0.6423 |
+| hybrid_present | 0.9101 |
+| **hybrid_all** | **0.8561** |
 | Inference cost | 6x (3 models × 2 orientations) |
 
 ### All Ensemble Variants
@@ -92,6 +92,18 @@ Stage 6: 960b8_confcurr_s2    — 18ep → mAP50=0.8047@e17
 - Final model: hybrid_all=0.8416 vs 0.8407 (marginal)
 - Main value: **diversity for ensemble** (+0.0099 when combined with b4)
 
+### EXP-009: WBF IoU Threshold Sweep (3-model+flip)
+| WBF IoU | det | cls_all | hybrid_all | preds |
+|---------|-----|---------|------------|-------|
+| 0.30 | 0.9416 | 0.6371 | 0.8503 | 49253 |
+| 0.40 | 0.9436 | 0.6381 | 0.8520 | 52211 |
+| 0.50 | 0.9455 | 0.6418 | 0.8544 | 56476 |
+| 0.55 | 0.9465 | 0.6417 | 0.8550 | 59299 |
+| **0.60** | **0.9477** | **0.6423** | **0.8561** | **62303** |
+| 0.70 | 0.9477 | 0.6416 | 0.8559 | 70209 |
+
+**Finding**: WBF IoU=0.60 is optimal for hybrid_all (+0.0011 over 0.55).
+
 ### EXP-010: Diversity Model (seed=200, batch=6)
 - Different seed + slightly modified hyperparams (lr0=0.004, mixup=0.2 in stage 2)
 - Individual: mAP50=0.779 (weaker), but adds diversity
@@ -113,7 +125,7 @@ Stage 6: 960b8_confcurr_s2    — 18ep → mAP50=0.8047@e17
 | 640px baseline (prev) | 0.9321 | ~0.581 | ~0.838 | 0.8758 |
 | 960px b4 single | 0.9328 | 0.6259 | 0.8407 | 0.8934 |
 | 960px b4+b8 ensemble | 0.9416 | 0.6381 | 0.8506 | 0.9043 |
-| **960px 3-model+flip** | **0.9465** | **0.6417** | **0.8550** | **0.9091** |
+| **960px 3-model+flip+WBF0.6** | **0.9477** | **0.6423** | **0.8561** | **0.9101** |
 
 ## Lessons Learned
 - Always glob *.jpeg along with *.jpg — 6/49 val images are .jpeg
