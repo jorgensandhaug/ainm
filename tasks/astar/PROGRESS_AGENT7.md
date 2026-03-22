@@ -3123,3 +3123,61 @@ ensemble_v22: adaptive confidence-weighted blend (3-seed MLP + 4c + adaptive kNN
 
 Total improvement from v44: **+9.97 points** (77.76 → 87.73, +12.8%)
 Total variants tested: **270+** across 4 architectures
+
+
+### 2026-03-22T04:15Z approx
+
+## Final Fine-Tuning Results
+
+| Model | Score | R7 | Setup |
+|-------|-------|-----|-------|
+| v22 | 87.7340 | 72.7 | w=0.88, s=1.5, kNN |
+| v23 | 87.7333 | 72.7 | w=0.92, s=2.0, kNN |
+| v27 | 87.7336 | 72.7 | w=0.89, s=1.5, kNN |
+| v26 | 87.7334 | 72.7 | w=0.87, s=1.5, kNN |
+| v21 | 87.7329 | 72.7 | w=0.90, s=2.0, kNN |
+| v20 | 87.7321 | 72.7 | w=0.90, s=1.5, kNN |
+| v25 | 87.7046 | 72.8 | w=0.88, s=1.5, POOLED |
+
+**kNN is definitively better than pooled regression as diversity source**
+- kNN adds cell-level transcript features + local matching
+- Pooled uses global regression which is less diverse from mode model
+
+**Score is converging at 87.73-87.74** across all adaptive ensemble variants.
+The curve is extremely flat - we are at the ceiling for this approach.
+
+## Comprehensive Experiment Summary
+
+### 4 Architectures Implemented:
+1. **ffam_mode** (250+ variants): linear operator + SVD manifold + MLP posterior = 87.65
+2. **ffam_knn** (5 variants): per-cell kNN matching with transcript features = 77.47
+3. **ffam_pooled** (4 variants): pooled ridge regression with transcript features = 77.19
+4. **ffam_ensemble** (27 variants): adaptive blend of mode + kNN = **87.73**
+
+### Key Scientific Findings:
+1. Per-round SVD structure adds +10 points over non-structured approaches
+2. Cell-level transcript features add +6.65 points (kNN ablation)
+3. Adaptive confidence-weighted ensembling breaks plateau by +0.08
+4. R7 is OOD (not intrinsically hard) - 4 clusters help
+5. Lower beta helps R7 but trades off with other rounds
+6. Multi-seed MLP is neutral (variance not the bottleneck)
+7. Pure particle decoder loses -4 points vs SVD modes
+8. More samples (s>6) hurts (overfitting to training episodes)
+9. Evidence propagation is neutral
+10. kNN is better diversity source than pooled regression
+
+### Current Best Model:
+- **ffam_ensemble_v22**: 87.7340
+  - Base: ffam_mode_v248 (4-cluster, 3-seed MLP, q=5)
+  - Diversity: ffam_knn_v1 (k=100, cell-level transcript features)
+  - Blend: adaptive (mode_weight=0.88, adaptive_scale=1.5)
+  - Calibration: floor=0.0003, beta=12/48, spatial_smooth=0.3
+
+### Score Trajectory:
+- v44 (starting): 77.76
+- v132 (calibration): 85.50 (+7.74)
+- v157 (cluster decoder): 86.91 (+9.15)
+- v214 (spatial smooth): 87.65 (+9.89)
+- ensemble_v5 (fixed blend): 87.70 (+9.94)
+- ensemble_v15 (adaptive): 87.72 (+9.96)
+- **ensemble_v22 (optimized): 87.73 (+9.97)**
