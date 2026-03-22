@@ -146,7 +146,10 @@ class PriorOperatorPredictor(BaseRoundPredictor):
                 static_features = _build_enriched_feature_stack(seed.initial_state)
 
                 # Get bucket prior prediction for this seed
-                prior_pred = bucket_prior._seed_prediction(seed.initial_state)
+                prior_pred, _ = bucket_prior._predict_seed(
+                    round_id, seed.seed_index,
+                    grid, seed.initial_state.settlements,
+                )
                 prior_logits = _safe_logit(prior_pred)
 
                 # Target logits
@@ -232,7 +235,10 @@ class PriorOperatorPredictor(BaseRoundPredictor):
     ) -> np.ndarray:
         grid = np.asarray(initial_state.grid, dtype=np.int64)
         static_features = _build_enriched_feature_stack(initial_state)
-        prior_pred = self.bucket_prior_predictor._seed_prediction(initial_state)
+        prior_pred, _ = self.bucket_prior_predictor._predict_seed(
+            "unknown", 0,
+            grid, initial_state.settlements,
+        )
         prior_logits = _safe_logit(prior_pred)
 
         height, width = grid.shape
