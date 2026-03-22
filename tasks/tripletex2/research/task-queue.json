@@ -117,14 +117,14 @@
     },
     {
       "taskId": "16",
-      "txTaskId": "16",
+      "txTaskId": "11",
       "taskSlug": "register-supplier-invoice",
       "taskName": "Register supplier invoice",
       "priority": 8,
       "band": "focus",
       "queueEligibility": "ready",
       "researchLane": "execution-lane",
-      "bestKnownScore": 3,
+      "bestKnownScore": 1,
       "maxScore": 4,
       "notes": [
         "Execution-lane Tier 2 target."

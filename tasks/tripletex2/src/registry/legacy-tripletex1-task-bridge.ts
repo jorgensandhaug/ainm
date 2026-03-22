@@ -192,12 +192,12 @@ export const CANONICAL_TASK_REGISTRY = [
   },
   {
     taskId: "16",
-    txTaskId: "16",
+    txTaskId: "11",
     taskSlug: "register-supplier-invoice",
     taskName: "Register supplier invoice",
     summary:
       "Register an incoming supplier invoice with the requested account and input VAT.",
-    legacyTripletex1TaskIds: ["16"],
+    legacyTripletex1TaskIds: ["11"],
   },
   {
     taskId: "17",
