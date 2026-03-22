@@ -55,8 +55,21 @@ Key classification issues:
 
 ### EXP-003: TTA (multi-scale + flip inference)
 - Date: 2026-03-22
+- Status: DONE — improvement found
+- Best config: scales=[640,960,1280], flip=True, WBF IoU=0.65
+- Result: **Hybrid(present)=0.8948** (+0.0076), Det=0.9353, Cls(present)=0.8002
+- TTA sweep results:
+  - [640,960,1280] wbf=0.55 → 0.8940
+  - [640,960,1280] wbf=0.60 → 0.8945
+  - [640,960,1280] wbf=0.65 → **0.8948** (best)
+  - [800,960,1120,1280] wbf=0.55 → 0.8900 (more scales worse)
+  - [960,1280] wbf=0.55 → 0.8869 (fewer scales worse)
+- Conclusion: TTA helps both det (+0.006) and cls (+0.012). Best with 3 diverse scales.
+
+### EXP-004: Train 1280px model (higher resolution for classification)
+- Date: 2026-03-22
 - Status: Starting
-- Goal: Multi-scale inference (640, 960, 1280) + horizontal flip, merge via WBF
+- Goal: Train at 1280px to get finer detail for classification
 
 ## IMPORTANT
 - Git remote branch: **clank2** (not clank4!)
