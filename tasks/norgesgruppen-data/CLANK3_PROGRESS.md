@@ -67,9 +67,42 @@
 5. Classification mAP capped by 78 absent val classes (max cls_all ≈ 0.781)
 6. For ensemble to work, need class-agnostic detection + separate classifier
 
+### Exp 10: V3 High Classification Loss (cls=1.0, box=5.0)
+- hybrid_all=0.8420 standalone, 0.8491 with flip TTA — worse than V2
+- Higher cls loss hurts detection without improving classification enough
+
+### Exp 11: V4 Frozen Backbone (freeze=10)
+- hybrid_all=0.8394 — worse, backbone can't adapt
+
+### Exp 12: V5 Long Balanced Data Fine-tune (40 epochs, cosine LR)
+- hybrid_all=0.8415 — worse, balanced data degrades detection
+
+### Exp 13: Cross-session Model Comparison
+- clank2 960: 0.8354, clank4 yolo11x: 0.7956, clank4 extft: 0.8363
+- clank2 1280: 0.8352 (at 1280px inference)
+- None beat V2 (0.8464)
+
+### Exp 14: SWA Weight Averaging
+- V1+V2 equal: 0.1444 (models too divergent, destroyed)
+- V2+V2cc3 equal: 0.8451 (neutral, no improvement)
+
+## Failed Approaches
+- Naive model ensemble (doubles FPs, hurts detection AP)
+- Higher classification loss weight (hurts detection)
+- Backbone freezing (prevents adaptation)
+- Training from scratch with heavy augmentation (curriculum needed)
+- Weight averaging between different pipelines (destructive)
+- Higher inference resolution than training resolution
+
+## What Works
+1. 6-stage curriculum pipeline with diverse seeds (V2 >> V1)
+2. Flip TTA with WBF(max) fusion (+0.5% consistently)
+3. Training at native resolution (960px)
+4. Low confidence threshold (conf≈0.0003)
+
 ## Next Steps
-1. Continue fine-tuning V2 with additional curriculum rounds
-2. Try crop-and-classify approach using product images
-3. Train with larger model (e.g., YOLO11x if available)
-4. Investigate class-balanced focal loss for rare classes
-5. Try stochastic weight averaging (SWA) for better generalization
+1. Try product image retrieval for classification reranking
+2. Train a V6 pipeline from different pretrained backbone
+3. Try label smoothing for fine-grained classification
+4. Investigate class-specific confidence calibration
+5. Consider two-stage: detect-then-classify approach

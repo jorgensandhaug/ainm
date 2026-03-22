@@ -32,6 +32,10 @@ def main() -> None:
     parser.add_argument("--run-tag", default="cls", help="Extra run name prefix for traceability.")
     parser.add_argument("--data", default="data/yolo/data.yaml", help="Path to YOLO data.yaml")
     parser.add_argument("--device", default=None, help="Device(s), e.g. '0' or '0,1,2' for multi-GPU.")
+    parser.add_argument("--cos-lr", action="store_true", help="Use cosine LR schedule.")
+    parser.add_argument("--label-smoothing", type=float, default=0.0, help="Label smoothing.")
+    parser.add_argument("--cls-gain", type=float, default=0.5, help="Classification loss gain.")
+    parser.add_argument("--box-gain", type=float, default=7.5, help="Box loss gain.")
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
@@ -77,6 +81,10 @@ def main() -> None:
         deterministic=True,
         workers=args.workers,
         freeze=args.freeze,
+        cos_lr=args.cos_lr,
+        label_smoothing=args.label_smoothing,
+        cls=args.cls_gain,
+        box=args.box_gain,
     )
 
 
