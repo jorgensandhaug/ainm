@@ -34,6 +34,16 @@ Maximize hybrid score: `0.7 * detection_mAP@50 + 0.3 * classification_mAP@50`
 | 3-model ensemble + TTA | 0.9057 |
 | **4-model ensemble + TTA (with seed-99)** | **0.9069** |
 
+### Size-Constrained Best (420MB limit)
+- 3 × YOLO26x .pt = 360MB (fits) → best 3-model: 960+1280+s99 = **0.9047**
+- ONNX models are larger (214MB each) → only 1 fits
+- 4 models exceed 420MB as .pt (480MB)
+
+### EfficientNet-B2 Classifier
+- Val accuracy: **89.61%** (epoch 34/40)
+- But still weaker than YOLO contextual classification
+- Crop-level fusion doesn't improve hybrid score
+
 ## Single Model Baselines
 
 **960px model:** `runs/960_confcurr_s2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt` (120 MB)
