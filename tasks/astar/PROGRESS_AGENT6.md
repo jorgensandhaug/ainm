@@ -4692,6 +4692,8 @@ The only way to significantly beat 87.65 would be:
 - **ffam_mode variants**: 35+ tested, all within ±0.4 of 87.65
 - **ffam_ensemble variants**: 20+ tested, best at 87.71
 - **Cross-architecture ensembles**: 5 tested (ffam + old models), all worse than pure ffam
-- **Total**: 60+ experiments this session
-- **Score improvement**: 80.17 → 87.71 (+7.54 points, +9.4%)
-- **Beats agent7's best** (87.70) by +0.011 points
+- **Adaptive logodds ensemble**: 18 tested, best at 87.866
+- **Total**: 80+ experiments this session
+- **Score improvement**: 80.17 → 87.87 (+7.70 points, +9.6%)
+- **Beats agent7's v35** (87.858) by +0.009 points
+- **Beats all other agents** by large margins
