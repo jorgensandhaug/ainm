@@ -2846,8 +2846,25 @@ Score: 80.37
 | + calibration fix (t=1.0, p=0.0, b=6) | 80.37 | +3.02 |
 | + cells_per_seed=512 | 80.56 | +0.19 |
 | + signal_scale=0.10 | 80.90 | +0.34 |
-| + ridge_lambda=4.0 | **81.01** | +0.11 |
-| **Total improvement** | **81.01** | **+5.82** |
+| + ridge_lambda=4.0 | 81.01 | +0.11 |
+| + ridge_lambda=0.01 | **81.24** | +0.23 |
+| **Total improvement** | **81.24** | **+6.05** |
+
+### Ridge Lambda Sweep (complete)
+
+| ridge_lambda | Mean Score |
+|-------------|-----------|
+| **0.01** | **81.24** |
+| 0.1 | 81.21 |
+| 0.25 | 81.14 |
+| 0.5 | 81.08 |
+| 1.0 | 81.04 |
+| 2.0 | 81.03 |
+| 4.0 | 81.01 |
+| 8.0 | 80.90 |
+
+Monotonically improving toward lower regularization.
+With proper calibration (t=1.0, p=0.0), minimal ridge is optimal.
   - Or tristack e30_c05/e30_c10 at 77.39 (marginal improvement)
   - Architecture: 65% QR + 35% expansion-conditioned kNN in logit space
   - Uses 1D expansion rate for regime conditioning
