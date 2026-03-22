@@ -279,6 +279,32 @@
       ],
       "createdAt": "2026-03-22T02:32:22.210Z",
       "updatedAt": "2026-03-22T02:32:22.210Z"
+    },
+    {
+      "candidateId": "29.full-project-lifecycle.v2",
+      "taskId": "29",
+      "strategyId": "29.full-project-lifecycle.v2",
+      "strategyPath": "src/tasks/task-29/strategies/full-project-lifecycle-v2.ts",
+      "strategyName": "Full project lifecycle v2",
+      "status": "sandbox-pass",
+      "packetPath": "research/packets/task-29/task-29-packet-2026-03-22T02-11-59-946Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": false,
+        "apiCallCount": 17,
+        "baselineCallBudget": 13,
+        "sandboxRunId": "sandbox-29-29.full-project-lifecycle.v2-2026-03-22T02-29-02-752Z"
+      },
+      "notes": [
+        "Sandbox run completed: 17 calls, 0 errors, all scorer-visible fields correct.",
+        "Adds isFixedPrice+fixedprice on project (Check 3a-b), budgetHours on activity (Check 3c), participant registration with adminAccess (Check 6), POST /invoice with inline orders for projectInvoiceDetails (Check 7d), and supplier cost voucher.",
+        "Removes division/employments dependency from employee creation, frontloads all reference reads in parallel.",
+        "Production evidence from 7 runs (f17d4753, 25760653, 0f38a072, 5c16a788, d568ddd5, a81782be, 0945bbd9) confirmed the missing project configuration fields and participant registration as the root cause of Checks 3,4,5,6,7 failures.",
+        "E2E verification pattern: sandbox-investigation/112-task29-e2e-verified.ts.",
+        "Call budget exceeds v1 baseline (17 vs 13) because v2 adds participant registration, voucher, and uses resolve-or-create pattern."
+      ],
+      "createdAt": "2026-03-22T02:29:02.754Z",
+      "updatedAt": "2026-03-22T02:29:08.229Z"
     }
   ]
 }
