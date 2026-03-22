@@ -79,40 +79,35 @@ The same no-VAT branch also covers German wording such as `ohne MwSt.`. The 2026
 2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`
 3. `POST /invoice`
 
-The same no-VAT branch also covers Spanish wording such as `sin IVA`. The 2026-03-21 production run for `Río Verde SL` / `894012358` / `Sesión de formación` / `29100` used 6 calls (with bank-account repair) and confirmed `amountExcludingVatCurrency=amountCurrency=29100`:
+The same no-VAT branch also covers Spanish wording such as `sin IVA`. The 2026-03-21 production run for `Río Verde SL` / `894012358` / `Sesión de formación` / `29100` used 6 calls (with reactive bank-account repair) and confirmed `amountExcludingVatCurrency=amountCurrency=29100`. With the now-recommended proactive approach, the optimal path would have been 5 calls:
 
-1. `POST /customer` with `invoiceSendMethod: "MANUAL"` (parallel with step 2)
-2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-21&fields=*` (found 0% at code 5)
-3. `POST /invoice` (422 — missing company bank account)
-4. `GET /ledger/account?isBankAccount=true&fields=*`
-5. `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"`
-6. `POST /invoice` (201 — success)
+1. `POST /customer` with `invoiceSendMethod: "MANUAL"` (parallel with steps 2-3)
+2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-21&fields=*` (parallel, found 0% at code 5)
+3. `GET /ledger/account?isBankAccount=true&fields=*` (parallel, free)
+4. `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (conditional, if bankAccountNumber falsy)
+5. `POST /invoice` (201 — succeeds on first try, 0 errors)
 
-## Key Finding: Company Bank Account Registration Is A Repair Branch
+## Key Finding: Proactive Bank-Account Check (Preferred)
 
-If `POST /invoice` fails with:
+Since GETs are free and 4xx errors cost penalty, **proactively check and fix the bank account BEFORE `POST /invoice`**:
 
-`Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+1. `GET /ledger/account?isBankAccount=true&fields=*` (free GET, parallelize with customer/VAT reads)
+2. Find the invoice account (usually `number=1920`, `isInvoiceAccount=true`)
+3. If `bankAccountNumber` is falsy: `PUT /ledger/account/{id}` with `{ ...acct, bankAccountNumber: "12345678903" }`
+4. Then `POST /invoice` — succeeds on first try, 0 errors
 
-then the practical fix is:
+This replaces the old reactive pattern (POST → 422 → GET → PUT → retry POST) which costs 1 extra write and 1 avoidable 422 error. The 2026-03-22 `Blueshore Ltd` production run used reactive and wasted 1 write + 1 error that proactive would have prevented. Sandbox-verified 2026-03-22: proactive 3-way parallel [GET /customer + GET /ledger/vatType + GET /ledger/account] + conditional PUT + POST /invoice succeeded with 0 errors.
 
-1. Find the company bank ledger account with:
-   `GET /ledger/account?isBankAccount=true&fields=*`
-2. Pick the existing invoice account:
-   usually account `1920`
-   must have `isInvoiceAccount=true`
-3. Register the bank account number on that account:
+## Bank Account Repair — Reactive Fallback
 
-```http
-PUT /ledger/account/{id}
-{
-  "bankAccountNumber": "12345678903"
-}
-```
+If `POST /invoice` still fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.` despite the proactive check:
 
-This was verified in sandbox:
-- invoice creation failed before this update
-- invoice creation succeeded after this update
+1. `GET /ledger/account?isBankAccount=true&fields=*` (if not already done)
+2. `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"`
+3. Retry `POST /invoice` once
+4. Keep the same invoice payload; do not re-read customer, products, or `vatType`
+
+Known constraints:
 - the known-good minimal payload on the existing invoice account is `{ "bankAccountNumber": "12345678903" }`
 - do not burn calls on an improvised locally generated bank-account number unless this exact minimal repair itself fails
 - if you do need a different number, use a valid Norwegian mod-11 checksum with weights `5,4,3,2,7,6,5,4,3,2` across the first ten digits; the wrong weight order only burns a `422`
@@ -211,17 +206,18 @@ This was re-confirmed on 2026-03-20 across production plus persistent sandbox:
    - do not omit direct-line `vatType` just because the write may still succeed; that can silently produce a no-VAT invoice
    - this also applies to explicit no-VAT direct-line prompts; resolve the filtered outgoing `0%` row instead of assuming omission is equivalent
    - for ordinary service prompts priced excluding VAT / MVA, require an exact `25%` row from that filtered result; if `25%` is absent, stop as blocked for that account
+2b. Proactive bank-account check (GETs are free, 4xx errors cost penalty)
+   - `GET /ledger/account?isBankAccount=true&fields=*` — parallelize with steps 1/2
+   - find the invoice account (usually `number=1920`, `isInvoiceAccount=true`)
+   - if `bankAccountNumber` is falsy: `PUT /ledger/account/{id}` with `{ ...acct, bankAccountNumber: "12345678903" }`
+   - this eliminates the 422 + retry POST entirely
 3. Create invoice and let the default `sendToCustomer=true` perform the send in the same write
    - include required dates
    - include `orders`
    - include `orderLines` inside the order, not directly on invoice input
    - once customer resolution and filtered VAT resolution have succeeded, keep `customer.id` and `vatType.id` in memory; a local request-construction bug is not a reason to repeat either call in the same run
-4. If `POST /invoice` fails with the company-bank-account validation, repair that prerequisite once
-   - `GET /ledger/account?isBankAccount=true&fields=*`
-   - update the existing invoice account with `PUT /ledger/account/{id}` and minimal payload `{ "bankAccountNumber": "12345678903" }`
-   - only if that exact value collides or is otherwise unusable, generate another checksum-valid unique number with the same `5,4,3,2,7,6,5,4,3,2` mod-11 rule
-   - if that repair branch already resolved the invoice `account.id`, reuse it instead of repeating the same `/ledger/account` read
-   - retry the invoice write once
+   - with the proactive bank check in step 2b, this should succeed on the first try
+4. If `POST /invoice` still fails with the company-bank-account validation despite step 2b, repair and retry once (see Bank Account Repair — Reactive Fallback)
 5. If you need exact line-level proof and the invoice write response is sparse, do one immediate `GET /invoice/{id}` with expanded `fields`
 
 ## Invoice Payload Notes
@@ -284,7 +280,7 @@ For create-and-send tasks, omit `sendToCustomer=false` unless the prompt explici
 - If the first `POST /invoice` fails only on missing company bank account, do not turn that branch into a full rerun by guessing a new bank number or restarting from customer creation; the minimum recovery is one valid `PUT /ledger/account/{id}` and one retry of the same invoice payload
 - If that failed invoice already came after a successful customer create and you no longer hold the customer id locally, resume with `GET /customer?organizationNumber=...&fields=*`, then the same filtered VAT read, then `POST /invoice`
 - When the bank-account repair branch fires, retain `customer.id` and `vatType.id` in memory across the repair; the 2026-03-21 production run for `Fjelltopp AS` completed the repair in 6 total calls by retaining state, while the earlier Étoile SARL run wasted 2 calls re-reading both after losing local state (8 total calls)
-- Do not preemptively add `GET /ledger/account` to every create-and-send flow to avoid the bank-account 422; sandbox verification on 2026-03-21 showed the preemptive approach costs 4 calls in the happy case (vs 3 sequential) with no wall-clock benefit, making it worse ~70% of the time
+- **REVERSED 2026-03-22**: DO proactively add `GET /ledger/account` to every create-and-send flow; since GETs are free from scoring and 4xx errors cost penalty, the proactive approach is strictly better or equal in all cases; the 2026-03-22 `Blueshore Ltd` run wasted 1 write + 1 error by using reactive; sandbox-verified 2026-03-22
 - Nynorsk prompt language (`nn`) follows the same rules as Bokmål (`nb`): `eksklusiv MVA` → taxed 25% branch
 - Do not use `unitCostPrice` on order lines; the only accepted price field is `unitPriceExcludingVatCurrency`; the 2026-03-21 production run for `Étoile SARL` / `976414284` wasted 1 call on this wrong field name before correcting it
 - Do not confuse this task shape with the order-based `create-order-invoice-and-register-payment` flow; if the prompt gives only a description (e.g. "Systemutvikling") without product numbers and does not require payment registration, use `POST /invoice` with direct description-only order lines, not `POST /order` + `PUT /order/:invoice`; the order-based flow wastes calls on unnecessary product creation and the two-step order→invoice conversion
