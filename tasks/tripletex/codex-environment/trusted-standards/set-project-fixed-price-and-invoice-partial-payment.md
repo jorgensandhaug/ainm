@@ -322,3 +322,15 @@ Log: fixedprice, isFixedPrice, customer. Confirm the fixed price was set correct
   - the update-needed proactive hedge path completed in `2` writes (bank already configured from prior sandbox proof): `PUT /project` + `POST /invoice`
   - proof invoice returned `amountExcludingVatCurrency=244912.5`, VAT `25%` (id=3)
   - therefore the conditional `1/2/3`-write standard (skip-PUT / update-needed+configured / update-needed+missing) remains the minimum proven write count for this task family
+- exact 3rd production confirmation on 2026-03-22 for `Sonnental GmbH` / `896608479` / `ERP-Implementierung` / `mia.meyer@example.org` / `415050` / `50%` (run 8ee5eb1b) proved the update-needed proactive-hedge branch with `POST /invoice` on a missing-bank account:
+  - the initial `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` found the project with `fixedprice=0` and `isFixedPrice=false`, but correct customer and PM already linked (PM email matched exactly)
+  - the proactive hedge discovered invoice account `1920` with empty `bankAccountNumber` and fixed it before the invoice write
+  - the successful production path was `GET /project` -> parallel(`PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`) -> `PUT /ledger/account` -> `POST /invoice` + verification GETs for **3 writes**, `0` errors
+  - the production account exposed outgoing VAT `25%` (id=3), and the invoice returned `amountExcludingVatCurrency=207525` and `amountCurrencyOutstanding=259406.25`
+  - milestone arithmetic `415050 * 0.50 = 207525` is exact (no decimals); fifth production confirmation of the 50% milestone percentage
+  - this is the 3rd production run to use `POST /invoice?sendToCustomer=false` on correct entities; all 3 succeeded
+  - this is the 14th update-needed production run: 12/14 had missing bank accounts (86%); proactive hedge averages 2.86 writes + 0 errors
+- persistent-sandbox verification on 2026-03-22 with `415050 * 0.50 = 207525` re-confirmed:
+  - the update-needed proactive hedge path completed in `2` writes (bank already configured): `PUT /project` + `POST /invoice`
+  - proof invoice returned `amountExcludingVatCurrency=207525`, VAT `25%` (id=3)
+  - therefore the conditional `1/2/3`-write standard remains the minimum proven write count for this task family

@@ -175,6 +175,12 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - this is the 12th update-needed run: 10/12 had missing bank accounts (83%); proactive hedge averages 5.83 calls + 0 errors
 - persistent-sandbox verification on 2026-03-22 with `170650 * 0.25 = 42662.5` re-confirmed both branches:
   - update-needed proactive hedge: `5` calls (bank configured); skip-PUT: `3` calls; both returned `amountExcludingVatCurrency=42662.5`
+- exact 3rd production confirmation on 2026-03-22 for `Sonnental GmbH` / `896608479` / `ERP-Implementierung` / `mia.meyer@example.org` / `415050` / `50%` (run 8ee5eb1b):
+  - update-needed + missing bank: `GET /project` -> parallel(`PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`) -> `PUT /ledger/account` -> `POST /invoice` + verification GETs for **3 writes**, `0` errors
+  - invoice: `amountExcludingVatCurrency=207525`, `amountCurrencyOutstanding=259406.25`, outgoing VAT `25%` (id=3)
+  - milestone arithmetic `415050 * 0.50 = 207525` is exact (no decimals); fifth production confirmation of 50% milestone
+  - 3rd production run to use `POST /invoice` on correct entities; all 3 succeeded
+  - this is the 14th update-needed run: 12/14 had missing bank accounts (86%); proactive hedge averages 2.86 writes + 0 errors
 - SCORING INSIGHT on 2026-03-22: only WRITES (PUT/POST/DELETE) count toward the efficiency score — GET calls are free:
   - REVERTS the previous vatType=3 hardcoding — GETs are free, so `GET /ledger/vatType` costs nothing and is safer than hardcoding
   - keep `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` for safe VAT resolution
@@ -345,7 +351,7 @@ Resolve vatType via `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-dat
 - Do not restart from `POST /project` after an invoice-only company-bank-account failure; repair `/ledger/account` and retry the same `POST /invoice`
 - Do not add a scored-run `GET /invoice/{id}` only because the invoice write response leaves some fields sparse; that follow-up read is for explicit linked-field proof, not the default fast path
 - Do not spend a separate `GET /customer` before `PUT /project/{id}` when one decisive `GET /project?name=...&count=50&fields=*,customer(*)` already proved the exact project and linked customer
-- On the update-needed branch, parallelize `PUT /project` + `GET /ledger/account`; production evidence (10/12 update-needed runs had missing bank accounts, 83%) makes the proactive hedge clearly the better default; only the skip-`PUT /project` branch should remain optimistic
+- On the update-needed branch, parallelize `PUT /project` + `GET /ledger/account`; production evidence (12/14 update-needed runs had missing bank accounts, 86%) makes the proactive hedge clearly the better default; only the skip-`PUT /project` branch should remain optimistic
 - Do not blindly `PUT /project/{id}` after a successful `GET /project` just because the prompt says "set fixed price"; if that same project row already proves the target `fixedprice`, linked customer, and matching manager, the shorter winning branch is to skip the project write and invoice the milestone directly
 - Do not keep a generic fallback `GET /employee` in the hot path after `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)`; if that expanded project row already proves the matching manager email, the extra employee lookup is pure waste
 - The skip-`PUT /project` branch: `GET /project` -> `GET /ledger/vatType` (free) -> `POST /invoice` with resolved vatType; do not collapse further — the `GET /project` is what proves the exact existing project state and whether skipping `PUT /project` is valid
