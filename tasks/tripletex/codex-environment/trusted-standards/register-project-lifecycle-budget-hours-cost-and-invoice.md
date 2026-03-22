@@ -237,9 +237,9 @@ async function main() {
   console.log("\n=== DIAGNOSTIC READBACK ===\n");
 
   const [projFull, invFull, orderFull, custFull, suppFull, emp1Full, emp2Full] = await Promise.all([
-    get(`/project/${pId}?fields=*,projectActivities(*),participants(employee(id,firstName,lastName,email),adminAccess)`),
-    get(`/invoice/${invId}?fields=*`),
-    get(`/order/${ordId}?fields=*`),
+    get(`/project/${pId}?fields=*,projectActivities(*,activity(*)),participants(employee(id,firstName,lastName,email),adminAccess)`),
+    get(`/invoice/${invId}?fields=*,customer(*),orders(*,project(*),orderLines(*,vatType(*))),orderLines(*,vatType(*)),projectInvoiceDetails(*)`),
+    get(`/order/${ordId}?fields=*,orderLines(*,vatType(*))`),
     get(`/customer/${custId}?fields=*`),
     get(`/supplier/${suppId}?fields=*`),
     get(`/employee/${e1}?fields=*`),
@@ -273,7 +273,7 @@ async function main() {
     invoiceDate: invFull.value.invoiceDate,
     invoiceDueDate: invFull.value.invoiceDueDate,
     amountExcludingVatCurrency: invFull.value.amountExcludingVatCurrency,
-    amountIncludingVatCurrency: invFull.value.amountIncludingVatCurrency,
+    amountCurrency: invFull.value.amountCurrency,  // including-VAT field
     amountCurrencyOutstanding: invFull.value.amountCurrencyOutstanding,
     isApproved: invFull.value.isApproved,
     isCredited: invFull.value.isCredited,
