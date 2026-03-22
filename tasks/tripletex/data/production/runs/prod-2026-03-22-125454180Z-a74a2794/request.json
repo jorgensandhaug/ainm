@@ -1,0 +1,8 @@
+{
+  "prompt": "Créez une commande pour le client Colline SARL (nº org. 953795493) avec les produits Rapport d'analyse (6272) à 30600 NOK et Heures de conseil (7628) à 2350 NOK. Convertissez la commande en facture et enregistrez le paiement intégral.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "ipQPek2JzveonRz2nJiIeym7UIDZE-930uHAT4MMHPo"
+  }
+}

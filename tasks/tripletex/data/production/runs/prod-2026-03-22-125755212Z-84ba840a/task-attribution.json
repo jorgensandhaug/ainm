@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-125755212Z-84ba840a",
+  "request_id": "2b136336",
+  "prompt_raw": "Opprett ein ordre for kunden Vestfjord AS (org.nr 970769994) med produkta Nettverksteneste (3237) til 13450 kr og Analyserapport (4609) til 14200 kr. Konverter ordren til faktura og registrer full betaling.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T12:58:59Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T12:57:55.262Z",
+  "after_captured_at": "2026-03-22T12:59:29.876Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "10",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T12:59:29.879Z"
+}
