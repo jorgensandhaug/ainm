@@ -325,3 +325,9 @@ Replace the ids and amounts with the task-specific values.
 - DEPRECATED: do NOT use the manual-voucher fallback branch — always use the 8-call salary path with `POST /division`
 - CRITICAL: on ALL `POST /ledger/voucher` postings, use `amountGross` and `amountGrossCurrency` (both required, same value for NOK); the `amount` field alone is silently accepted but stored as 0; sandbox-verified 2026-03-21; production run 9f9c4770 sent only `amount` → all voucher amounts stored as 0
 - `salaryType: { number }` does NOT work — must use `salaryType: { id }`; `salaryType: { name }` also does NOT work — both fail 422 "Kan ikke opprette subelement"; `account: { number }` and `account: { number, name }` do NOT work — must use `account: { id }`; sandbox-verified 2026-03-21 and 2026-03-22
+- do NOT attempt to parallel `PUT /employee` (dateOfBirth) with `POST /employee/employment` — the employment creation validates `dateOfBirth` at request time and will fail 422 if the PUT has not completed; sandbox-verified 2026-03-22
+- do NOT attempt to create employment WITHOUT a division — fails 422 "Arbeidsforholdet må knyttes til en virksomhet/underenhet"; sandbox-verified 2026-03-22
+- do NOT attempt to create a salary transaction for an employee WITHOUT employment — fails 422 "Ansatt nr. er ikke registrert med et arbeidsforhold i perioden"; sandbox-verified 2026-03-22
+- `POST /ledger/voucher/list` (batch voucher) does NOT exist — returns 405; sandbox-verified 2026-03-22
+- the API does NOT validate Norwegian org number checksums on `POST /division` — invalid checksums are silently accepted; but generating valid ones is cheap; sandbox-verified 2026-03-22
+- the `GET /salary/type` call can use `fields=id,name,number` instead of `fields=*` to reduce response payload (155 types with `*` vs same count with fewer fields); this does not save a call but reduces parsing time

@@ -47,7 +47,7 @@ The task has a hard 300s budget. **Three production runs have scored 0 due to ti
 - 6 reads fired in parallel (added `/ledger/accountingPeriod`), 5 customer payments (1 partial: Costa Lda 11300 of 28250), 3 supplier payments + 3 non-invoice lines combined into 1 voucher (12 postings)
 - **Scored 0.6 despite including ALL non-invoice lines** — disproves the theory that Check 1 fails due to skipped non-invoice lines
 - Root cause of Check 1 failure: no bank reconciliation object created. Sandbox investigation confirmed `/bank/reconciliation` is NOT beta and `POST /bank/reconciliation` with `isClosed: true` creates+closes in 1 call
-- **Next run must add Step 6 (bank reconciliation) to test whether this fixes Check 1**
+- **Next run must add Steps 6-8 (bank import + matching + close recon) to test whether this fixes Check 1**
 
 ### English run 4 (task 23, 11 calls, 0 errors) — SCORED 0.6/6 (skipped non-invoice lines)
 - 5 reads fired in parallel: `/invoice`, `/invoice/paymentType`, `/supplier`, `/supplierInvoice`, `/ledger/account`
@@ -177,7 +177,7 @@ Key findings:
 4. `PUT /invoice/{id}/:payment` once per matched incoming line
 - **total: 2 reads + N customer payments**
 
-### Mixed incoming/outgoing runs
+### Mixed incoming/outgoing runs (COMPLETE 9-step flow — sandbox-verified END-TO-END 2026-03-22)
 1. parse CSV locally — compute opening balance: `first_saldo - first_inn + first_ut` (e.g. 100000). Closing balance = last line's Saldo.
 2. fire all 6 reads in parallel:
    - `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,customer(*)`
@@ -187,15 +187,17 @@ Key findings:
    - `GET /ledger/account?number=1920,2050,2400,2600,7770,8050&fields=*` (includes 2050 for opening balance voucher)
    - `GET /ledger/accountingPeriod?startFrom=<first-of-month>&startTo=<day-after>&count=1&fields=*` (needed for bank reconciliation)
 3. **Opening balance voucher** (right after reads): `POST /ledger/voucher` with DR 1920 / CR 2050 for the opening balance amount (see trusted standard Step 0)
-4. **Bank statement import** (in parallel with first customer payment): convert CSV to SBANKEN_BEDRIFT_CSV format, `POST /bank/statement/import?bankId=112&accountId=<1920_id>&fromDate=<firstDate>&toDate=<dayAfterLastDate>&fileFormat=SBANKEN_BEDRIFT_CSV`
+4. **Customer payments**: `PUT /invoice/{id}/:payment` once per matched incoming line
 5. if supplier invoices exist: also `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)`, then `POST /supplierInvoice/{id}/:addPayment` per match
 6. if NO supplier invoices exist (common case): use one combined `POST /ledger/voucher` with 2M postings for all M supplier payments + non-invoice lines
-7. `PUT /invoice/{id}/:payment` once per matched incoming line
-8. **Bank reconciliation**: `POST /bank/reconciliation` with `isClosed: true` using CSV ending saldo (see trusted standard Step 6)
-- **no-supplier-invoice floor with opening balance + bank import: 6 reads + 1 opening balance + 1 bank import + N customer payments + 1 combined voucher + 1 bank recon = 6 + N + 4**
-- example: 5 customer + 3 supplier + 2 bankgebyr = 6 + 5 + 4 = **15 calls** (includes opening balance + bank import)
-- **ROUND closing balance** — `Math.round(saldo * 100) / 100` — floating point caused 3 wasted calls in run ac903481
+7. **Bank statement import** (AFTER all vouchers posted): convert CSV to SBANKEN_BEDRIFT_CSV format (MUST use Norwegian chars: Inngående, Utgående, Bokført, Beløp), `POST /bank/statement/import?bankId=112&accountId=<1920_id>&fromDate=<firstDate>&toDate=<dayAfterLastDate>&fileFormat=SBANKEN_BEDRIFT_CSV` — save returned bank statement ID
+8. **Fetch bank txn details + Match**: `GET /bank/statement/transaction?bankStatementId=<id>&count=1000&fields=id,postedDate,amountCurrency,description` (import response has `undefined` amounts!), then `GET /ledger/posting?accountId=<1920_id>&dateFrom=...&dateTo=<nextMonthFirst>&count=1000&fields=id,date,amount,description`, then `POST /bank/reconciliation` to create OPEN recon, then `POST /bank/reconciliation/match` for each CSV line pairing bank txn ID with same-amount posting ID on 1920
+9. **Close bank reconciliation**: `GET /bank/reconciliation/{id}?fields=*` (MUST get fresh version), then `PUT /bank/reconciliation/{id}` with `isClosed: true` using CSV ending saldo
+- **full call count: 6 reads + 1 opening balance + N customer payments + 1 combined voucher + 1 bank import + 1 GET bank txns + 1 GET postings + 1 create recon + L POST matches + 1 GET fresh recon + 1 close recon = 6 + N + L + 8** (L = total CSV lines)
+- example: 5 customer + 3 supplier + 3 non-invoice = 11 CSV lines: 6 + 5 + 11 + 8 = **30 calls** (executes in ~8-15 seconds)
+- **ROUND closing balance** — `Math.round(saldo * 100) / 100`
 - **USE CSV ending saldo** as closing balance (after posting opening balance in Step 0)
+- **SBANKEN CSV MUST USE NORWEGIAN CHARS** (`å`, `ø`) — without them import returns 422
 
 ### Critical: do not split into multiple scripts or debug passes
 - write one comprehensive script that handles the complete flow
@@ -225,7 +227,7 @@ Key findings:
 - for manual voucher payments, match supplier name to supplier id
 
 ### Non-invoice lines — MUST BE BOOKED
-**CRITICAL: Do NOT skip non-invoice lines.** Non-invoice lines must be booked to ensure the account 1920 balance matches the CSV saldo for bank reconciliation. All runs without opening balance + bank statement import scored 0.6/6. The full fix requires Step 0 (opening balance) + Step 6 (reconciliation) + Step 7 (bank statement import).
+**CRITICAL: Do NOT skip non-invoice lines.** Non-invoice lines must be booked to ensure the account 1920 balance matches the CSV saldo for bank reconciliation. All runs without opening balance + bank statement import scored 0.6/6. The full fix requires Step 0 (opening balance) + Step 6 (bank import) + Step 7 (matching) + Step 8 (close recon).
 
 Book each non-invoice line with 2 postings (bank + contra account):
 
@@ -250,7 +252,10 @@ Sandbox-verified: voucher #609157175 with Renteinntekter Ut/8050 posted successf
 
 ## Pitfalls To Avoid
 
-- **ALL 3 STEPS REQUIRED FOR CHECK 1**: Step 0 (opening balance voucher DR 1920 / CR 2050) + Step 6 (bank reconciliation) + Step 7 (bank statement import). Without opening balance, ledger doesn't match CSV saldo. Without bank import, reconciliation has empty `transactions: []`. Use CSV ending saldo as closing balance after posting opening balance. ALWAYS round: `Math.round(saldo * 100) / 100`.
+- **ALL 4 STEPS REQUIRED FOR CHECK 1 (8 points)**: Step 0 (opening balance) + Step 6 (bank import) + Step 7 (match txns to postings via `POST /bank/reconciliation/match`) + Step 8 (close recon). Without matching, bank txns remain `NO_MATCH` and reconciliation has empty `transactions: []`. Matching requires `txn.amountCurrency === posting.amount` (same sign, same value) — mismatched amounts cause `422 "Summen av posteringer og transaksjoner er ikke lik null."`. Create recon OPEN first, create matches, THEN close. **Sandbox-verified END-TO-END 2026-03-22: 11/11 matches, 0 errors.**
+- **IMPORT RESPONSE HAS INCOMPLETE FIELDS**: `POST /bank/statement/import` returns transaction objects but `amountCurrency` and `description` are `undefined`. You MUST fetch full details via `GET /bank/statement/transaction?bankStatementId=<id>&count=1000&fields=id,postedDate,amountCurrency,description`.
+- **MUST GET FRESH RECON VERSION BEFORE CLOSE**: Each `POST /bank/reconciliation/match` increments the reconciliation version. `GET /bank/reconciliation/{id}?fields=*` is required before `PUT close` to avoid `409 Conflict`.
+- **SBANKEN CSV MUST USE NORWEGIAN CHARS**: Headers must contain `Inngående`, `Utgående`, `Bokført`, `Beløp` (with `å` and `ø`). Without Norwegian chars the import returns `422 "Filen må inneholde følgende kolonner..."`. ALWAYS round: `Math.round(saldo * 100) / 100`.
 - `/bank/reconciliation*` is NOT beta — the AGENTS.md claim that it is beta is WRONG for this task shape
 - `/incomingInvoice*` is beta-only; treat it as dead
 - unfiltered `/supplierInvoice` can be misleading (may return 0 even when supplier-filtered returns rows)

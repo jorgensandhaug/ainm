@@ -1,0 +1,8 @@
+{
+  "prompt": "Betalinga frå Strandvik AS (org.nr 859256333) for fakturaen \"Nettverksteneste\" (41550 kr ekskl. MVA) vart returnert av banken. Reverser betalinga slik at fakturaen igjen viser uteståande beløp.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "W6I6smJCcfL-RRIN_CgiGkadjORaiOMYREYY_alf1Cc"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-233148646Z-7b40806a",
+  "request_id": "860c1601",
+  "prompt_raw": "Opprett og send ein faktura til kunden Bølgekraft AS (org.nr 892362416) på 34150 kr eksklusiv MVA. Fakturaen gjeld Vedlikehald.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T23:32:49Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T23:31:48.695Z",
+  "after_captured_at": "2026-03-21T23:33:21.235Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "06",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T23:33:21.236Z"
+}

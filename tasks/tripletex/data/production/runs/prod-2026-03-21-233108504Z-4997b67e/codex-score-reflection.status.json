@@ -1,0 +1,8 @@
+{
+  "status": "timed_out",
+  "timed_out_at": "2026-03-21T23:39:26.514Z",
+  "session_id": "ff30d907-9227-4a3f-9de2-b63038f96d37",
+  "tmux_window": "prod-2026-03-21-233108504Z-4997b67e",
+  "reflection_summary_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-233108504Z-4997b67e/codex-score-reflection.summary.md",
+  "reflection_events_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-233108504Z-4997b67e/codex-score-reflection.events.jsonl"
+}

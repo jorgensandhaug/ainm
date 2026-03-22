@@ -1,0 +1,676 @@
+# Claude Trace Snapshot
+
+- provider: claude
+- session_id: 82ed40f8-de07-41b5-adcf-b7712f698347
+- session_file: /home/jorge/.claude/projects/-home-jorge-repos-ainm-tasks-tripletex-codex-environment/82ed40f8-de07-41b5-adcf-b7712f698347.jsonl
+- completed: true
+- assistant_messages: 1
+- tool_calls: 5
+- tool_results: 5
+
+## 2026-03-21T23:33:03.434Z user_message
+Scored Tripletex run.
+Follow ./AGENTS.md exactly.
+
+Highest priorities:
+- Get the final Tripletex state exactly correct.
+- Use the fewest API calls possible.
+- Avoid all avoidable 4xx errors.
+
+Knowledge order:
+- 1. ./trusted-standards/
+- 2. ./task-playbooks/
+- 3. ./openapi.json
+- If this is an exact trusted-standard match, ALWAYS read (cat) the matching .md file BEFORE writing any script. Never write from memory. Then execute it directly without re-checking ./openapi.json.
+
+Run-specific rules:
+- Only interact with the Tripletex API by writing TypeScript and running it with bun.
+- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-233302338Z-b8f958e4/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.
+- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.
+- Use only the provided base URL and session token.
+- Authenticate with Basic Auth username 0 and password = session token.
+- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.
+- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.
+- Do not ask questions. Do not talk to the user. Do only the task.
+
+Task:
+Nous avons reçu la facture INV-2026-8953 du fournisseur Colline SARL (nº org. 938165742) de 32650 NOK TTC. Le montant concerne des services de bureau (compte 7300). Enregistrez la facture fournisseur avec la TVA déductible correcte (25 %).
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+cSnsdpa9pRC2M0O5khR9zqnFumJRxT001UhQH24429k
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-233302338Z-b8f958e4/scripts
+
+Runner configuration:
+- provider: claude
+- model: claude-opus-4-6
+- effort: high
+- backend: proxy
+- proxy_base_url: https://europe-west1-ai-nm26osl-1706.cloudfunctions.net/claude-proxy
+- disable_experimental_betas: false
+
+## 2026-03-21T23:33:06.546Z tool_call
+tool: Read
+call_id: toolu_vrtx_01UZmTKpxzwLD4vVRbFgN3or
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-supplier-invoice.md"
+}
+```
+
+## 2026-03-21T23:33:07.869Z tool_result
+tool: Read
+call_id: toolu_vrtx_01UZmTKpxzwLD4vVRbFgN3or
+
+```text
+File content (12875 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.
+```
+
+## 2026-03-21T23:33:10.357Z tool_call
+tool: Read
+call_id: toolu_vrtx_01ACgxQVM6ZCQuzy6Yv2G8ey
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-supplier-invoice.md",
+  "limit": 200
+}
+```
+
+## 2026-03-21T23:33:11.516Z tool_result
+tool: Read
+call_id: toolu_vrtx_01ACgxQVM6ZCQuzy6Yv2G8ey
+
+```text
+     1→# Register Supplier Invoice
+     2→
+     3→> **NO BETA ENDPOINTS.** NEVER use `/incomingInvoice*` or any `(BETA)` endpoint. They ALL return `403`. Use the EHF/XML import path via `/ledger/voucher/importDocument`.
+     4→
+     5→## Trust Level
+     6→- Trusted standard
+     7→- Use directly for exact matches
+     8→- Skip `./openapi.json` re-checking for exact matches
+     9→
+    10→## Exact Match
+    11→- register one ordinary unpaid supplier invoice
+    12→- prompt gives supplier identity, invoice number, gross amount, expense account, and VAT rate
+    13→- prompt is about registering the supplier invoice itself, not paying it
+    14→- supplier is identified by business fields such as `name` and `organizationNumber`, not by Tripletex id
+    15→
+    16→## Do Not Use This Standard If
+    17→- prompt explicitly requires a different incoming-invoice feature flow
+    18→- task is reversal, approval, payment, or correction of an already-registered supplier invoice
+    19→- task comes with a real source document that must itself be preserved or uploaded exactly as given
+    20→
+    21→Do not treat `/incomingInvoice*` as the alternative public branch for this repo.
+    22→- those endpoints are beta-only here and should be treated as unavailable in scored runs
+    23→- the 2026-03-21 reflection re-check again returned `403 You do not have permission to access this feature.` on `/incomingInvoice/search`
+    24→
+    25→## Standard Flow (25% VAT — most common)
+    26→1. `POST /supplier`
+    27→2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
+    28→3. `POST /ledger/voucher/importDocument` with a valid minimal EHF/UBL XML invoice carrying the prompt values
+    29→4. `PUT /ledger/voucher/{id}?sendToLedger=false` with a partial body containing only `version` and `postings`; use `vatType: { id: 1 }` on the debit posting
+    30→5. `PUT /ledger/voucher/{id}?sendToLedger=true` with a partial body containing ONLY `{ version }` — NO postings; use the version returned by step 4
+    31→
+    32→For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3, making it a 6-call path.
+    33→
+    34→Use this create-first flow when the real task is fresh-account-like and the prompt gives only supplier business fields without saying the supplier already exists.
+    35→
+    36→If the prompt explicitly says the supplier already exists, or you are in a retry/persistent-account context where duplicate suppliers are plausible, switch step 1 to `GET /supplier?organizationNumber=...&fields=*` and only `POST /supplier` if that lookup returns zero hits.
+    37→
+    38→## Minimal-Call Claim
+    39→- for the exact fresh-account-like shape with **25% incoming VAT**, the canonical path is `5` API calls
+    40→- that `5`-call path is:
+    41→  1. `POST /supplier`
+    42→  2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
+    43→  3. `POST /ledger/voucher/importDocument`
+    44→  4. `PUT /ledger/voucher/{id}?sendToLedger=false` with hard-coded `vatType: { id: 1 }`
+    45→  5. `PUT /ledger/voucher/{id}?sendToLedger=true` with only `{ version }` (books the voucher)
+    46→- `vatType.id=1` is the standard 25% incoming VAT type; stable across every sandbox and production instance tested
+    47→- for **non-25% VAT**, add `GET /ledger/vatType`, making the path `6` calls
+    48→- for the common existing-supplier shape with 25% VAT, the canonical path is also `5` calls, with step 1 replaced by `GET /supplier?...`
+    49→
+    50→## Why This Standard Exists
+    51→- direct `POST /ledger/voucher` can create a balanced voucher but not a real `supplierInvoice` object
+    52→- that voucher-only path scored `0/8` in production-like supplier-invoice tasks
+    53→- a valid EHF/XML import creates the `supplierInvoice` object first
+    54→- a partial `PUT /ledger/voucher/{id}` on that imported voucher can then add the correct accounting postings with correct VAT
+    55→
+    56→## Critical Response Shape Rules
+    57→- `POST /ledger/voucher/importDocument` returns a **list wrapper** `{ values: [{ id, version, ... }] }`, NOT `{ value: { id } }`
+    58→- extract the voucher from `response.values[0].id` and `response.values[0].version`
+    59→- using `response.value.id` will crash and force an expensive recovery path to re-discover the voucher id
+    60→- 2026-03-21 production run for `Bølgekraft AS` / `861306178` / `INV-2026-3019` / `81812` / `6300` / `25%` wasted 4 calls (3 recovery GETs + 1 failed PUT) because of this wrong assumption
+    61→- 2026-03-21 sandbox re-proof confirmed: import returns `{ "fullResultSize": 0, "from": 0, "count": 1, "values": [{ "id": 608906382, "version": 1, ... }] }`
+    62→
+    63→## Posting Row Rules
+    64→- the `PUT /ledger/voucher/{id}` postings MUST include explicit `row` values starting from `1`
+    65→- row `0` is reserved for the system-generated VAT posting; sending postings without explicit `row` will default them to row 0 and trigger `422 "Posteringene på rad 0 (guiRow 0) er systemgenererte og kan ikke opprettes eller endres på utsiden av Tripletex."`
+    66→- debit posting: `row: 1`
+    67→- supplier liability posting: `row: 2`
+    68→- the system-generated VAT posting will appear on row `0` in the response
+    69→- a failed 422 PUT does not bump the voucher version, so if you already have the version from the import response you can retry without re-reading
+    70→
+    71→## Booking Rules (CRITICAL for scoring)
+    72→- vouchers created by `importDocument` start UNBOOKED (`number: 0`, `numberAsString: "<Ikke bokført N>"`)
+    73→- `PUT /ledger/voucher/{id}?sendToLedger=false` sets postings but does NOT book the voucher — it stays unbooked
+    74→- `PUT /ledger/voucher/{id}?sendToLedger=true` with only `{ version }` books the voucher and assigns a real number (e.g. 296)
+    75→- the scorer requires a booked voucher — production runs without the booking step scored 7/10 (Check 6 failed), while runs with the booking step scored 8/10 (Check 6 passed)
+    76→- the booking PUT (step 5) must NOT include `postings` — sending postings with `sendToLedger=true` fails with "Bilag uten posteringer kan ikke bli sendt til hovedbok" because Tripletex clears existing postings before applying new ones, creating a transient empty state
+    77→- the booking PUT must use the `version` returned by the postings PUT (step 4), NOT the original import version
+    78→
+    79→## Supplier Creation Rules (CRITICAL for correctness)
+    80→- when the prompt or attached PDF provides supplier address (street, postal code, city) or bank account number, include them in the `POST /supplier` payload
+    81→- these fields cost zero extra API calls but are scored — omitting them loses correctness points
+    82→- `postalAddress`: use `{ addressLine1, postalCode, city, country: { id: 161 } }` inside the same `POST /supplier` — country id 161 = Norge (stable across all Tripletex instances)
+    83→- `physicalAddress`: use the SAME address data `{ addressLine1, postalCode, city, country: { id: 161 } }` inside the same `POST /supplier` — this sets the business/visit address ("besøksadresse")
+    84→  - when the PDF provides only one address, set BOTH `postalAddress` AND `physicalAddress` to that same address
+    85→  - omitting `physicalAddress` leaves it empty — the scorer likely checks this field (Check 5 failed in ALL 9 production runs where `physicalAddress` was empty)
+    86→  - 2026-03-21 sandbox proof: `physicalAddress` is accepted in the same `POST /supplier` call alongside `postalAddress` with zero extra API calls
+    87→- `bankAccountPresentation`: use `[{ bban: "<11-digit-number>" }]` inside the same `POST /supplier`
+    88→  - do NOT use the deprecated `bankAccounts` string array field — it silently does nothing
+    89→  - `bankAccountPresentation` with `bban` is the correct modern field
+    90→- 2026-03-21 sandbox re-proof confirmed all three fields (postalAddress, physicalAddress, bankAccountPresentation) work in a single `POST /supplier` with no extra calls
+    91→- concrete supplier payload shape (copy this structure):
+    92→```json
+    93→{
+    94→  "name": "<supplier name from PDF>",
+    95→  "organizationNumber": "<org number from PDF>",
+    96→  "postalAddress": {
+    97→    "addressLine1": "<street from PDF>",
+    98→    "postalCode": "<postal code from PDF>",
+    99→    "city": "<city from PDF>",
+   100→    "country": { "id": 161 }
+   101→  },
+   102→  "physicalAddress": {
+   103→    "addressLine1": "<street from PDF>",
+   104→    "postalCode": "<postal code from PDF>",
+   105→    "city": "<city from PDF>",
+   106→    "country": { "id": 161 }
+   107→  },
+   108→  "bankAccountPresentation": [{ "bban": "<11-digit bank account from PDF>" }]
+   109→}
+   110→```
+   111→- do NOT use `country: "NO"` (string) — Tripletex rejects it with 422; always use `country: { id: 161 }` (object)
+   112→
+   113→## Payload Rules
+   114→- in fresh-account-like runs, create the supplier first and reuse `response.value.id` plus `response.value.ledgerAccount.id`
+   115→- in explicit existing-supplier or retry/persistent-account runs, resolve the supplier first and reuse `supplier.id` plus `supplier.ledgerAccount.id`
+   116→- resolve the expense account by `number` and require `isApplicableForSupplierInvoice=true`
+   117→- for **25% incoming VAT**: hard-code `vatType: { id: 1 }` — skip the `GET /ledger/vatType` call entirely; this is the standard base code `number="1"` and has been stable across all tested instances
+   118→- for **non-25% VAT rates**: resolve incoming VAT with `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`; choose the requested percentage and prefer the base code
+   119→- import a valid EHF/UBL invoice; do not use arbitrary XML or PDF as the trusted fast path
+   120→- in the XML, carry the exact prompt-scored values for:
+   121→  - supplier name
+   122→  - supplier organization number
+   123→  - invoice number
+   124→  - invoice date
+   125→  - due date
+   126→  - line description
+   127→  - net amount
+   128→  - gross amount
+   129→  - VAT percentage
+   130→- on the later `PUT /ledger/voucher/{id}`, send only:
+   131→  - `version`
+   132→  - `postings`
+   133→- do not send `description`, `vendorInvoiceNumber`, or other immutable imported header fields in that `PUT`
+   134→- debit posting:
+   135→  - `row: 1`
+   136→  - `account: { "id": <expense-account-id> }`
+   137→  - `description: <prompt description>`
+   138→  - `vatType: { "id": <incoming-vat-id> }`
+   139→  - `amount = net`
+   140→  - `amountCurrency = net`
+   141→  - `amountGross = gross`
+   142→  - `amountGrossCurrency = gross`
+   143→- supplier liability posting:
+   144→  - `row: 2`
+   145→  - `account: { "id": <supplier-ledger-account-id> }`
+   146→  - `supplier: { "id": <supplier-id> }`
+   147→  - `description: <prompt description>`
+   148→  - `amount = -gross`
+   149→  - `amountCurrency = -gross`
+   150→  - `amountGross = -gross`
+   151→  - `amountGrossCurrency = -gross`
+   152→  - `invoiceNumber = <prompt invoice number>`
+   153→  - `termOfPayment = <due date>`
+   154→- let Tripletex auto-generate the VAT posting
+   155→- do not send `amountVat`
+   156→- step 4 MUST use `sendToLedger=false`; step 5 MUST use `sendToLedger=true` with ONLY `{ version }` — this two-step booking is required because combining postings + sendToLedger=true in a single PUT fails
+   157→- if the prompt omits invoice date and due date, use the run date for XML issue/due dates and supplier-posting `termOfPayment`
+   158→
+   159→## XML Rules
+   160→- the XML must be a valid-enough EHF/UBL invoice, not a dummy blob
+   161→- keep this minimal proven structure:
+   162→  - UBL `Invoice` root with the standard invoice namespaces
+   163→  - `cbc:CustomizationID = urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0`
+   164→  - `cbc:ProfileID = urn:fdc:peppol.eu:2017:poacc:billing:01:1.0`
+   165→  - `cbc:InvoiceTypeCode = 380`
+   166→  - `cbc:DocumentCurrencyCode = NOK`
+   167→  - `cac:AccountingSupplierParty` with endpoint id, legal entity, tax scheme, and postal address
+   168→  - `cac:AccountingCustomerParty` with a buyer block that MUST include `cac:PostalAddress` (EHF BR-10 rule) and a valid mod11 `EndpointID` — use `123456785` as the hardcoded buyer EndpointID constant; do NOT use `000000000`
+   169→  - `cac:TaxTotal`
+   170→  - `cac:LegalMonetaryTotal`
+   171→  - one `cac:InvoiceLine` with item name, classified tax category, line extension amount, and price
+   172→- use the prompt description exactly in the invoice line item name
+   173→- use net amount in the XML line and totals, not gross
+   174→- earlier malformed/minimalized XML attempts failed with `422 Unable to identify document format`; do not improvise the structure
+   175→
+   176→## Verification
+   177→- fast-path verification is zero extra calls
+   178→- trust the three writes together:
+   179→  - import creates the supplier invoice object family
+   180→  - postings PUT response proves the final postings and VAT split
+   181→  - booking PUT response confirms the voucher is booked (version increments)
+   182→- a correct postings PUT response should show:
+   183→  - one manual debit posting on the requested expense account with requested incoming VAT type
+   184→  - one supplier liability posting linked to the supplier id
+   185→  - one system-generated VAT posting
+   186→- after the booking PUT (step 5), the voucher should be booked (number > 0)
+   187→- only add `GET /supplierInvoice?...` or `GET /ledger/voucher/{id}?fields=*` if the live write response contradicts the intended state or omits a scored field unexpectedly
+   188→
+   189→## Known Recovery Branches
+   190→- if the run is explicit-existing-supplier or retry/persistent-account and the supplier lookup returns zero hits, create the supplier once and continue with the returned ids
+   191→- if the run is fresh-account-like and the prompt does not say the supplier already exists, do not spend a speculative supplier lookup before the create
+   192→- if supplier lookup returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier
+   193→- if the incoming VAT lookup returns several rows with the requested percentage, prefer the plain base code such as `number="1"` over derived rows
+   194→- if the imported-voucher `PUT` returns validation that `description` or `vendorInvoiceNumber` cannot be changed, remove those fields from the `PUT`; they belong in the import, not the update
+   195→- if a one-line debit-only voucher update succeeds, that is not yet correct for taxable supplier invoices; use the balanced two-line update with currency amounts and explicit debit `vatType`
+   196→- if the two-line update omits currency amounts, sandbox proof showed `500`; keep `amountCurrency` and `amountGrossCurrency` on both rows
+   197→- if the importDocument response is accessed as `response.value.id` and crashes, the voucher was still created; recover with `GET /ledger/voucher?dateFrom=...&dateTo=...&fields=*` using a range that spans at least one day beyond the invoice date (dateTo is exclusive), then continue with the PUT using the discovered id and version
+   198→
+   199→## Known Pitfalls
+   200→- do NOT access the importDocument response as `response.value`; it is `response.values[0]` — this mistake alone cost 4 extra calls in the 2026-03-21 production run
+```
+
+## 2026-03-21T23:33:14.333Z tool_call
+tool: Read
+call_id: toolu_vrtx_01R6DdbPhodm825zMfj4nJxC
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-supplier-invoice.md",
+  "offset": 200
+}
+```
+
+## 2026-03-21T23:33:15.158Z tool_result
+tool: Read
+call_id: toolu_vrtx_01R6DdbPhodm825zMfj4nJxC
+
+```text
+   200→- do NOT access the importDocument response as `response.value`; it is `response.values[0]` — this mistake alone cost 4 extra calls in the 2026-03-21 production run
+   201→- do NOT omit `row` values on PUT postings; without explicit `row: 1` and `row: 2`, Tripletex defaults to row 0 which conflicts with the system-generated VAT row and returns `422`
+   202→- if you must search for the voucher after a lost import response, `GET /ledger/voucher` requires both `dateFrom` and `dateTo`, and `dateTo` is exclusive (same date for both returns `422`); use `dateTo` = invoice date + 1 day
+   203→- ALL org numbers in the XML must pass PEPPOL mod11 validation — this includes BOTH the supplier `EndpointID`/`CompanyID` AND the buyer `EndpointID`; do NOT use `000000000` as the buyer EndpointID — it fails PEPPOL-COMMON-R041 even though it technically passes mod11 arithmetic; use `123456785` as the hardcoded buyer EndpointID constant (sandbox-proven valid mod11); the 2026-03-21 production run for `Forêt SARL` / `823356366` wasted 1 API call (422) because buyer EndpointID was `000000000`
+   204→- do NOT omit supplier address or bank account from the PDF when creating the supplier — these fields are scored and cost 0 extra calls
+   205→- do NOT omit `physicalAddress` when creating the supplier — set it to the same address as `postalAddress`; omitting it leaves the business/visit address empty and causes Check 5 to fail consistently; this was the root cause of Check 5 failure across ALL 9 production runs for task 20
+   206→- do NOT use the deprecated `bankAccounts` string array field on supplier; use `bankAccountPresentation: [{ bban: "..." }]` instead — the deprecated field silently does nothing
+   207→- do NOT rely on `importDocument` auto-creating the supplier to skip `POST /supplier` — while import does auto-create a supplier from XML org number data, the auto-created supplier has empty address fields and no bank account, so scored fields from the PDF are lost; explicit `POST /supplier` first remains required for PDF tasks
+   208→- when PDF amounts don't perfectly reconcile (net × 1.25 ≠ gross), Tripletex always recalculates net from gross using `gross / 1.25`; the sent `amount` value is overridden — this is unavoidable system behavior, not a bug; e.g. PDF net=41050, VAT=10262, gross=51312 → Tripletex stores net=41049.6, VAT=10262.4; also confirmed: net=24750, gross=30937 → stored net=24749.6, VAT=6187.4
+   209→- do NOT skip the booking step (step 5 `PUT sendToLedger=true`) — without it the voucher stays unbooked and Check 6 fails; production runs without booking scored 7/10, runs with booking scored 8/10
+   210→- do NOT send postings in the booking PUT — only send `{ version }`; combining postings + sendToLedger=true fails with `422 "Bilag uten posteringer kan ikke bli sendt til hovedbok."` (Tripletex clears existing postings before applying new ones, creating a transient empty state); 2026-03-21 sandbox re-proof confirmed this still fails — the two-step booking is the only working path
+   211→- preserve the prompt description's exact casing — if the prompt says "kontortjenester" (lowercase), do NOT capitalize it to "Kontortjenester"; the description is stored exactly as sent and the scorer may do case-sensitive matching
+   212→- do NOT omit `cac:PostalAddress` from the `AccountingCustomerParty` buyer block in the XML — EHF BR-10 validation requires it; the 2026-03-21 production run for `Fjelltopp AS` / `804872205` / `INV-2026-8221` wasted 1 API call (422) because the buyer block lacked PostalAddress; sandbox re-proof confirmed: without buyer PostalAddress → 422, with → 201
+   213→- when using `FormData` for `importDocument`, do NOT manually set the `Content-Type` header — let `fetch` set it automatically with the multipart boundary; manually setting `Content-Type: application/json` or any other value on a FormData body causes `400 HTTP 415 Unsupported Media Type`; the 2026-03-21 production run for `Forêt SARL` wasted 1 API call (400) from this exact mistake
+   214→
+   215→## VAT Rounding
+   216→- Tripletex computes debit `amount` from `amountGross / (1 + vatPercent/100)` regardless of the `amount` value sent
+   217→- when the PDF's net and gross don't perfectly reconcile at the stated VAT rate, Tripletex's stored net/VAT will differ from the PDF by small rounding amounts
+   218→- this is correct Tripletex behavior and cannot be avoided
+   219→- 2026-03-21 sandbox proof: sent amount=41050, amountGross=51312, Tripletex stored amount=41049.6 (51312/1.25), VAT=10262.4
+   220→- the scorer checks Tripletex state, so the Tripletex-computed values are the correct expected output
+   221→
+   222→## OpenAPI / Sandbox Status
+   223→- `/supplier`, `/ledger/account`, `/ledger/vatType`, `/ledger/voucher/importDocument`, and `/ledger/voucher/{id}` verified in `./openapi.json`
+   224→- later-payment caveat on this exact imported object family:
+   225→  - persistent sandbox on 2026-03-21 returned `422 Cannot add payment to unregistered voucher` on imported supplier invoice `2147547151` through `POST /supplierInvoice/{id}/:addPayment`
+   226→  - that same invoice later read back with booked voucher number `100`, so later supplier payment is still not a proven public continuation of this create-only standard
+   227→  - do not let this create standard imply that `/supplierInvoice/{id}/:addPayment` is automatically safe on invoices produced by this branch
+   228→- 2026-03-20 sandbox proof:
+   229→  - exact original task values for `Elvdal AS` / `889157917` / `INV-2026-8662` / `39750` / `6500` / `25%`
+   230→  - imported voucher `608856087`
+   231→  - supplier invoice `2147547151`
+   232→  - final voucher update created:
+   233→    - expense posting `6500`, `vatType.id=1`, `amount=31800`, `amountGross=39750`
+   234→    - supplier posting `-39750` linked to supplier id
+   235→    - system VAT posting `7950`
+   236→- 2026-03-20 persistent-sandbox re-proof for the French office-services shape:
+   237→  - supplier `Lumière SARL` / `913175212`
+   238→  - invoice number `INV-SANDBOX-7606-1774045461190`
+   239→  - description `services de bureau`
+   240→  - gross `72350`
+   241→  - net `57880`
+   242→  - VAT `25%`
+   243→  - expense account `6300`
+   244→  - supplier lookup returned zero hits, so the run used the `6`-call create branch
+   245→  - imported voucher `608864697`
+   246→  - final voucher update returned:
+   247→    - expense row on `6300` with `vatType.id=1`, `amount=57880`, `amountGross=72350`
+   248→    - supplier row `-72350` linked to the created supplier id
+   249→    - system VAT row `14470`
+   250→- 2026-03-20 persistent-sandbox re-proof for this session's exact amount/account shape:
+   251→  - supplier `Minimal Proof Supplier 007945 AS` / `910079457`
+   252→  - invoice number `INV-SANDBOX-MIN-007945`
+   253→  - description `kontortjenester`
+   254→  - gross `61600`
+   255→  - net `49280`
+   256→  - VAT `25%`
+   257→  - expense account `6340`
+   258→  - path used exactly `5` calls:
+   259→    1. `POST /supplier`
+   260→    2. `GET /ledger/account?number=6340&isApplicableForSupplierInvoice=true&fields=*`
+   261→    3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`
+   262→    4. `POST /ledger/voucher/importDocument`
+   263→    5. `PUT /ledger/voucher/{id}?sendToLedger=false`
+   264→  - created supplier `108283334`
+   265→  - voucher `608865450`
+   266→  - final voucher update returned:
+   267→    - expense row on `6340` with `vatType.id=1`, `amount=49280`, `amountGross=61600`
+   268→    - supplier row `-61600` linked to the created supplier id
+   269→    - system VAT row `12320`
+   270→- 2026-03-20 persistent-sandbox re-proof for the exact fresh-account-like French office-services shape showed the lower-call branch:
+   271→  - supplier `Océan Reflection SARL 321000010` / `321000010`
+   272→  - invoice number `INV-SANDBOX-4914-321000010`
+   273→  - description `services de bureau`
+   274→  - gross `56300`
+   275→  - net `45040`
+   276→  - VAT `25%`
+   277→  - expense account `6500`
+   278→  - path used exactly `5` calls:
+   279→    1. `POST /supplier`
+   280→    2. `GET /ledger/account?number=6500&isApplicableForSupplierInvoice=true&fields=*`
+   281→    3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`
+   282→    4. `POST /ledger/voucher/importDocument`
+   283→    5. `PUT /ledger/voucher/{id}?sendToLedger=false`
+   284→  - created supplier `108282959`
+   285→  - imported voucher `608865065`
+   286→  - final voucher update returned:
+   287→    - expense row on `6500` with `vatType.id=1`, `amount=45040`, `amountGross=56300`
+   288→    - supplier row `-56300` linked to the created supplier id
+   289→    - system VAT row `11260`
+   290→- 2026-03-21 production run for `Bølgekraft AS` / `861306178` / `INV-2026-3019` / `81812` / `6300` / `25%`:
+   291→  - used 9 calls instead of optimal 5 due to two bugs:
+   292→    1. accessed importDocument response as `response.value.id` instead of `response.values[0].id`, crashing before capturing voucher id
+   293→    2. omitted `row` values on PUT postings, triggering `422` on system-generated row 0
+   294→  - recovery path: 2 failed voucher searches (missing dateFrom/dateTo, then dateTo exclusive), 1 successful broad-range search, 1 failed PUT without rows, 1 successful PUT with rows
+   295→  - final state was correct: expense row 6300 `vatType.id=1` `amount=65449.6` `amountGross=81812`, supplier row `-81812`, system VAT row `16362.4`
+   296→- 2026-03-21 persistent-sandbox re-proof confirmed both bugs and correct fix:
+   297→  - importDocument returns `{ values: [{ id: 608906382, version: 1 }] }` (list wrapper, NOT single-value wrapper)
+   298→  - PUT without row values fails with `422` "Posteringene på rad 0 (guiRow 0) er systemgenererte..."
+   299→  - PUT with `row: 1` and `row: 2` succeeds on first try
+   300→  - failed 422 PUT does not bump voucher version
+   301→  - corrected 5-call path: POST supplier, GET account, GET vatType, POST importDocument (extract `values[0]`), PUT voucher with explicit `row: 1`/`row: 2`
+   302→- 2026-03-21 production run for `Fjelltopp AS` / `804872205` / `INV-2026-8221` / `60500` / `6300` / `25%`:
+   303→  - used exactly 5 calls, 0 errors — the flow was mechanically correct
+   304→  - but scored 7/10 (checks 5 and 6 failed) because `POST /supplier` omitted `postalAddress` and `bankAccountPresentation` from the attached PDF
+   305→  - PDF contained: address `Solveien 92, 8006 Bodø` and bank account `53239317029`
+   306→  - these are scored fields that cost 0 extra calls to include in the same `POST /supplier`
+   307→- 2026-03-21 persistent-sandbox re-proof for supplier with address + bank:
+   308→  - confirmed `postalAddress: { addressLine1: "Solveien 92", postalCode: "8006", city: "Bodø" }` accepted in `POST /supplier`
+   309→  - confirmed `bankAccountPresentation: [{ bban: "53239317029" }]` accepted in `POST /supplier`
+   310→  - both fields return correctly in the 201 response
+   311→  - the deprecated `bankAccounts` string array field silently does nothing — do NOT use it
+   312→  - full 5-call flow with address + bank: supplier `108338559`, voucher `608916670`, correct postings confirmed
+   313→- 2026-03-21 production run for `Bergvik AS` / `919398051` / `INV-2026-8506` / `51312` / `6500` / `25%`:
+   314→  - used exactly 5 calls, 0 errors — optimal execution following this trusted standard
+   315→  - PDF data fully extracted: address `Sjøgata 2, 4611 Kristiansand`, bank account `58637944698`
+   316→  - supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+   317→  - importDocument response correctly accessed via `values[0]`
+   318→  - PUT postings correctly used `row: 1` and `row: 2`
+   319→  - VAT rounding: PDF net=41050, gross=51312 → Tripletex stored net=41049.6, VAT=10262.4 (gross/1.25 recalculation)
+   320→  - voucher `609017332`, supplier `108370545`
+   321→- 2026-03-21 production run for `Luna SL` / `966941901` / `INV-2026-7337` / `48625` / `6340` / `25%`:
+   322→  - used exactly 5 calls, 0 errors — correct execution
+   323→  - PDF data fully extracted: address `Fjordveien 86, 3015 Drammen`, bank account `36204404121`
+   324→  - supplier created with `postalAddress` and `bankAccountPresentation`
+   325→  - but the `GET /ledger/vatType` call was unnecessary for 25% VAT — `vatType.id=1` could have been hard-coded
+   326→  - voucher `609036118`, supplier `108376507`
+   327→- 2026-03-21 persistent-sandbox proof of hard-coded `vatType: { id: 1 }` (skipping `GET /ledger/vatType`):
+   328→  - confirmed `PUT /ledger/voucher/{id}` with hard-coded `vatType: { id: 1 }` succeeds without prior vatType lookup
+   329→  - also confirmed `account: { number: 6340 }` does NOT work (needs `account.name`), so `GET /ledger/account` cannot be skipped
+   330→  - supplier `108377138`, voucher `609037638`
+   331→  - final postings: expense row amount=20000, amountGross=25000, vatType.id=1; supplier row -25000; system VAT row 5000
+   332→- 2026-03-21 production run for `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`:
+   333→  - used 4 calls, 0 errors — the ONLY production run that scored >0 on task 11
+   334→  - no PDF attachment (text-only prompt), so no address or bank data to extract
+   335→  - hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+   336→  - importDocument response correctly accessed via `values[0]`
+   337→  - PUT postings correctly used `row: 1` and `row: 2`
+   338→  - final state: expense row 6300, vatType.id=1, amount=47840, amountGross=59800; supplier row -59800; system VAT row 11960
+   339→  - voucher `609080159`, supplier `108391283`
+   340→  - NOTE: this run had no booking step — voucher stayed at number=0 — later analysis showed booking ADDS 1 check (Check 6 passes with booking)
+   341→- 2026-03-21 persistent-sandbox re-proof of `account: { number: 6300 }` rejection:
+   342→  - confirmed `account: { number: 6300 }` in PUT postings returns `422` requiring `account.name`
+   343→  - this re-confirms the earlier finding for account 6340 — applies to all accounts, not just a specific one
+   344→  - `GET /ledger/account` remains required; the 5-call path (with booking) is the true minimum
+   345→- 2026-03-21 persistent-sandbox proof of the **two-step booking** (required for Check 6 to pass):
+   346→  - full 5-call flow: POST supplier → GET account → POST importDocument → PUT sendToLedger=false → PUT sendToLedger=true
+   347→  - supplier `108398155` (ledger account `424190921`), expense account 6300 (`424191117`)
+   348→  - import returned voucher `609097742` version 1
+   349→  - PUT sendToLedger=false with postings: OK, returned version 2
+   350→  - PUT sendToLedger=true with only `{ version: 2 }` (NO postings): OK
+   351→  - voucher booked with number=296 (previously number=0 with sendToLedger=false only)
+   352→  - supplierInvoice: amount=-59800, outstandingAmount=59800
+   353→  - postings: expense 6300 amount=47840 amountGross=59800 vatType=1; supplier -59800; system VAT 11960
+   354→  - NOTE: the initial interpretation that booking "breaks scoring" was wrong — that conclusion confused text-only vs PDF tasks; later production data showed booking IS required (Check 6 passes only with booking)
+   355→  - combining postings + sendToLedger=true in a single PUT fails: "Bilag uten posteringer kan ikke bli sendt til hovedbok"
+   356→  - re-sending postings in the second PUT also fails: "Posteringene på rad (guiRow) 2 kan ikke ha samme fortegn"
+   357→  - the ONLY working pattern is: PUT with postings + sendToLedger=false, then PUT with version-only + sendToLedger=true
+   358→- 2026-03-21 production run for `Stormberg AS` / `877462137` / `INV-2026-9382` / `61600` / `6340` / `25%`:
+   359→  - used exactly 5 calls, 0 errors — optimal execution following this trusted standard
+   360→  - text-only prompt (no PDF), so no address or bank data to extract
+   361→  - hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+   362→  - importDocument response correctly accessed via `values[0]`
+   363→  - PUT postings correctly used `row: 1` and `row: 2`
+   364→  - two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+   365→  - final state: expense 6340 amount=49280 amountGross=61600 vatType.id=1; supplier -61600; system VAT 12320
+   366→  - voucher `609103298`, supplier `108401290`
+   367→  - minor issue: used "Kontortjenester" (capital K) instead of prompt's "kontortjenester" (lowercase) — may affect scoring if description is case-checked
+   368→  - this is the 3rd consecutive optimal 5-call production run with 0 errors using this standard (after Bergvik AS and Luna SL)
+   369→
+   370→2026-03-21 production run for `Luz do Sol Lda` / `964942366` / `INV-2026-8987` / `30937` / `6500` / `25%`:
+   371→- used exactly 5 calls, 0 errors — optimal execution with PDF attachment
+   372→- PDF data fully extracted: address `Kirkegata 135, 5003 Bergen`, bank account `53342237408`
+   373→- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+   374→- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+   375→- importDocument response correctly accessed via `values[0]`
+   376→- PUT postings correctly used `row: 1` and `row: 2`
+   377→- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+   378→- VAT rounding: PDF net=24750, gross=30937 (24750×1.25=30937.5) → Tripletex stored net=24749.6, VAT=6187.4
+   379→- voucher `609107692`, supplier `108403892`
+   380→- description "Kontorrekvisita" preserved with exact casing from PDF
+   381→- this is the 2nd production confirmation of the full 5-call path with booking (after Stormberg AS), and the 1st with a PDF attachment that included address and bank account
+   382→
+   383→2026-03-21 production run for `Waldstein GmbH` / `927720523` / `INV-2026-6337` / `55950` / `7000` / `25%`:
+   384→- used exactly 5 calls, 0 errors — optimal execution
+   385→- German-language prompt (no PDF), text-only, no address/bank data to extract
+   386→- description "Bürodienstleistungen" preserved with exact casing from German prompt
+   387→- expense account 7000 (Drivstoff, selskapets transportmidler) — first production use of account 7000 in this standard
+   388→- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+   389→- importDocument response correctly accessed via `values[0]`
+   390→- PUT postings correctly used `row: 1` and `row: 2`
+   391→- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+   392→- net=44760, VAT=11190 (55950/1.25=44760 exact, no rounding)
+   393→- voucher `609122334`, supplier `108410856`
+   394→- this is the 5th consecutive optimal 5-call production run with 0 errors using this standard
+   395→- sandbox re-proof confirmed: single PUT with postings+sendToLedger=true still fails; account:{number,name} without id still fails; 5 calls remains the true minimum
+   396→
+   397→2026-03-21 production run for `Océan SARL` / `955986881` / `INV-2026-8825` / `75312` / `6340` / `25%`:
+   398→- used exactly 5 calls, 0 errors — optimal execution with PDF attachment
+   399→- French-language prompt with PDF, description "Skylagring"
+   400→- PDF data fully extracted: address `Torggata 92, 4611 Kristiansand`, bank account `36069835664`
+   401→- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+   402→- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+   403→- importDocument response correctly accessed via `values[0]`
+   404→- PUT postings correctly used `row: 1` and `row: 2`
+   405→- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+   406→- VAT rounding: PDF net=60250, gross=75312 (60250×1.25=75312.5) → Tripletex stored net=60249.6, VAT=15062.4
+   407→- voucher `609130518`, supplier `108414532`
+   408→- this is the 6th consecutive optimal 5-call production run with 0 errors using this standard
+   409→- sandbox re-proof confirmed: combined postings+sendToLedger=true still fails with 422; 5 calls remains the true minimum
+   410→
+   411→2026-03-21 production run for `Nordlicht GmbH` / `871162069` / `INV-2026-7611` / `44562` / `6300` / `25%`:
+   412→- used exactly 5 calls, 0 errors — optimal execution with PDF attachment
+   413→- German-language prompt with PDF, description "Nettverkstjenester"
+   414→- PDF data fully extracted: address `Nygata 53, 9008 Tromsø`, bank account `28390913577`
+   415→- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+   416→- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+   417→- importDocument response correctly accessed via `values[0]`
+   418→- PUT postings correctly used `row: 1` and `row: 2`
+   419→- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+   420→- VAT rounding: PDF net=35650, gross=44562 (35650×1.25=44562.5) → Tripletex stored net=35649.6, VAT=8912.4
+   421→- voucher `609134450`, supplier `108416207`
+   422→- this is the 7th consecutive optimal 5-call production run with 0 errors using this standard
+   423→- languages confirmed across 7 consecutive optimal runs: en, es, pt, de, fr — standard is fully language-independent
+   424→- sandbox re-proof confirmed: `importDocument` auto-creates a supplier from XML org number but with empty address fields and no bank account — NOT useful for PDF tasks where address/bank are scored; explicit `POST /supplier` first remains required
+   425→
+   426→2026-03-21 production run for `Tindra AS` / `983514650` / `INV-2026-3624` / `42100` / `6540` / `25%`:
+   427→- used exactly 5 calls, 0 errors — optimal execution
+   428→- Norwegian-language text-only prompt (no PDF), description "kontortjenester"
+   429→- no address or bank data to extract (text-only)
+   430→- first production use of expense account 6540 (Inventar) in this standard
+   431→- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+   432→- importDocument response correctly accessed via `values[0]`
+   433→- PUT postings correctly used `row: 1` and `row: 2`
+   434→- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+   435→- exact VAT: 42100/1.25=33680 net, 8420 VAT (no rounding)
+   436→- voucher `609159040`, supplier `108428564`
+   437→- description preserved with exact lowercase casing "kontortjenester" from prompt
+   438→- this is the 8th consecutive optimal 5-call production run with 0 errors using this standard
+   439→- accounts confirmed across 8 consecutive runs: 6300, 6340, 6500, 6540, 7000 — standard works for all expense accounts
+   440→- sandbox re-proof confirmed: account 6540 works identically to other accounts; 5 calls remains the true minimum; `account: { number: N }` still requires GET to resolve ID
+   441→
+   442→2026-03-21 production run for `Fjelltopp AS` / `804872205` / `INV-2026-8221` / `60500` / `6300` / `25%`:
+   443→- used 6 calls, 1 error — suboptimal due to XML buyer block missing PostalAddress
+   444→- Nynorsk-language prompt with PDF attachment, description "Nettverkstjenester"
+   445→- PDF data fully extracted: address `Solveien 92, 8006 Bodø`, bank account `53239317029`
+   446→- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+   447→- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+   448→- first importDocument attempt failed with `422 ERROR [BR-10]-An Invoice shall contain the Buyer postal address (BG-8)` because XML `AccountingCustomerParty` lacked `cac:PostalAddress`
+   449→- second importDocument attempt with buyer PostalAddress added succeeded → 201
+   450→- PUT postings correctly used `row: 1` and `row: 2`
+   451→- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+   452→- exact VAT: 60500/1.25=48400 net, 12100 VAT (no rounding)
+   453→- voucher `609170496`, supplier `108434304`
+   454→- this breaks the 8-run optimal streak due to the BR-10 XML validation error; the fix is to always include buyer PostalAddress in the XML template
+   455→- sandbox re-proof confirmed: buyer block without PostalAddress → 422 (BR-10); with PostalAddress → 201; PartyTaxScheme is optional
+   456→
+   457→2026-03-21 production run for `Forêt SARL` / `823356366` / `INV-2026-6107` / `80437` / `6340` / `25%`:
+   458→- used 7 calls, 2 errors — suboptimal due to two bugs: (1) FormData Content-Type set manually → 400, (2) buyer EndpointID `000000000` failed PEPPOL mod11 → 422
+   459→- French-language prompt with PDF attachment, description "Programvarelisens"
+   460→- PDF data fully extracted: address `Solveien 51, 9008 Tromsø`, bank account `68474635604`
+   461→- supplier created with `postalAddress` and `bankAccountPresentation` in same `POST /supplier`
+   462→- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+   463→- first importDocument attempt failed with `400 HTTP 415 Unsupported Media Type` because the api function set Content-Type header on FormData body
+   464→- second importDocument attempt failed with `422 PEPPOL-COMMON-R041` because buyer EndpointID was `000000000` (fails mod11 validation)
+   465→- third importDocument attempt with buyer EndpointID `123456785` succeeded → 201
+   466→- PUT postings correctly used `row: 1` and `row: 2`
+   467→- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+   468→- VAT rounding: PDF net=64350, gross=80437 (64350×1.25=80437.5) → Tripletex stored net=64349.6, VAT=16087.4
+   469→- voucher `609178672`, supplier `108438104`
+   470→- both bugs now documented in Known Pitfalls: use `123456785` as buyer EndpointID, do not set Content-Type on FormData
+   471→- sandbox re-proof confirmed: `000000000` → 422 (PEPPOL-COMMON-R041); `123456785` → 201; `979442459` → 201
+   472→
+   473→2026-03-21 persistent-sandbox proof of `physicalAddress` on supplier:
+   474→- creating a supplier with BOTH `postalAddress` AND `physicalAddress` set to the same address works in a single `POST /supplier`
+   475→- without `physicalAddress`, the business/visit address field is left empty
+   476→- the scorer likely checks `physicalAddress` — this was the root cause of Check 5 failure across all 9 production runs for task 20
+   477→- sandbox proof: supplier created with `physicalAddress: { addressLine1: "Solveien 92", postalCode: "8006", city: "Bodø" }` — both addresses read back correctly
+   478→- full 5-call flow with `physicalAddress` confirmed working: POST supplier (with physicalAddress) → GET account → POST importDocument → PUT sendToLedger=false → PUT sendToLedger=true → voucher booked (number=474), supplier linked with both addresses populated
+   479→- adding `physicalAddress` costs ZERO extra API calls — same 5-call path
+   480→
+   481→2026-03-21 production run for `Lumière SARL` / `904564184` / `INV-2026-5683` / `75500` / `7140` / `25%`:
+   482→- used exactly 5 calls, 0 errors — optimal execution
+   483→- French-language text-only prompt (no PDF), description "services de bureau"
+   484→- no address or bank data to extract (text-only)
+   485→- first production use of expense account 7140 (Reisekostnad, ikke oppgavepliktig) in this standard
+   486→- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+   487→- importDocument response correctly accessed via `values[0]`
+   488→- PUT postings correctly used `row: 1` and `row: 2`
+   489→- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+   490→- exact VAT: 75500/1.25=60400 net, 15100 VAT (no rounding)
+   491→- voucher `609189717`, supplier `108444029`
+   492→- description preserved with exact casing "services de bureau" from French prompt
+   493→- accounts confirmed across production runs: 6300, 6340, 6500, 6540, 7000, 7140 — standard works for all expense accounts
+   494→- sandbox re-proof confirmed: account 7140 exists in sandbox with same name "Reisekostnad, ikke oppgavepliktig"; 5 calls remains the true minimum
+   495→
+   496→2026-03-22 production run for `Montaña SL` / `831519975` / `INV-2026-1443` / `50050` / `6300` / `25%`:
+   497→- used exactly 5 calls, 0 errors — optimal execution
+   498→- Spanish-language text-only prompt (no PDF), description "servicios de oficina"
+   499→- no address or bank data to extract (text-only)
+   500→- hard-coded `vatType: { id: 1 }`, skipping `GET /ledger/vatType`
+   501→- importDocument response correctly accessed via `values[0]`
+   502→- PUT postings correctly used `row: 1` and `row: 2`
+   503→- two-step booking: PUT sendToLedger=false (version→3), then PUT sendToLedger=true (version→6, number=1)
+   504→- exact VAT: 50050/1.25=40040 net, 10010 VAT (no rounding)
+   505→- voucher `609209769`, supplier `108456935`
+   506→- description preserved with exact casing "servicios de oficina" from Spanish prompt
+   507→- sandbox re-proof confirmed: importDocument returns empty postings (no account IDs to extract — GET /ledger/account remains required); single PUT with postings+sendToLedger=true still fails with 422; 5 calls remains the true minimum
+   508→
+```
+
+## 2026-03-21T23:33:58.881Z tool_call
+tool: Write
+call_id: toolu_vrtx_013cmnkWJ3UfN4URzCuC6KBc
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-233302338Z-b8f958e4/scripts/sandbox-verify.ts",
+  "content": "const BASE = \"https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2\";\nconst TOKEN = \"cSnsdpa9pRC2M0O5khR9zqnFumJRxT001UhQH24429k\";\nconst AUTH = \"Basic \" + btoa(\"0:\" + TOKEN);\n\nconst SUPPLIER_NAME = \"Colline SARL\";\nconst ORG_NUMBER = \"938165742\";\nconst INVOICE_NUMBER = \"INV-2026-8953\";\nconst DESCRIPTION = \"services de bureau\";\nconst GROSS = 32650;\nconst NET = 26120; // 32650 / 1.25\nconst VAT_AMOUNT = 6530;\nconst EXPENSE_ACCOUNT = 7300;\nconst TODAY = \"2026-03-22\";\n\nasync function api(method: string, path: string, body?: any, isFormData?: boolean) {\n  const url = `${BASE}${path}`;\n  const headers: Record<string, string> = { Authorization: AUTH };\n  if (!isFormData) headers[\"Content-Type\"] = \"application/json\";\n  const opts: any = { method, headers };\n  if (body) opts.body = isFormData ? body : JSON.stringify(body);\n  const res = await fetch(url, opts);\n  const text = await res.text();\n  console.log(`${method} ${path} → ${res.status}`);\n  if (!res.ok) { console.log(text); throw new Error(`${res.status}`); }\n  return text ? JSON.parse(text) : null;\n}\n\n// Step 1: POST /supplier\nconst supplier = await api(\"POST\", \"/supplier\", {\n  name: SUPPLIER_NAME,\n  organizationNumber: ORG_NUMBER,\n});\nconst supplierId = supplier.value.id;\nconst supplierLedgerAccountId = supplier.value.ledgerAccount.id;\nconsole.log(`Supplier ${supplierId}, ledger account ${supplierLedgerAccountId}`);\n\n// Step 2: GET /ledger/account\nconst acctRes = await api(\"GET\", `/ledger/account?number=${EXPENSE_ACCOUNT}&isApplicableForSupplierInvoice=true&fields=*`);\nconst expenseAccountId = acctRes.values[0].id;\nconsole.log(`Expense account id ${expenseAccountId}`);\n\n// Step 3: POST /ledger/voucher/importDocument\nconst xml = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Invoice xmlns=\"urn:oasis:names:specification:ubl:schema:xsd:Invoice-2\"\n         xmlns:cac=\"urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2\"\n         xmlns:cbc=\"urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2\">\n  <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0</cbc:CustomizationID>\n  <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>\n  <cbc:ID>${INVOICE_NUMBER}</cbc:ID>\n  <cbc:IssueDate>${TODAY}</cbc:IssueDate>\n  <cbc:DueDate>${TODAY}</cbc:DueDate>\n  <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>\n  <cbc:DocumentCurrencyCode>NOK</cbc:DocumentCurrencyCode>\n  <cac:AccountingSupplierParty>\n    <cac:Party>\n      <cbc:EndpointID schemeID=\"0192\">${ORG_NUMBER}</cbc:EndpointID>\n      <cac:PartyName><cbc:Name>${SUPPLIER_NAME}</cbc:Name></cac:PartyName>\n      <cac:PostalAddress>\n        <cbc:StreetName>Ukjent</cbc:StreetName>\n        <cbc:CityName>Oslo</cbc:CityName>\n        <cbc:PostalZone>0001</cbc:PostalZone>\n        <cac:Country><cbc:IdentificationCode>NO</cbc:IdentificationCode></cac:Country>\n      </cac:PostalAddress>\n      <cac:PartyTaxScheme>\n        <cbc:CompanyID>NO${ORG_NUMBER}MVA</cbc:CompanyID>\n        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>\n      </cac:PartyTaxScheme>\n      <cac:PartyLegalEntity><cbc:RegistrationName>${SUPPLIER_NAME}</cbc:RegistrationName><cbc:CompanyID schemeID=\"0192\">${ORG_NUMBER}</cbc:CompanyID></cac:PartyLegalEntity>\n    </cac:Party>\n  </cac:AccountingSupplierParty>\n  <cac:AccountingCustomerParty>\n    <cac:Party>\n      <cbc:EndpointID schemeID=\"0192\">123456785</cbc:EndpointID>\n      <cac:PartyName><cbc:Name>Mitt Selskap AS</cbc:Name></cac:PartyName>\n      <cac:PostalAddress>\n        <cbc:StreetName>Testveien 1</cbc:StreetName>\n        <cbc:CityName>Oslo</cbc:CityName>\n        <cbc:PostalZone>0001</cbc:PostalZone>\n        <cac:Country><cbc:IdentificationCode>NO</cbc:IdentificationCode></cac:Country>\n      </cac:PostalAddress>\n      <cac:PartyLegalEntity><cbc:RegistrationName>Mitt Selskap AS</cbc:RegistrationName></cac:PartyLegalEntity>\n    </cac:Party>\n  </cac:AccountingCustomerParty>\n  <cac:TaxTotal>\n    <cbc:TaxAmount currencyID=\"NOK\">${VAT_AMOUNT}</cbc:TaxAmount>\n    <cac:TaxSubtotal>\n      <cbc:TaxableAmount currencyID=\"NOK\">${NET}</cbc:TaxableAmount>\n      <cbc:TaxAmount currencyID=\"NOK\">${VAT_AMOUNT}</cbc:TaxAmount>\n      <cac:TaxCategory>\n        <cbc:ID>S</cbc:ID>\n        <cbc:Percent>25</cbc:Percent>\n        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>\n      </cac:TaxCategory>\n    </cac:TaxSubtotal>\n  </cac:TaxTotal>\n  <cac:LegalMonetaryTotal>\n    <cbc:LineExtensionAmount currencyID=\"NOK\">${NET}</cbc:LineExtensionAmount>\n    <cbc:TaxExclusiveAmount currencyID=\"NOK\">${NET}</cbc:TaxExclusiveAmount>\n    <cbc:TaxInclusiveAmount currencyID=\"NOK\">${GROSS}</cbc:TaxInclusiveAmount>\n    <cbc:PayableAmount currencyID=\"NOK\">${GROSS}</cbc:PayableAmount>\n  </cac:LegalMonetaryTotal>\n  <cac:InvoiceLine>\n    <cbc:ID>1</cbc:ID>\n    <cbc:InvoicedQuantity unitCode=\"EA\">1</cbc:InvoicedQuantity>\n    <cbc:LineExtensionAmount currencyID=\"NOK\">${NET}</cbc:LineExtensionAmount>\n    <cac:Item>\n      <cbc:Name>${DESCRIPTION}</cbc:Name>\n      <cac:ClassifiedTaxCategory>\n        <cbc:ID>S</cbc:ID>\n        <cbc:Percent>25</cbc:Percent>\n        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>\n      </cac:ClassifiedTaxCategory>\n    </cac:Item>\n    <cac:Price><cbc:PriceAmount currencyID=\"NOK\">${NET}</cbc:PriceAmount></cac:Price>\n  </cac:InvoiceLine>\n</Invoice>`;\n\nconst formData = new FormData();\nformData.append(\"file\", new Blob([xml], { type: \"application/xml\" }), `${INVOICE_NUMBER}.xml`);\n\nconst importRes = await api(\"POST\", \"/ledger/voucher/importDocument\", formData, true);\nconst voucherId = importRes.values[0].id;\nlet voucherVersion = importRes.values[0].version;\nconsole.log(`Voucher ${voucherId}, version ${voucherVersion}`);\n\n// Step 4: PUT /ledger/voucher/{id}?sendToLedger=false (postings)\nconst putRes = await api(\"PUT\", `/ledger/voucher/${voucherId}?sendToLedger=false`, {\n  version: voucherVersion,\n  postings: [\n    {\n      row: 1,\n      account: { id: expenseAccountId },\n      description: DESCRIPTION,\n      vatType: { id: 1 },\n      amount: NET,\n      amountCurrency: NET,\n      amountGross: GROSS,\n      amountGrossCurrency: GROSS,\n    },\n    {\n      row: 2,\n      account: { id: supplierLedgerAccountId },\n      supplier: { id: supplierId },\n      description: DESCRIPTION,\n      amount: -GROSS,\n      amountCurrency: -GROSS,\n      amountGross: -GROSS,\n      amountGrossCurrency: -GROSS,\n      invoiceNumber: INVOICE_NUMBER,\n      termOfPayment: TODAY,\n    },\n  ],\n});\nvoucherVersion = putRes.value.version;\nconsole.log(`Postings set, version ${voucherVersion}`);\nconsole.log(\"Postings:\", JSON.stringify(putRes.value.postings?.map((p: any) => ({\n  row: p.row, account: p.account?.number, amount: p.amount, amountGross: p.amountGross, vatType: p.vatType?.id\n}))));\n\n// Step 5: PUT /ledger/voucher/{id}?sendToLedger=true (book)\nconst bookRes = await api(\"PUT\", `/ledger/voucher/${voucherId}?sendToLedger=true`, {\n  version: voucherVersion,\n});\nconsole.log(`Booked, number=${bookRes.value.number}, version=${bookRes.value.version}`);\nconsole.log(\"DONE — 5 calls, 0 errors\");\n"
+}
+```
+
+## 2026-03-21T23:33:58.937Z tool_result
+tool: Write
+call_id: toolu_vrtx_013cmnkWJ3UfN4URzCuC6KBc
+
+```text
+File created successfully at: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-233302338Z-b8f958e4/scripts/sandbox-verify.ts
+```
+
+## 2026-03-21T23:34:01.679Z tool_call
+tool: Bash
+call_id: toolu_vrtx_01BdKEnJpekpKbMdZSv3h61H
+
+```json
+{
+  "command": "cd /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-233302338Z-b8f958e4/scripts && bun run sandbox-verify.ts 2>&1",
+  "description": "Run supplier invoice registration script",
+  "timeout": 30000
+}
+```
+
+## 2026-03-21T23:34:04.434Z tool_result
+tool: Bash
+call_id: toolu_vrtx_01BdKEnJpekpKbMdZSv3h61H
+
+```text
+POST /supplier → 201
+Supplier 108461601, ledger account 478452464
+GET /ledger/account?number=7300&isApplicableForSupplierInvoice=true&fields=* → 200
+Expense account id 478452714
+POST /ledger/voucher/importDocument → 201
+Voucher 609216279, version 1
+PUT /ledger/voucher/609216279?sendToLedger=false → 200
+Postings set, version 3
+Postings: [{"row":1,"amount":26120,"amountGross":32650,"vatType":1},{"row":2,"amount":-32650,"amountGross":-32650,"vatType":0},{"row":0,"amount":6530,"amountGross":6530,"vatType":0}]
+PUT /ledger/voucher/609216279?sendToLedger=true → 200
+Booked, number=1, version=6
+DONE — 5 calls, 0 errors
+```
+
+## 2026-03-21T23:34:09.168Z assistant_message
+5 calls, 0 errors. Supplier invoice registered and booked:
+- Supplier: Colline SARL (938165742), id 108461601
+- Expense account 7300, net 26120, VAT 6530, gross 32650
+- Voucher 609216279 booked (number=1)
+- vatType.id=1 (25% incoming)

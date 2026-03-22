@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-233302338Z-b8f958e4",
+  "request_id": "7340666d",
+  "prompt_raw": "Nous avons reçu la facture INV-2026-8953 du fournisseur Colline SARL (nº org. 938165742) de 32650 NOK TTC. Le montant concerne des services de bureau (compte 7300). Enregistrez la facture fournisseur avec la TVA déductible correcte (25 %).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T23:34:09Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T23:33:02.744Z",
+  "after_captured_at": "2026-03-21T23:34:42.876Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "11",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T23:34:42.879Z"
+}

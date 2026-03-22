@@ -37,7 +37,7 @@
        - `date` set to the same start date
        - `employmentType`
        - `employmentForm`
-       - `remunerationType`
+       - `remunerationType` — use `"MONTHLY_WAGE"` only when the document explicitly says "Fastlønn (månedlig)" or equivalent; otherwise use `"NOT_CHOSEN"` (tilbudsbrev/offer letters that only state "Årslønn" without a lønnstype field MUST use `"NOT_CHOSEN"`)
        - `workingHoursScheme`
        - `percentageOfFullTimeEquivalent`
        - `annualSalary`
@@ -134,6 +134,8 @@ For the exact STYRK-only contract shape that provides `3512` and no job title, u
 
 ## Recommended Payload Shape
 
+For tilbudsbrev (offer letters) that do NOT state a "Lønnstype" field — use `"NOT_CHOSEN"`:
+
 ```json
 {
   "firstName": "Knut",
@@ -150,7 +152,7 @@ For the exact STYRK-only contract shape that provides `3512` and no job title, u
           "date": "2026-05-23",
           "employmentType": "ORDINARY",
           "employmentForm": "PERMANENT",
-          "remunerationType": "MONTHLY_WAGE or NOT_CHOSEN (see Payload Rules)",
+          "remunerationType": "NOT_CHOSEN",
           "workingHoursScheme": "NOT_SHIFT",
           "percentageOfFullTimeEquivalent": 100,
           "annualSalary": 690000,
@@ -161,6 +163,8 @@ For the exact STYRK-only contract shape that provides `3512` and no job title, u
   ]
 }
 ```
+
+For arbeidskontrakt (employment contracts) that explicitly state "Lønnstype: Fastlønn (månedlig)" — use `"MONTHLY_WAGE"` instead of `"NOT_CHOSEN"` in the payload above.
 
 Standard worktime (per-employee):
 
@@ -219,6 +223,10 @@ Standard worktime (per-employee):
 
 ## OpenAPI / Sandbox Status
 - `/division`, `/department`, `/employee`, `/employee/employment/occupationCode`, `/employee/standardTime` verified in `./openapi.json`
+- **end-to-end sandbox verification on 2026-03-22** confirmed the complete tilbudsbrev (offer letter) flow with `remunerationType: "NOT_CHOSEN"`:
+  - 4 calls, 0 errors: GET /division → POST /department → POST /employee (with nested employmentDetails, remunerationType NOT_CHOSEN, occupationCode id 4930 SALGSSJEF) → POST /employee/standardTime
+  - readback verified 10/10 scored checks pass: employee exists, firstName, lastName, dateOfBirth, remunerationType=NOT_CHOSEN, department, employmentForm=PERMANENT, percentage, annualSalary, hoursPerDay=7.5
+  - all 10 hardcoded occupation code mappings verified: Salgssjef(4930), Regnskapssjef(4679), HR-rådgiver(4169), Seniorutvikler(5935), Kontormedarbeider(2951), IT-konsulent(2610), STYRK2511(301), STYRK3323(2507), STYRK3313(4677), STYRK3512(752)
 - persistent sandbox verification on 2026-03-21 confirmed the correct onboarding flow with 4 calls:
   - `GET /division?count=1&fields=id` → division id `108244566`
   - `POST /department` → department created

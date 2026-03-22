@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-21-233732739Z-8c1a4192",
+  "request_id": "b3385d79",
+  "prompt_raw": "The payment from Windmill Ltd (org no. 858237033) for the invoice \"Consulting Hours\" (25500 NOK excl. VAT) was returned by the bank. Reverse the payment so the invoice shows the outstanding amount again.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-21T23:38:16Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-21T23:37:32.792Z",
+  "after_captured_at": "2026-03-21T23:38:47.118Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "18",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-21T23:38:47.119Z"
+}

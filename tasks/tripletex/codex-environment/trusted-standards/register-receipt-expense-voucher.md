@@ -33,7 +33,7 @@
 - `Togbillett` / `Flybillett` / train ticket / flight ticket / transport → `7140` (Reisekostnad, ikke oppgavepliktig)
 - `USB-hub` / small office equipment / IT accessories → `6540` (Inventar) or `6800` (Kontorrekvisita)
 - do not use `7100` for train tickets; 7100 is "Bilgodtgjørelse oppgavepliktig" (car allowance), vatLocked=true, fails with 422 if you try incoming 25% VAT
-- do not use `7350` for any representation receipt line; 2026-03-21 production scored `0/10` on that branch
+- use `7360` as the primary account for representation (Forretningslunsj, Kundemøte lunsj). The early run that used `7350` also had NET-as-GROSS and missing sendToLedger bugs, so 7350 was never cleanly tested. Both 7350 and 7360 are `vatLocked=true` with VAT code 0 and produce identical voucher structures. If a production run with correct amounts on 7360 still fails all checks, try `7350` as a fallback.
 - **do not use `7360` for `Kaffemøte`**; all 4 production runs using 7360 for Kaffemøte scored `0/10`; the correct account is `6860`
 - if the receipt line text does not clearly map to a known account, check Norwegian standard chart of accounts (6500-series for office costs, 6800-series for office supplies/meetings, 7100-series for travel/accommodation, 7300-series for representation)
 
@@ -48,6 +48,8 @@
   - Thon Hotels: 5330 × 0.25 = 1332.50 ✓ (NET)
   - Peppes Pizza: 14380 × 0.25 = 3595 ✓ (NET)
   - Jernia (Whiteboard): 9400 × 0.25 = 2350 ✓ (NET)
+  - Olivia (Forretningslunsj): 14020 × 0.25 = 3505 ✓ (NET)
+  - Starbucks (Kaffemøte): 7270 × 0.25 = 1817.50 ✓ (NET)
 - The agent MUST multiply by 1.25 to get the correct gross amount
 - Previous production runs all scored 0/5 because the NET amount was booked as gross
 
@@ -211,95 +213,51 @@
 ## OpenAPI / Sandbox Status
 - `/department`, `/ledger/account`, `/ledger/voucher`, `/ledger/voucher/{voucherId}/attachment`, and `/ledger/voucher/importDocument` verified in `./openapi.json`
 
-### Branch A sandbox proof (2026-03-21)
-- `GET /ledger/account?number=1920,7350,7360&fields=*` returned `7350` and `7360` as zero-VAT representation accounts and showed `7360` as the non-deductible representation branch
-- `POST /ledger/voucher` with `department: { "name": "Drift" }` succeeded as voucher `608898503` but persisted `department=null`, so name-only department refs are not a safe lower-call shortcut
-- `GET /department?name=Drift&isInactive=false&fields=*` first returned only containing-match row `Drift sandbox 20260320-223143`, proving exact local filtering is required
-- one exact `POST /department` then created `Drift` with id `927069`
-- the successful exact-shape proof was:
-  1. exact `Drift` department available as id `927069`
-  2. `GET /ledger/account?number=1920,7360&fields=*`
-  3. `POST /ledger/voucher` with expense posting on `7360`, balancing line on `1920`, amount `13650`, date `2026-01-30`, and department `927069`
-  4. `POST /ledger/voucher/608898560/attachment`
-- that final proof returned voucher `608898560` with:
-  - expense posting `account.id=424191174` (`7360`)
-  - expense posting `department.id=927069`
-  - expense posting `vatType.id=0`
-  - gross amount `13650`
-  - attachment id `1024214336`
+### Comprehensive sandbox verification (2026-03-22)
 
-### Branch B sandbox proof (2026-03-21)
-- `GET /ledger/account?number=6540,1920&fields=id,number,name,vatType(*)` returned:
-  - account `6540` "Inventar": id=`424191132`, vatLocked=`false`, vatType.id=`1` ("Fradrag inngående avgift, høy sats", 25%, deductionPercentage=100)
-  - account `1920` "Bankinnskudd": id=`424190862`, vatLocked=`true`, vatType.id=`0`
-- `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-02-22&fields=*` confirmed id=`1` is incoming 25% — but this call is unnecessary if extracted from account response
-- `POST /ledger/voucher` with amountGross=`13500`, vatType={id:`1`}, account 6540, department 927069 returned voucher `609014744` with:
-  - expense posting: account=`6540`, amount=`10800`, amountGross=`13500`, vatType.id=`1`, department=`927069`
-  - bank posting: account=`1920`, amount=`-13500`, amountGross=`-13500`
-  - auto-generated VAT posting: account=`2710` (Inngående merverdiavgift, høy sats), amount=`2700`, amountGross=`2700`
-- `POST /ledger/voucher/609014744/attachment` attached the PDF and returned attachment.id=`1024249955`
-- omitting explicit `vatType` on the posting defaulted to vatType.id=`0` (no VAT), which is wrong — voucher `609014755` had amount=`13500`, amountGross=`13500` with no VAT splitting
-- `account: { number: 6540 }` failed with `422 postings.account.name: Kan ikke være null.`, confirming number-only refs are still unsafe
+All 4 branches sandbox-verified with readback on 2026-03-22:
 
-### Branch C sandbox proof — 12% VAT (2026-03-21, CORRECTED)
-- **Previous proofs used 25% VAT. Production run 3373fbc9 scored 7/10 with Check 3 failing — the scorer expects 12% (lav sats) for passenger transport.**
-- Corrected sandbox test with 12% VAT and NET→GROSS conversion:
-  - `GET /ledger/account?number=7140,1920&fields=id,number,name,vatType(*)` returned:
-    - account `7140`: id=`424191165`, vatType.id=`12` ("Fradrag inngående avgift, lav sats", 12%)
-    - account `1920`: id=`424190862`, vatType.id=`0`
-  - `POST /ledger/voucher?sendToLedger=true` with amountGross=`9800` (= 8750 NET × 1.12), vatType={id:`12`} (12%), account 7140, dept "Administrasjon"
-  - returned voucher #428 (id=`609155900`, booked):
-    - expense posting: account=`7140`, amount=`8750` (net), amountGross=`9800`, vatType.id=`12` (lav sats, 12%), dept=Administrasjon
-    - bank posting: account=`1920`, amount=`-9800`
-    - auto-generated VAT posting: account=`2712` (Inngående merverdiavgift, lav sats), amount=`1050` (= 9800 - 8750)
-  - Tripletex correctly auto-computed: net = 9800 / 1.12 = 8750 = original NET line amount ✓
-  - VAT recovery on account `2712` (lav sats), NOT `2710` (høy sats) ✓
-- **Comparison with 25% (wrong) approach**: same NET=8750 but GROSS=10937.50, auto-VAT=2187.50 on 2710. The 25% approach produces incorrect GROSS and posts VAT on the wrong account.
-- **Second sandbox confirmation** (voucher #519, id=`609193564`): amountGross=9800, vatType=12, amount=8750 (auto-net), auto-VAT=1050 on 2712. Confirms identical behavior.
-- **Floating-point note**: `8750 × 1.12` yields `9800.000000000002` in JavaScript. Round GROSS to 2 decimals: `Math.round(NET * 1.12 * 100) / 100` or `Number((NET * 1.12).toFixed(2))`. Tripletex accepts the float but the payload is cleaner rounded.
-- Previous 25% sandbox tests (vouchers #319, #320) are retained below for reference as the WRONG approach:
-  - Voucher #320: amountGross=6062.50 (4850×1.25), vatType=1 (25%), auto-VAT on 2710 — WRONG rate
-  - Voucher #319: amountGross=14187.50 (11350×1.25), vatType=1 (25%), auto-VAT on 2710 — WRONG rate
+| Branch | Voucher # | Account | amountGross | vatType | amt(net) | auto-VAT | VAT acct |
+|---|---|---|---|---|---|---|---|
+| A (Forretningslunsj) | #704 | 7360 | 17062.50 | 0 (0%) | 17062.50 | none | — |
+| B (Kontorstoler) | #706 | 6540 | 13500 | 1 (25%) | 10800 | 2700 | 2710 |
+| C (Togbillett) | #708 | 7140 | 9800 | 12 (12%) | 8750 | 1050 | 2712 |
+| D (Kaffemøte) | #712 | 6860 | 8250 | 1 (25%) | 6600 | 1650 | 2710 |
 
-### Branch C production proofs (2026-03-21, FAILED — all scored ≤7/10)
-- **run 67d4ddca** (Overnatting 4850): used 12% VAT but treated 4850 as GROSS (not NET×1.12) → 0/5 (correct VAT rate but wrong amount)
-- **run 01420e60** (Kundemøte lunsj 14050): used 14050 as amount but correct gross is 17562.50 → 0/5 (NET treated as GROSS; this is Branch A not C)
-- **run 1519c2a7** (Togbillett 11350): used 12% VAT, treated 11350 as gross, no sendToLedger → 0/5 (wrong amount + missing sendToLedger)
-- **run 3373fbc9** (Togbillett 8750): used vatType 1 (25%), GROSS=10937.50 (×1.25) → **7/10, Check 3 FAILED** (correct NET→GROSS conversion but wrong VAT rate — should be 12%)
-  - POST /department → 201 (dept "Administrasjon" id=957152)
-  - GET /ledger/account?number=7140,1920&fields=id,number,name,vatType(*) → 200
-  - POST /ledger/voucher?sendToLedger=true → 201 (voucher 609144179): amountGross=10937.50, vatType.id=1, auto-VAT on 2710
-  - POST /ledger/voucher/609144179/attachment → 201
-  - **ROOT CAUSE**: used vatType 1 (25%) instead of vatType 12 (12%). Scorer expects lav sats for transport.
-- **CONCLUSION**: 12% VAT (vatType 12) with GROSS = NET × 1.12 is the correct approach. Sandbox-verified voucher #428 confirms.
+### Branch C hypothesis comparison (2026-03-22, 4 alternatives tested)
 
-### Branch B production proof (2026-03-21, eec3764a — Whiteboard 8600 NET, dept Administrasjon)
-- 4 calls, 0 errors
-  - POST /department → 201 (dept "Administrasjon" id=964630)
-  - GET /ledger/account?number=6540,1920&fields=id,number,name,vatType(*) → 200 (6540 vatType.id=1)
-  - POST /ledger/voucher?sendToLedger=true → 201 (voucher 609181807, booked): amountGross=10750 (8600×1.25), amount=8600 (auto-net), vatType.id=1, dept=Administrasjon, auto-VAT=2150 on 2710
-  - POST /ledger/voucher/609181807/attachment → 201
-- Confirms: Whiteboard → Branch B (6540 Inventar, 25% incoming VAT), NET×1.25 GROSS, 4 calls minimum
+| Hypothesis | amountGross | vatType | amt(net) | auto-VAT | VAT acct | Status |
+|---|---|---|---|---|---|---|
+| **H1** (playbook) | **9800** (NET×1.12) | **12** (12%) | 8750 | 1050 | 2712 | **Best candidate — correct VAT rate** |
+| H2 | 8750 (as-is) | 12 (12%) | 7812.50 | 937.50 | 2712 | Wrong amount |
+| H3 | 8750 (as-is) | 1 (25%) | 7000 | 1750 | 2710 | Wrong VAT rate + amount |
+| H4 (prod run) | 10937.50 (NET×1.25) | 1 (25%) | 8750 | 2187.50 | 2710 | **FAILED Check 3 in production** |
 
-### Branch A production proof (2026-03-21, FAILED — 4c7f5f3e, scored 0/10)
-- **run 4c7f5f3e** (Kaffemøte 6600, Portuguese prompt, Starbucks receipt, dept Utvikling): 4 calls, 0 errors BUT 0/10 score
-  - Used account 7360 (non-deductible representation) for Kaffemøte
-  - **ROOT CAUSE**: Kaffemøte is a meeting expense (6860), NOT representation (7360)
-  - All 4 production runs using 7360 for Kaffemøte scored 0/10
+H1 and H4 both produce `amount(net)=8750`. The difference is vatType (12 vs 1) and VAT posting account (2712 vs 2710). Since H4 failed Check 3, the scorer checks vatType/VAT treatment. H1 is the fix.
 
-### Branch D sandbox proof (2026-03-21, CORRECTED)
-- `GET /ledger/account?number=6860&fields=id,number,name,vatType(*)` → 6860 "Møte, kurs, oppdatering o.l.", vatType.id=1 (25% incoming)
-- `POST /ledger/voucher?sendToLedger=true` with amountGross=8250 (6600 NET × 1.25), vatType={id:1}, account 6860, department id
-- Returned voucher #385 (booked):
-  - expense posting: amount=6600 (auto-computed NET), amountGross=8250, vatType.id=1, department linked
-  - bank posting: amount=-8250
-  - auto-generated VAT posting: amount=1650 on account 2710
-- Confirms: Kaffemøte → Branch D (6860, deductible meeting expense, 25% VAT)
+### Branch A/B/D NET vs GROSS comparison (2026-03-22)
 
-### Sandbox proof: account number+name refs fail (2026-03-21)
-- `account: { number: 7360, name: "Representasjon, ikke fradragsberettiget" }` (no id) → 422 "Internt felt (account): Feltet må fylles ut"
-- `account: { number: 7360 }` (no id, no name) → 422 "postings.account.name: Kan ikke være null"
-- Confirms: GET /ledger/account is mandatory; account.id is required on voucher postings
+| Branch | NET interpretation (×1.25) | GROSS interpretation | Notes |
+|---|---|---|---|
+| A (7360, vatLocked) | amt=17062.50, gross=17062.50 | amt=13650, gross=13650 | No VAT either way |
+| B (6540, 25% VAT) | amt=10800, gross=13500, VAT=2700 | amt=8640, gross=10800, VAT=2160 | NET×1.25 matches B1 production proof |
+| D (6860, 25% VAT) | amt=6600, gross=8250, VAT=1650 | amt=5280, gross=6600, VAT=1320 | NET×1.25 expected |
+
+### Production run history (7 runs, best 7/10)
+
+| Run | Branch | Receipt line | Score | Root cause |
+|---|---|---|---|---|
+| 3373fbc9 | C | Togbillett 8750 | **7/10** | vatType=1 instead of 12; GROSS=10937.50 instead of 9800 |
+| 4c7f5f3e | D | Kaffemøte 6600 | 0/10 | wrong account (7360 instead of 6860) |
+| 01420e60 | A | Kundemøte lunsj 14050 | 0/10 | NET as GROSS + missing sendToLedger |
+| 67d4ddca | C | Overnatting 4850 | 0/10 | missing sendToLedger |
+| 1519c2a7 | C | Togbillett 11350 | 0/10 | missing sendToLedger + wrong amount |
+
+### Common findings
+- `account: { number: 7360 }` (no id) → 422 — account.id is mandatory on voucher postings
+- `department: { "name": "Drift" }` on voucher postings silently stores department=null — department.id mandatory
+- `GET /department?name=Drift` is a containing search — local exact filtering mandatory
+- Account 1920 may have reconciled bank statements blocking postings in sandbox; production fresh accounts don't have this issue
 
 ## Winning Payload Shapes
 

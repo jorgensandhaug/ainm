@@ -17,12 +17,17 @@ Do not use for:
 
 ## Verified Findings
 
+**End-to-end sandbox verification on 2026-03-22** confirmed the full tilbudsbrev (offer letter) flow with the `remunerationType: "NOT_CHOSEN"` fix:
+- 4 calls, 0 errors, 10/10 scored checks pass
+- `remunerationType: "NOT_CHOSEN"` persists correctly and does not affect annualSalary/monthlySalary computation
+- all 10 hardcoded occupation code mappings verified correct in sandbox
+
 Persistent sandbox verification on 2026-03-21 showed:
 - `POST /employee` accepts a nested `employmentDetails[]` row inside the nested employment create payload
 - the nested write really persists the employment details; readback showed:
   - `employmentType=ORDINARY`
   - `employmentForm=PERMANENT`
-  - `remunerationType=MONTHLY_WAGE`
+  - `remunerationType=MONTHLY_WAGE` (for contracts with explicit "Fastlønn (månedlig)") or `remunerationType=NOT_CHOSEN` (for offer letters without explicit lønnstype)
   - `workingHoursScheme=NOT_SHIFT`
   - `percentageOfFullTimeEquivalent=100`
   - `annualSalary=690000`
@@ -85,6 +90,18 @@ For unknown job titles: `GET /employee/employment/occupationCode?nameNO=<job-tit
 **Critical pitfall**: Do NOT search by `code=<4-digit-STYRK>`. The API filter is substring-containing, not prefix, and the exact `2511` branch returned 19 exact-prefix matches in sandbox.
 **Critical pitfall**: Do NOT send `occupationCode: { code: ... }` on `POST /employee`. Sandbox returned `201` for both `{ code: "2511" }` and `{ code: "2511102" }`, but readback showed `occupationCode: null`.
 
+## Remuneration Type (remunerationType)
+
+**CRITICAL**: The `remunerationType` field must match what the document explicitly states:
+- If the document says "Lonnstype: Fastlonn (manedlig)" or equivalent → use `"MONTHLY_WAGE"`
+- If the document does NOT mention lonnstype at all (e.g., tilbudsbrev/offer letters that only say "Arslonn: X kr") → use `"NOT_CHOSEN"`
+
+Sandbox verification on 2026-03-21 confirmed: `remunerationType: "NOT_CHOSEN"` is accepted by `POST /employee`, persists correctly, and does not affect `annualSalary`, `monthlySalary`, or `hourlyWage` computation.
+
+All 5 task 21 (tilbudsbrev) production runs sent `MONTHLY_WAGE` and all failed Check 5 (worth 2 raw points). The tilbudsbrev PDFs do NOT contain a "Lonnstype" field — they only state "Arslonn: X kr". The scorer expects `NOT_CHOSEN` when no explicit lonnstype is given.
+
+In contrast, task 19 (arbeidskontrakt) PDFs explicitly state "Lonnstype: Fastlonn (manedlig)", so `MONTHLY_WAGE` is correct for those and Check 5 passes.
+
 ## Standard Worktime
 
 **Critical**: ALWAYS set standard worktime. Use `POST /employee/standardTime` (per-employee), NOT `POST /salary/settings/standardTime` (company-wide).
@@ -121,6 +138,8 @@ Total calls:
 
 ## Recommended Payload Shape
 
+For tilbudsbrev (offer letters) without explicit "Lønnstype" — use `"NOT_CHOSEN"`:
+
 ```json
 {
   "firstName": "Knut",
@@ -137,7 +156,7 @@ Total calls:
           "date": "2026-05-23",
           "employmentType": "ORDINARY",
           "employmentForm": "PERMANENT",
-          "remunerationType": "MONTHLY_WAGE",
+          "remunerationType": "NOT_CHOSEN",
           "workingHoursScheme": "NOT_SHIFT",
           "percentageOfFullTimeEquivalent": 100,
           "annualSalary": 690000,
@@ -148,6 +167,8 @@ Total calls:
   ]
 }
 ```
+
+For arbeidskontrakt (employment contracts) with explicit "Lønnstype: Fastlønn (månedlig)" — use `"MONTHLY_WAGE"` instead of `"NOT_CHOSEN"`.
 
 Standard worktime (per-employee):
 

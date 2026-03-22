@@ -1,0 +1,8 @@
+{
+  "prompt": "Nous avons reçu la facture INV-2026-8953 du fournisseur Colline SARL (nº org. 938165742) de 32650 NOK TTC. Le montant concerne des services de bureau (compte 7300). Enregistrez la facture fournisseur avec la TVA déductible correcte (25 %).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "cSnsdpa9pRC2M0O5khR9zqnFumJRxT001UhQH24429k"
+  }
+}

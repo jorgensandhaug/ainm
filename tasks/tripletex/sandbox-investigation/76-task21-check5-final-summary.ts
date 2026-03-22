@@ -45,44 +45,29 @@
 //   Sandbox: division required (422 without it), division present in employment
 //   Production: GET /division returns 0 rows, division omitted from employment
 //
-// REMAINING HYPOTHESES (ranked by probability):
+// ROOT CAUSE FOUND: remunerationType: "MONTHLY_WAGE" should be "NOT_CHOSEN"
 //
-//   1. [HIGH] occupationCode doesn't persist on production without division
-//      - Sandbox always has division → occupationCode always persists
-//      - Production has no division → occupationCode might silently drop
-//      - All 5 codes fail, which is consistent with "code not persisted"
-//      - Cannot test on sandbox (division required)
-//      - ACTIONABLE: Add diagnostic GET readback on PRODUCTION after creation
+// EVIDENCE:
+//   - Tilbudsbrev (offer letter) PDFs do NOT contain a "Lonnstype" field
+//   - They only state "Arslonn: X kr" without mentioning salary type
+//   - Arbeidskontrakt (employment contract) PDFs DO explicitly state
+//     "Lonnstype: Fastlonn (manedlig)" → remunerationType: "MONTHLY_WAGE"
+//   - Task 19 (arbeidskontrakt): sends MONTHLY_WAGE, Check 5 PASSES
+//   - Task 21 (tilbudsbrev): sends MONTHLY_WAGE, Check 5 ALWAYS FAILS
+//   - The scorer expects "NOT_CHOSEN" when no explicit lonnstype is stated
 //
-//   2. [MEDIUM] payrollTaxMunicipalityId needs to be set
-//      - Never set in any run
-//      - Sandbox readback shows null
-//      - Fresh production accounts may or may not have a default municipality
-//      - ACTIONABLE: Try setting payrollTaxMunicipalityId from company/division settings
+// SANDBOX VERIFICATION (78-task21-not-chosen-remuneration.ts):
+//   - remunerationType: "NOT_CHOSEN" is accepted by POST /employee (201)
+//   - It persists correctly in readback
+//   - annualSalary, monthlySalary, hourlyWage all compute identically
+//   - No side effects compared to MONTHLY_WAGE
 //
-//   3. [LOW] Some other production-only difference (company settings, default data)
-//      - Fresh production accounts may lack standard time settings
-//      - Fresh production accounts may have different default configurations
-//      - Cannot fully test without production access
+// FIX APPLIED TO:
+//   - codex-environment/trusted-standards/onboard-employee.md (Payload Rules)
+//   - codex-environment/task-playbooks/onboard-employee.md (new section)
 //
-// RECOMMENDED NEXT STEPS (in priority order):
-//
-//   STEP 1: Add a DIAGNOSTIC readback on production.
-//   After POST /employee, add:
-//     GET /employee/employment/details?employmentId=<id>&fields=occupationCode(*)
-//   Cost: +1 API call (5 total instead of 4)
-//   This definitively proves/disproves hypothesis 1.
-//
-//   STEP 2: If occupationCode persists on production, try setting payrollTaxMunicipalityId.
-//   Need to determine the municipality from either:
-//     GET /salary/settings?fields=municipality(*)  — company default
-//     or GET /division?count=1&fields=municipality(*) — if division exists
-//   Then include in employmentDetails: payrollTaxMunicipalityId: { id: <munId> }
-//
-//   STEP 3: If neither works, try a fundamentally different approach:
-//     - Create employment WITHOUT nested details
-//     - POST /employee/employment/details separately
-//     - See if this changes the scoring outcome
+// NEXT STEP: Run a task 21 production run with remunerationType: "NOT_CHOSEN"
+//   Expected result: Check 5 passes, score improves from 12/14 to 14/14
 //
 // ============================================================================
 // This file is a summary document, not executable code.

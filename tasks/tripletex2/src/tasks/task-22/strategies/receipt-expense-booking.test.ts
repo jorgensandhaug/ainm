@@ -35,7 +35,7 @@ test("task 22 strategy books a travel receipt to department, picks VAT, and uplo
 
           if (path === "/ledger/account") {
             assert.deepEqual(options?.query, {
-              number: "1920,7100,7130,7140,7141,7149,7150,7160,7170,7320,7330,7350,7360",
+              number: "1920,6540,6860,7100,7130,7140,7141,7149,7150,7160,7170,7320,7330,7350,7360",
               fields: "*",
             });
             return {
@@ -96,7 +96,7 @@ test("task 22 strategy books a travel receipt to department, picks VAT, and uplo
             });
           }
 
-          if (path === "/ledger/voucher") {
+          if (path === "/ledger/voucher?sendToLedger=true") {
             capturedVoucherBody = options?.body;
             return {
               value: {
@@ -166,7 +166,7 @@ test("task 22 strategy books a travel receipt to department, picks VAT, and uplo
     "GET /department",
     "GET /ledger/account",
     "GET /ledger/vatType",
-    "POST /ledger/voucher",
+    "POST /ledger/voucher?sendToLedger=true",
     "POST /ledger/voucher/608968443/attachment",
   ]);
   assert.deepEqual(capturedVoucherBody, {
@@ -258,7 +258,7 @@ test("task 22 strategy chooses the non-deductible representation account and ski
         async post(path, options) {
           calls.push(`POST ${path}`);
 
-          if (path === "/ledger/voucher") {
+          if (path === "/ledger/voucher?sendToLedger=true") {
             capturedVoucherBody = options?.body;
             return {
               value: {
@@ -321,7 +321,7 @@ test("task 22 strategy chooses the non-deductible representation account and ski
   assert.deepEqual(calls, [
     "GET /department",
     "GET /ledger/account",
-    "POST /ledger/voucher",
+    "POST /ledger/voucher?sendToLedger=true",
     "POST /ledger/voucher/608898560/attachment",
   ]);
   assert.deepEqual(capturedVoucherBody, {

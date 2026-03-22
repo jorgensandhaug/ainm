@@ -68,6 +68,8 @@ interface ResponseWrapper<TValue> {
 
 const BANK_ACCOUNT_NUMBER = 1920;
 const DEFAULT_EXPENSE_ACCOUNT_CANDIDATES = [
+  6540,
+  6860,
   7100,
   7130,
   7140,
@@ -200,7 +202,7 @@ export const strategy = {
     }
 
     const voucherResponse = await ctx.tripletex.post<ResponseWrapper<VoucherSummary>>(
-      "/ledger/voucher",
+      "/ledger/voucher?sendToLedger=true",
       {
         body: {
           date: voucherDate,
@@ -426,6 +428,13 @@ function chooseExpenseAccount(
     return exactRepresentation;
   }
 
+  if (looksLikeMeetingExpense(normalizedEvidence)) {
+    const meetingAccount = byNumber.get(6860);
+    if (meetingAccount) {
+      return meetingAccount;
+    }
+  }
+
   if (looksLikeTravel(normalizedEvidence)) {
     for (const accountNumber of DEFAULT_TRAVEL_ACCOUNT_PRIORITY) {
       const account = byNumber.get(accountNumber);
@@ -493,6 +502,18 @@ function chooseIncomingVatType(
 
 function inferVatRatePercent(evidenceText: string): number {
   const normalizedEvidence = normalizeText(evidenceText);
+
+  // Category-specific rates take priority over receipt text.
+  // Receipt "MVA 25%" is a blended summary across all items;
+  // individual items have statutory rates (12% for transport).
+  if (looksLikeTravel(normalizedEvidence)) {
+    return 12;
+  }
+
+  if (looksLikeMeetingExpense(normalizedEvidence)) {
+    return 25;
+  }
+
   const percentageMatches = [
     ...normalizedEvidence.matchAll(/\b(0|12|15|25)(?:[.,]0+)?\s*%/g),
   ]
@@ -500,10 +521,6 @@ function inferVatRatePercent(evidenceText: string): number {
     .filter((value) => Number.isFinite(value));
   if (percentageMatches.length > 0) {
     return percentageMatches[0]!;
-  }
-
-  if (looksLikeTravel(normalizedEvidence)) {
-    return 12;
   }
 
   return 25;
@@ -763,7 +780,17 @@ function looksLikeTravel(normalizedEvidence: string): boolean {
   );
 }
 
+function looksLikeMeetingExpense(normalizedEvidence: string): boolean {
+  return /(kaffemote|kaffemate|coffee.?meeting|intern.?mote|kurs|seminar)/.test(
+    normalizedEvidence,
+  );
+}
+
 function looksLikeRepresentation(normalizedEvidence: string): boolean {
+  // Kaffemøte is a meeting expense (6860), NOT representation (7360).
+  if (looksLikeMeetingExpense(normalizedEvidence)) {
+    return false;
+  }
   return /(forretningslunsj|representasjon|restaurant|middag|lunsj|bedriftskort)/.test(
     normalizedEvidence,
   );

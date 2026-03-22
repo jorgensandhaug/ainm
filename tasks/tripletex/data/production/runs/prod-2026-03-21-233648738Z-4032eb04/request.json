@@ -1,0 +1,8 @@
+{
+  "prompt": "Der Kunde Brückentor GmbH (Org.-Nr. 901668566) hat die Rechnung für \"Webdesign\" (38800 NOK ohne MwSt.) reklamiert. Erstellen Sie eine vollständige Gutschrift, die die gesamte Rechnung storniert.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "aln874Pfay8mPUAst714CZoUF8Fte38mn0Dv-MaN9l4"
+  }
+}

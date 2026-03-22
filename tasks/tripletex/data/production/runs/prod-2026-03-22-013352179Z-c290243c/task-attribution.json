@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-013352179Z-c290243c",
+  "request_id": "5e7f2323",
+  "prompt_raw": "Nous avons reçu la facture INV-2026-5683 du fournisseur Lumière SARL (nº org. 904564184) de 75500 NOK TTC. Le montant concerne des services de bureau (compte 7140). Enregistrez la facture fournisseur avec la TVA déductible correcte (25 %).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T01:35:09Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T01:33:53.064Z",
+  "after_captured_at": "2026-03-22T01:35:40.005Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "11",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T01:35:40.008Z"
+}

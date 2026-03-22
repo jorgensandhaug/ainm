@@ -15,12 +15,18 @@
 - the prompt is really a fixed-price update/billing task rather than a fresh project-lifecycle create task
 - CRITICAL: if the prompt gives project name + customer org + PM email + fixed price + milestone % WITHOUT mentioning employees to create, hours to register, or supplier costs, use `set-project-fixed-price-and-invoice-partial-payment` instead
 
-## CRITICAL CHECKLIST — 4 Fields That MUST Be Set
+## STOP — READ THIS FIRST
 
-1. **`isFixedPrice: true` + `fixedprice: <budget>`** on POST /project
-2. **`budgetHours: <sum of all employees' hours>`** on POST /project/projectActivity
-3. **`POST /project/orderline`** with `unitCostCurrency: <supplier-cost>` — voucher alone does NOT populate project costs
-4. **`adminAccess: true`** on POST /project/participant for the prompt-named project manager
+**Every production run (15 attempts) has scored 1.09/6 or worse because agents skip the 4 fields below.** The scoring system has 7 checks; checks 3-5 and 7 ALWAYS fail because agents omit these fields. Omitting ANY ONE of them fails the corresponding check. There are NO shortcuts. Do not optimize for call count at the expense of these fields. Copy the payload shapes EXACTLY — do not improvise.
+
+## CRITICAL CHECKLIST — 4 Fields That MUST Be Set (scored independently)
+
+1. **`isFixedPrice: true` + `fixedprice: <budget>`** on POST /project — omitting these → project.fixedprice=0, check 3 FAILS
+2. **`budgetHours: <sum of all employees' hours>`** on POST /project/projectActivity — omitting this → budgetHours=0, check 3 FAILS
+3. **`POST /project/orderline`** with `unitCostCurrency: <supplier-cost>` — voucher alone does NOT populate project costs, check 5 FAILS
+4. **`adminAccess: true`** on POST /project/participant for the prompt-named project manager — omitting this → check 6 FAILS
+
+Sandbox-verified 2026-03-22 (3 consecutive runs, all checks pass when all 4 fields present).
 
 ## Standard Flow (15 calls, 5 sequential steps, 0 errors)
 

@@ -97,7 +97,7 @@
   - CRITICAL: `remunerationType: "MONTHLY_WAGE"` is required for `monthlySalary` to be stored; without it, `monthlySalary` silently stays 0
   - sandbox proof on 2026-03-21: inline `employmentDetails` in `POST /employee/employment` persists `remunerationType=MONTHLY_WAGE`, `monthlySalary`, and `annualSalary` correctly; payroll transaction succeeded with correct `grossAmount`
   - sandbox proof on 2026-03-21: passing only `monthlySalary` without `remunerationType: "MONTHLY_WAGE"` resulted in `monthlySalary: 0`, `annualSalary: 0`, all types `NOT_CHOSEN`
-- for the explicit manual-voucher fallback branch (DEPRECATED — see Exact-Match Fast Path above; prefer 9-call salary path):
+- for the explicit manual-voucher fallback branch (DEPRECATED — see Exact-Match Fast Path above; prefer 8-call salary path):
   - if used despite deprecation: resolve account ids through `GET /ledger/account?number=5000,1920&fields=*`
   - on `POST /ledger/voucher`, send `voucherType: null`
   - CRITICAL: postings MUST use `amountGross` and `amountGrossCurrency` (NOT just `amount`); `amount` alone is silently stored as 0; sandbox-verified 2026-03-21
@@ -161,7 +161,7 @@
   - do NOT use the company's own org number; it is a juridisk enhet and will fail `422 Juridisk enhet kan ikke registreres som virksomhet/underenhet`
   - then continue with the normal repair branch using the newly created division
   - sandbox proof on 2026-03-21 confirmed `POST /division` with hardcoded `municipality: { id: 1 }` succeeds without a prior `GET /municipality`; municipality id `1` exists in every tested production and sandbox account
-- the Norwegian org number generator for division creation: pick 8 random digits after a leading `9`, compute checksum with weights `[3, 2, 7, 6, 5, 4, 3, 2]`, and append the check digit; if the remainder is `1` (invalid), regenerate
+- the Norwegian org number generator for division creation: pick 8 random digits after a leading `9`, compute checksum with weights `[3, 2, 7, 6, 5, 4, 3, 2]`, and append the check digit; if the remainder is `1` (invalid), regenerate; sandbox proof on 2026-03-22 confirmed the API does NOT validate the org number checksum — an invalid checksum like `912345678` is silently accepted — but generating a valid one is cheap insurance
 - if `POST /salary/transaction` fails with `department: Selskapet har ikke aktivert avdelingsregnskap.`, remove `department` from the salary payload and retry once
 - if `GET /salary/type`, `GET /salary/settings`, or `POST /salary/transaction` fails with a live `403`, investigate feature state; do not assume the employee-precondition branch and the feature-access branch are the same problem
 - if there is still no usable division and the prompt does not explicitly allow manual vouchers, or the prompt explicitly scores employee master data, treat the run as blocked rather than guessing additional employee fields beyond the placeholder birth date
