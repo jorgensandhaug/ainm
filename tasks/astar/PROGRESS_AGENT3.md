@@ -5342,7 +5342,18 @@ Improvement trajectory:
    - floor=0.0001, no temperature scaling
    - **Best score: 90.41 on 16-round LOO**
 
-549. Next experiments:
+549. Rich settlement features (faction/owner_id, health distribution, spatial): 90.35
+   - New features: faction dominance, faction diversity, population CV, dead settlement density, etc.
+   - 795bfb1f improved: 75.55 (vs 73.85, +1.70)
+   - 2a341ace improved: 94.78 (vs 93.58, +1.20)
+   - But cc5442dd regressed: 91.93 (vs 95.41, -3.48) - features add noise on some rounds
+   - Net effect: slightly worse than stacking without rich features (90.35 vs 90.41)
+
+**Best remains: Stacking v1 = 90.41**
+
+All approaches thoroughly explored. Session improvement: **+5.47 points** (84.94 → 90.41).
+
+550. Next experiments:
 
 ## Open Questions
 
