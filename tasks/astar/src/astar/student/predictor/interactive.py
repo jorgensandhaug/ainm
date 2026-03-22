@@ -127,6 +127,10 @@ TRIPLE_EW_V005 = "triple_ew_v005"  # 35/30/35
 TRIPLE_EW_V006 = "triple_ew_v006"  # 20/40/40
 TRIPLE_EW_V007 = "triple_ew_v007"  # 15/42/43
 TRIPLE_EW_V008 = "triple_ew_v008"  # 30/40/30
+DIRECT_TERMINAL_Z2_EW_V002 = "direct_terminal_z2_ew_v002"  # ew + ridge 0.005
+DIRECT_TERMINAL_Z2_EW_V003 = "direct_terminal_z2_ew_v003"  # ew + ridge 0.0005
+TRIPLE_EW_R005_V001 = "triple_ew_r005_v001"  # best blend but DT ridge=0.005
+TRIPLE_EW_R0005_V001 = "triple_ew_r0005_v001"  # best blend but DT ridge=0.0005
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -2106,6 +2110,68 @@ def build_online_predictor(
             ),
             name=normalized,
         )
+    if normalized == DIRECT_TERMINAL_Z2_EW_V002:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_EW_V002,
+            model_name=DIRECT_TERMINAL_Z2_EW_V002,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.005, "max_epochs": 200, "entropy_weighted": True},
+        )
+    if normalized == DIRECT_TERMINAL_Z2_EW_V003:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_EW_V003,
+            model_name=DIRECT_TERMINAL_Z2_EW_V003,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.0005, "max_epochs": 200, "entropy_weighted": True},
+        )
+    if normalized in (TRIPLE_EW_R005_V001, TRIPLE_EW_R0005_V001):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        glmm_adapter = _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2},
+        )
+        ridge_val = 0.005 if normalized == TRIPLE_EW_R005_V001 else 0.0005
+        dt_stem = DIRECT_TERMINAL_Z2_EW_V002 if normalized == TRIPLE_EW_R005_V001 else DIRECT_TERMINAL_Z2_EW_V003
+        dt_adapter = _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=dt_stem,
+            model_name=dt_stem,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": ridge_val, "max_epochs": 200, "entropy_weighted": True},
+        )
+        bucket_predictor = _load_or_fit_historical_bucket_predictor(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem="historical_bucket_prior_v1",
+            model_name="historical_bucket_prior_v1",
+        )
+        prior_op = PriorOperatorPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=list(historical_round_ids) if historical_round_ids else None,
+            bucket_prior=bucket_predictor,
+            model_name="prior_operator_internal",
+            ridge_lambda=0.1,
+            latent_dim=2,
+        )
+        base = TripleBlendPredictor(
+            predictor_a=glmm_adapter.predictor,
+            predictor_b=dt_adapter.predictor,
+            predictor_c=prior_op,
+            weight_a=0.30, weight_b=0.40, weight_c=0.30,
+            name=f"{normalized}_base",
+        )
+        obs = ExactObservationBlendPredictor(
+            base_predictor=base, beta_min=20.0, beta_scale=0.0,
+            probability_floor=3e-4, name=normalized,
+        )
+        return RoundPredictorAdapter(predictor=obs, name=normalized)
     if normalized == DIRECT_TERMINAL_Z2_EW_V001:
         workspace_paths = paths or WorkspacePaths.from_root(".")
         return _build_direct_terminal_adapter(
