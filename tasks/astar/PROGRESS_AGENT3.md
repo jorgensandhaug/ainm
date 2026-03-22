@@ -5229,7 +5229,24 @@ Scripts:
 - `scripts/agent3_multiep_v1.py` - variance features
 - `scripts/agent3_catboost_v2.py` - cached episode benchmarking
 
-540. Next experiments:
+540. **STACKING = 90.41! NEW BEST!** (+0.26 over multi-ep avg)
+
+2-stage stacking: Stage 1 cellwise LGB → Stage 2 LGB with spatial context features.
+Stage 2 features: stage-1 predictions + smoothed predictions at σ=1,2,4 + spatial residuals + prediction entropy.
+
+| Model | Score |
+|-------|-------|
+| **Stacking v1** | **90.41** |
+| Multi-ep avg | 90.15 |
+| Multi-ep train only | 89.64 |
+| Solo LGB d10 | 87.06 |
+
+Spatial smoothing alone mostly hurts (σ≥0.5 destroys accuracy). But stacking learns
+WHEN to trust spatial context vs raw cellwise prediction.
+
+**TOTAL IMPROVEMENT: 84.94 → 90.41 = +5.47 points!**
+
+541. Next experiments:
 
 ## Open Questions
 
