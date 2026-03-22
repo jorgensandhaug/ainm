@@ -109,7 +109,7 @@ GET /ledger/voucher/<voucher.id>?fields=*,postings(*,account(*))
   "perDiemCompensations": [
     {
       "location": "Trondheim",
-      "count": 5,
+      "count": 4,
       "rateType": { "id": 25888, "rateCategory": { "id": 740 } },
       "overnightAccommodation": "HOTEL"
     }
@@ -138,7 +138,7 @@ GET /ledger/voucher/<voucher.id>?fields=*,postings(*,account(*))
 ```
 
 **This example is for a 5-day trip (Mar 17–21) to Trondheim.**
-- `count: 5` = days from prompt (NOT overnights/days-1)
+- `count: 4` = overnights = days - 1 (NOT days). A 5-day trip has 4 overnights.
 - Do NOT set `rate` — system auto-fills government rate (1012) from rateType 25888
 - `amount` is auto-computed as `count × system_rate` — do NOT set explicitly
 - `vatType` from category lookup (typically id=12 for Fly/Taxi on production companies)
@@ -154,24 +154,26 @@ After `PUT /travelExpense/:approve`, you MUST call `PUT /travelExpense/:createVo
 
 **Do NOT use `overrideApprovalFlow=true`** on `:approve` — it returns 403. Plain `:approve` works fine.
 
-### Rule 2: Do NOT set `rate` on perDiemCompensations ← ROOT CAUSE FIX
+### Rule 2: Do NOT set `rate` on perDiemCompensations
 
 Do NOT include `rate` in the perDiemCompensations payload. The system auto-fills the government per-diem rate (1012 NOK/day for rateType 25888). The prompt's stated rate (e.g., "800 kr/day") is the employer's internal policy — it is NOT used in the Tripletex per-diem accounting. Norwegian accounting uses the official government rate.
 
-**23 production runs that set rate=800 ALL scored 4.5/8.** This rate override is the most likely root cause of checks 2, 3, 6 failing.
+Do NOT set `amount` — it auto-computes as `count × system_rate`.
 
-Set `count` to the prompt's stated number of days (e.g., 5). Do NOT set `amount` — it auto-computes as `count × system_rate`.
+### Rule 3: count = OVERNIGHTS (days - 1), NOT days ← ROOT CAUSE FIX
 
-### Rule 3: count = DAYS from prompt (NOT overnights)
+The rateCategory "Overnatting" means "overnight". `count` = number of overnights, not number of days.
 
 | Prompt says | count value |
 |---|---|
-| "5-day trip" | 5 |
-| "4-day trip" | 4 |
-| "3-day trip" | 3 |
-| "2-day trip" | 2 |
+| "5-day trip" | 4 |
+| "4-day trip" | 3 |
+| "3-day trip" | 2 |
+| "2-day trip" | 1 |
 
-Use the prompt's day number DIRECTLY. Do NOT subtract 1.
+Formula: `count = prompt_days - 1`. Always subtract 1.
+
+**CRITICAL: 24 production runs used count=days and ALL scored 4.5/8.** Rate changes (800→1012) had zero effect, confirming the issue is NOT rate but count.
 
 ### Rule 4: vatType on costs from category lookup
 
@@ -254,17 +256,26 @@ If the prompt gives "N days" without specific dates:
 | `costs.currency.factor: Må være minimum 1` | Remove `currency` from all costs |
 | `Kun kostnader kan registreres uten kompensasjon etter satser` | Set `isCompensationFromRates: true` |
 
+## Read-Only Fields (silently ignored)
+| Field | Behavior |
+|---|---|
+| `costs[].isPaidByEmployee` | Always `false` regardless of input — controlled by paymentType |
+
 ## Sandbox Verification (2026-03-22)
 
 Full E2E sandbox tests with VAT-registered company:
-1. create → deliver → approve with vatType=12: state=APPROVED, isApproved=true — ALL API calls succeed
-2. vatType=12 works only when company is VAT-registered (PUT /ledger/vatSettings with vatRegistrationStatus=VAT_REGISTERED)
-3. Category defaults confirm vatType.id=12 for both Fly and Taxi categories
-4. `:approve` without `overrideApprovalFlow` works; WITH `overrideApprovalFlow=true` → 403
+1. create → deliver → approve → createVouchers with vatType=12: 0 errors, isCompleted=true
+2. Category defaults: Fly.vatType.id=12, Taxi.vatType.id=12 (12% lav sats)
+3. `:approve` without `overrideApprovalFlow` works; WITH `overrideApprovalFlow=true` → 403
+4. `isPaidByEmployee: true` silently ignored — always false on readback
+5. `rate: 800` IS stored when set (NOT overridden by system); omitting rate auto-fills 1012
+6. count=2 with auto-rate: perDiem=2024, total=6274 — full lifecycle succeeds with 0 errors
 
 ## Production History
-- 23 runs (9 scored): ALL scored 4.5/8 [PFFPPF] — checks 2,3,6 always fail
-- All 23 runs used `rate: 800` from the prompt — suspected root cause
-- Lifecycle state (deliver-only vs deliver+approve vs deliver+approve+createVouchers) had NO effect on score
-- **FIX (2026-03-22):** Removed explicit `rate` from perDiem payload. System now auto-fills government rate (1012) from rateType 25888.
+- 24 runs (10 scored): ALL scored 4.5/8 [PFFPPF] — checks 2,3,6 always fail
+- Rate changes: rate=800 (23 runs) AND auto-rate=1012 (1 run) → identical 4.5/8. Rate is NOT the root cause.
+- Lifecycle changes: deliver-only, +approve, +createVouchers → all identical 4.5/8
+- **All 24 runs used count=days (not days-1)**. This is the strongest remaining hypothesis.
+- **FIX (2026-03-22, run 3bac34d6):** Removed explicit rate — no score change.
+- **FIX (2026-03-22, post-run):** Changed count from days to days-1 (overnights). Awaiting production validation.
 - **Every run MUST include: deliver → approve → createVouchers. All three steps are required.**

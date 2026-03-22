@@ -104,7 +104,7 @@ GET /ledger/voucher/<voucher.id>?fields=*,postings(*,account(*))
   "perDiemCompensations": [
     {
       "location": "<destination city>",
-      "count": "<DAYS from prompt — use the number directly>",
+      "count": "<OVERNIGHTS = prompt_days - 1>",
       "rateType": { "id": 25888, "rateCategory": { "id": 740 } },
       "overnightAccommodation": "HOTEL"
     }
@@ -142,14 +142,16 @@ Do NOT include `rate` in the perDiemCompensations payload. When omitted, Triplet
 
 Do NOT set `amount` either — it is auto-computed as `count × system_rate`.
 
-**CRITICAL: 23 production runs that set rate=800 ALL scored 4.5/8.** This is the most likely root cause of checks 2, 3, 6 failing.
+### 3. Per-diem count = OVERNIGHTS (days - 1), NOT days
+The rateCategory "Overnatting over 12 timer" literally means "overnight over 12 hours". The `count` field represents the number of OVERNIGHTS, not the number of days.
 
-### 3. Per-diem count = DAYS from prompt (NOT overnights)
-- 5-day trip → `count: 5`
-- 3-day trip → `count: 3`
-- 2-day trip → `count: 2`
+- 5-day trip → `count: 4` (4 overnights)
+- 3-day trip → `count: 2` (2 overnights)
+- 2-day trip → `count: 1` (1 overnight)
 
-Use the prompt's day count DIRECTLY. Do NOT subtract 1.
+Formula: `count = prompt_days - 1`
+
+**CRITICAL: 24 production runs used count=days (not days-1) and ALL scored 4.5/8 [PFFPPF].** Rate changes (800 vs auto-1012) had zero effect on score, confirming the failing checks are NOT about the rate value. The count=days interpretation is the strongest remaining hypothesis for why checks 2, 3, 6 always fail.
 
 ### 4. vatType on costs = category default (not hardcoded 0)
 Each cost category from the lookup has a `vatType` field (e.g., `{ id: 12 }` for Fly/Taxi = 12% input VAT).
@@ -211,16 +213,27 @@ If the prompt gives only "N days" without specific dates, pick a deterministic d
 - `costs.currency.factor: Må være minimum 1` → remove `currency` from all costs
 - `Kun kostnader kan registreres uten kompensasjon etter satser` → set `isCompensationFromRates: true`
 
+## Read-Only Fields (silently ignored if sent)
+| Field | Behavior | Notes |
+|---|---|---|
+| `costs[].isPaidByEmployee` | Always stored as `false` regardless of input | Controlled by paymentType, not user-settable via API |
+
 ## Sandbox Verification (2026-03-22)
 
 Full E2E with VAT-registered company:
-1. create → deliver → approve with vatType=12: state=APPROVED, isApproved=true, 0 errors
+1. create → deliver → approve → createVouchers with vatType=12: 0 errors, isCompleted=true
 2. Category defaults: Fly.vatType.id=12, Taxi.vatType.id=12 (12% lav sats)
 3. `:approve` without `overrideApprovalFlow` works; WITH override → 403
+4. `isPaidByEmployee: true` is silently ignored — readback always shows false
+5. Setting `rate: 800` IS stored (not overridden); omitting rate auto-fills 1012 from rateType 25888
+6. `overnightAccommodation` value (HOTEL, NONE, BOARDING_HOUSE_WITHOUT_COOKING) does NOT affect rate or amount
+7. count=2 (overnights) with auto-rate produces: perDiem=2024, total=6274 — full lifecycle succeeds
 
 ## Production History
-- 23 runs (9 scored): ALL scored 4.5/8 [PFFPPF] — checks 2,3,6 always fail
+- 24 runs (10 scored): ALL scored 4.5/8 [PFFPPF] — checks 2,3,6 always fail
 - Lifecycle progression had NO effect: deliver-only, deliver+approve, deliver+approve+createVouchers ALL score 4.5/8
-- All 23 runs used `rate: 800` from the prompt — this is the suspected root cause of checks 2,3,6
-- **FIX (2026-03-22):** Removed explicit `rate` from perDiem payload. System now auto-fills government rate (1012) from rateType 25888.
+- Rate changes had NO effect: rate=800 (23 runs) AND auto-rate=1012 (1 run, 3bac34d6) both score 4.5/8
+- All 24 runs used count=days (not days-1). This is the strongest remaining hypothesis for failing checks.
+- **FIX (2026-03-22, run 3bac34d6):** Removed explicit `rate` from perDiem payload — NO SCORE CHANGE.
+- **FIX (2026-03-22, post-run):** Changed count from days to days-1 (overnights). Semantic reasoning: rateCategory "Overnatting" = overnight, count = number of overnights. Awaiting production validation.
 - **Every run MUST include: deliver → approve → createVouchers. All three steps required.**
