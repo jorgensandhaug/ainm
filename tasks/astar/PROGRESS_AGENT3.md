@@ -4999,8 +4999,26 @@ Key techniques to incorporate from other agents:
 
    **Total session improvement: +9.86 points** (76.89 → 86.75)
 
+538. Dual ensemble (teacher-CatBoost + base-CatBoost, geometric mean):
+   - w=0.6: **86.85** (NEW BEST!)
+   - w=0.7: 86.85 (tied)
+   - w=0.8: 86.84
+   - w=0.5: 86.82
+   - w=0.3: 86.69
+   - Ensemble adds +0.10 over teacher-only
+
+539. FINAL LEADERBOARD:
+   | Rank | Model | Score |
+   |------|-------|-------|
+   | 1 | **Dual ensemble (60% teacher + 40% base CatBoost)** | **86.85** |
+   | 2 | CatBoost + teacher features | 86.75 |
+   | 3 | CatBoost + exploration | 86.38 |
+   | 4 | AG+TabPFN | 85.90 |
+
+   **Total improvement: +9.96 points** (76.89 → 86.85)
+   **Gap to Agent7: 0.27 points** (87.12 vs 86.85)
+
 ## Open Questions
 
-- Can we ensemble teacher-CatBoost with non-teacher-CatBoost?
-- Gap to Agent7 reduced from 0.74 to 0.37 (87.12 vs 86.75)
+- Can we close the remaining 0.27 gap to Agent7 (87.12)?
 - Need to wire best model into live pipeline
