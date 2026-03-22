@@ -1,0 +1,21 @@
+{
+  "weights": [
+    "runs/960_confcurr_s2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt",
+    "runs/1280_confcurr_s2_e18_img1280_b2_lr8e-05_mix0_cp0_seed123/weights/best.pt"
+  ],
+  "scales": [
+    640,
+    960,
+    1280
+  ],
+  "flip": true,
+  "wbf_iou": 0.6,
+  "n_predictions": 43493,
+  "metrics": {
+    "detection_ap50": 0.9419056200915965,
+    "cls_present": 0.8144589738783053,
+    "cls_all": 0.6360100975791261,
+    "hybrid_present": 0.9036716262276092,
+    "hybrid_all": 0.8501369633378554
+  }
+}

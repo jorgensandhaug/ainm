@@ -1,0 +1,18 @@
+{
+  "scales": [
+    960,
+    1280,
+    1600
+  ],
+  "flip": true,
+  "wbf_iou": 0.65,
+  "conf": 0.0001,
+  "n_predictions": 27960,
+  "metrics": {
+    "detection_ap50": 0.9386960907073636,
+    "classification_map50_present": 0.813890175826588,
+    "classification_map50_all": 0.635565923819639,
+    "hybrid_present": 0.9012543162431308,
+    "hybrid_all": 0.8477570406410462
+  }
+}

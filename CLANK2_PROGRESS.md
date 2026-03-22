@@ -5,19 +5,50 @@ Maximize hybrid score: `0.7 * detection_mAP@50 + 0.3 * classification_mAP@50`
 - Constraints: < 420 MB total, < 300s on L4 GPU, offline
 - Team best: ~0.89, top performers: ~0.93
 
-## Current Best Model
+## Current Best: 3-Model Ensemble + TTA
 
-**Model:** 6-stage 960px YOLO26x pipeline (single model, no ensemble)
-**Weights:** `runs/960_confcurr_s2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt` (120 MB)
-**Eval config:** conf=0.0005, iou=0.55, imgsz=960
+**Models (3x YOLO26x, 120MB each = 360MB total, fits 420MB limit):**
+1. `runs/960_confcurr_s2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt` (our 960px)
+2. `runs/1280_confcurr_s2_e18_img1280_b2_lr8e-05_mix0_cp0_seed123/weights/best.pt` (our 1280px)
+3. `/home/jorge/clank3/.../960_confcurr_s2_final_.../weights/best.pt` (clank3's 960px variant)
+
+**Eval config:** scales=[640,960,1280], flip=True, WBF IoU=0.6, conf=0.0001
+
+| Metric | Score |
+|--------|-------|
+| Detection AP@0.5 (class-agnostic) | 0.9418 |
+| Classification mAP@0.5 (present 278 classes) | 0.8205 |
+| Classification mAP@0.5 (all 356 classes) | 0.6407 |
+| **Hybrid (present classes)** | **0.9054** |
+| Hybrid (all 356 classes) | 0.8515 |
+
+### Score progression
+| Config | Hybrid(present) |
+|--------|----------------|
+| 960px single model | 0.8872 |
+| 960px + TTA (3 scales, flip) | 0.8948 |
+| 1280px single model | 0.8876 |
+| 1280px + TTA | 0.9013 |
+| 2-model ensemble + TTA | 0.9037 |
+| **3-model ensemble + TTA** | **0.9054** |
+
+## Single Model Baselines
+
+**960px model:** `runs/960_confcurr_s2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt` (120 MB)
 
 | Metric | Score |
 |--------|-------|
 | Detection AP@0.5 (class-agnostic) | 0.9295 |
 | Classification mAP@0.5 (present 278 classes) | 0.7885 |
-| Classification mAP@0.5 (all 356 classes) | 0.6157 |
 | **Hybrid (present classes)** | **0.8872** |
-| Hybrid (all 356 classes) | 0.8353 |
+
+**1280px model:** `runs/1280_confcurr_s2_e18_img1280_b2_lr8e-05_mix0_cp0_seed123/weights/best.pt` (120 MB)
+
+| Metric | Score |
+|--------|-------|
+| Detection AP@0.5 (class-agnostic) | 0.9266 |
+| Classification mAP@0.5 (present 278 classes) | 0.7966 |
+| **Hybrid (present classes)** | **0.8876** |
 
 ### Training Pipeline (6-stage, all on GPU 1)
 1. sweep_precision: 30 epochs, lr0=0.0035, from yolo26x.pt
