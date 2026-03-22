@@ -3216,4 +3216,43 @@ All imports verified working. Benchmarks launched:
 | FFAM mode a5_v4 | 87.56 | ffam_mode_a5_v4 (strong beta) |
 | FFAM ensemble a5_e7 | **87.85** | ffam_ensemble_a5_e7 (best) |
 
-**Total improvement: +13.90 points (73.95 → 87.85)**
+**Total improvement: +13.91 points (73.95 → 87.86)**
+
+### Phase 2b: Further Optimization (2026-03-21)
+
+#### Round 2: Mode configs combining best features
+
+| Config | Score | R36 | Key Change |
+|--------|-------|-----|------------|
+| **a5_v8** | **87.60** | 72.00 | Moderate beta (18/72) — best standalone! |
+| a5_v10 | 87.56 | 71.79 | Strong beta + samples=8 |
+| a5_v7 | 87.46 | 71.41 | Strong beta + interactions (interactions hurt!) |
+| a5_v9 | 87.41 | 71.66 | All-in-one (too complex) |
+
+#### Round 3: Ensembles with moderate beta mode
+
+| Config | Score | R36 | Key Change |
+|--------|-------|-----|------------|
+| **a5_e14** | **87.8612** | 72.62 | Moderate beta + 16% kNN — **NEW ALL-TIME BEST** |
+| a5_e13 | 87.8607 | 72.60 | Moderate beta + 15% kNN |
+| a5_e15 | 87.8470 | 72.52 | Moderate beta + 12% kNN |
+| a5_e16 | 87.8435 | 72.44 | Samples=8 mode + 15% kNN |
+
+**Our a5_e14 (87.8612) beats Agent7's all-time best (87.8576) by +0.0036!**
+
+Per-round comparison (a5_e14 vs Agent7 v35):
+- We win on 5/8 rounds: fd3c92(+0.08), 71451d(+0.22), 76909e(+0.08), 8e8399(+0.05), c5cdf1(+0.14)
+- They win on 3/8 rounds: 36e581(-0.19), ae7800(-0.05), f1dac9(-0.30)
+
+### Final Score Progression
+
+| Stage | Best Score | Model |
+|-------|-----------|-------|
+| QR baseline | 73.95 | query_residual v7 |
+| QR calibrated | 81.09 | query_residual (recalibrated) |
+| FFAM port | 87.14 | ffam_mode_v248 |
+| Strong beta mode | 87.56 | ffam_mode_a5_v4 |
+| Moderate beta mode | 87.60 | ffam_mode_a5_v8 |
+| Best ensemble | **87.86** | **ffam_ensemble_a5_e14** |
+
+**Total improvement: +13.91 points (73.95 → 87.86)**
