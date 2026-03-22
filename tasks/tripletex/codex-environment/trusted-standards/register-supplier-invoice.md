@@ -29,7 +29,9 @@
 6. `PUT /ledger/voucher/{id}?sendToLedger=false` with `version` (from step 4) + `postings` — response is `.value` (singular); extract `.value.version` — **see Posting Rules for standard vs vatLocked accounts**
 7. `PUT /ledger/voucher/{id}?sendToLedger=true` with `version` (from step 6 response) + `voucherType: { name: "Leverandørfaktura" }` — this BOOKS the voucher — response is `.value` (singular)
 8. `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)` — **verification**: confirm `number > 0` (booked), log postings, description, voucherType. **CRITICAL**: plain `fields=*` returns posting IDs only (URL stubs) — you MUST use `postings(*)` for expanded posting data (account, amount, vatType, etc.)
-9. `GET /supplier/{supplierId}?fields=*` — **verification**: confirm `postalAddress`, `physicalAddress`, `bankAccountPresentation` all populated
+9. `GET /ledger/posting?voucherId={id}&fields=*` — **verification**: redundant posting check; log every posting's `account.number`, `amount`, `amountGross`, `vatType.id`, `supplier.id`, `invoiceNumber`, `row`. More reliable than `postings(*)` expansion.
+10. `GET /supplier/{supplierId}?fields=*` — **verification**: confirm `postalAddress`, `physicalAddress`, `bankAccountPresentation` all populated
+11. `GET /supplierInvoice/{siId}?fields=*,orderLines(*)` — **verification**: confirm `orderLines` have correct `description`, `amountExcludingVat`, `vatType`
 
 For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 4.
 
