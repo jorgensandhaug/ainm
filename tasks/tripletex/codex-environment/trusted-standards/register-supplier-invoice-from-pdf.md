@@ -42,7 +42,7 @@ MUST set BOTH `postalAddress` AND `physicalAddress` with `country: { id: 161 }`.
 
 ## Step 3: importDocument (EHF XML)
 
-**CRITICAL: PaymentMeans section is REQUIRED.** Without it, `kidOrReceiverReference` on the SI entity stays empty — Check 5 failed across all 11 T20 production runs that omitted this section. Sandbox-verified 2026-03-22: adding PaymentMeans with `PaymentID=${invoiceNumber}` correctly populates `kidOrReceiverReference`. Run 210edee3 was first with PaymentMeans (5 writes — included unnecessary PDF upload). **Run 4a96e18a is the first clean 4-write run with PaymentMeans: 0 errors, all verification GETs confirmed correct state.**
+**PaymentMeans section is REQUIRED.** Without it, `kidOrReceiverReference` on the SI entity stays empty. PaymentMeans populates `kidOrReceiverReference` (production-confirmed by runs 210edee3 and f1cd6ae7). **However, Check 5 still fails at 8/10 even WITH PaymentMeans** — the root cause of Check 5 is NOT kidOrReceiverReference. After 17+ production runs, Check 5 has never passed. Investigated alternatives: approval (`PUT /supplierInvoice/:approve`) returns 422 ("Denne bilagstypen kan ikke attesteres"), PDF upload adds no scoring value. Include PaymentMeans anyway (it correctly populates a field).
 
 ```typescript
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -170,7 +170,7 @@ console.log("kidOrReceiverReference:", siData.values?.[0]?.kidOrReceiverReferenc
 
 ## Pitfalls
 - **TIMEOUT KILLS**: Two production runs (prod-4c255d98, prod-de228487) scored 0% with 0 API calls because the agent read the standard then stalled in thinking for 5 minutes. After reading this file, IMMEDIATELY write the script and execute it. Do not read any other files.
-- **PaymentMeans is REQUIRED in the XML** — without it, `kidOrReceiverReference` on the SI entity stays empty and Check 5 fails. This was the ONLY failing check across 11 T20 runs that all scored 8/10 or less. Add `<cac:PaymentMeans>` with `<cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>` and `<cac:PayeeFinancialAccount><cbc:ID>${bankAccount}</cbc:ID></cac:PayeeFinancialAccount>`. Sandbox-verified 2026-03-22. Production-confirmed by runs 210edee3 and 4a96e18a.
+- **PaymentMeans is REQUIRED in the XML** — without it, `kidOrReceiverReference` stays empty. Always include `<cac:PaymentMeans>` with `<cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>` and `<cac:PayeeFinancialAccount><cbc:ID>${bankAccount}</cbc:ID></cac:PayeeFinancialAccount>`. However, PaymentMeans alone does NOT fix Check 5 (still 8/10 after 17+ runs). Check 5 root cause remains unknown — approval (422), PDF upload (no effect), and all field variations have been exhausted.
 - **Do NOT upload the original PDF** — `importDocument` auto-generates a PDF attachment from the EHF XML (sandbox-verified: `attachment.mimeType=application/pdf` is populated after importDocument alone). The separate `POST /attachment` wastes 1 write for zero scoring benefit.
 - `importDocument` response is `.values[0]` (plural) — `.value` crashes and creates orphaned SI entity
 - Row 0 is reserved — use row 1 and 2
