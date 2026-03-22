@@ -170,4 +170,6 @@ This was verified in sandbox:
 - If EHF or another invoice send mode is requested or implied, include the required delivery/address data
 - If the prompt gives one normal customer address and does not distinguish address types, send only `postalAddress`
 - If the organization is foreign, set country/address fields consistently
+- If the prompt asks for a `description` with documentation or free-text content, include `description` (multiline string, Unicode preserved)
+- `email` is NOT required — omit it if the prompt does not provide one; Tripletex defaults to `""`
 - Otherwise, avoid speculative address or invoice configuration fields

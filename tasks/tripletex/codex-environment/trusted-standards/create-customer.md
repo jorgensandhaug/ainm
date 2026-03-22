@@ -37,6 +37,8 @@
   - `name`
   - `email`
   - `organizationNumber`
+- if the prompt requests a description or documentation text, add `description` (free-text string, multiline OK, Unicode preserved)
+- `email` is NOT required — omit it if the prompt does not provide one; Tripletex defaults it to `""`
 - if one ordinary address is given, add only:
   - `postalAddress.addressLine1`
   - `postalAddress.postalCode`
@@ -68,6 +70,15 @@
 - do not invent `invoiceSendMethod`, `invoiceEmail`, or `physicalAddress` for the standard `name` + `email` + `organizationNumber` prompt shape
 - do not treat the returned default delivery fields as a reason to fetch the customer again
 - do not escalate to foreign-customer handling just because the prompt text is not Norwegian if the actual organization number and postal address are ordinary Norwegian values
+- do not invent `email` when the prompt does not provide one; Tripletex accepts the customer without it
+
+## Description Field Variant
+- some prompts ask for a `description` field with documentation text, handover notes, or other free-text content
+- `description` is a standard string field on the Customer schema — multiline content and special characters (Unicode, em-dash, euro sign) are preserved exactly
+- the same one-call `POST /customer` path applies; `description` does not change the flow
+- the POST response body includes the full `description` text, so no follow-up GET is needed to verify it
+- re-verified on 2026-03-22 in production: `POST /customer` with `name` + `organizationNumber` + `description` (2706 chars, multiline) returned 201 with all fields preserved; 1 call 0 errors
+- re-verified on 2026-03-22 in persistent sandbox: same shape with multiline content and special chars (æøå, em-dash, euro); description preserved exactly in both POST response and follow-up GET
 
 ## OpenAPI / Sandbox Status
 - endpoint family verified in `./openapi.json`
