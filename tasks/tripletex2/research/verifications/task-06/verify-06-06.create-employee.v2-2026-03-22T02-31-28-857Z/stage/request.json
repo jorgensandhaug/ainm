@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-request.v1",
+  "createdAt": "2026-03-22T02:31:28.861Z",
+  "mode": "sandbox",
+  "runId": "verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z",
+  "request": {
+    "prompt": "Research OS verifier run for task 06 (Create employee). Strategy under test: 06.create-employee.v2. Task understanding is pinned manually for this run. This prompt exists only to give the deterministic runtime a stable request fingerprint.",
+    "files": [],
+    "tripletexCredentials": {
+      "baseUrl": "https://kkpqfuj-amager.tripletex.dev/v2",
+      "credentialSource": "tripletex2.sandbox-env"
+    }
+  }
+}

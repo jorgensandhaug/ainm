@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "tripletex2.sandbox-reset-report.v1",
+  "reportId": "sandbox-reset-2026-03-22T02-30-08-718Z",
+  "createdAt": "2026-03-22T02:30:08.718Z",
+  "dryRun": false,
+  "scannedFiles": 2,
+  "discoveredRefs": [],
+  "actionResults": [],
+  "summary": {
+    "completed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "alreadyClean": 0
+  }
+}

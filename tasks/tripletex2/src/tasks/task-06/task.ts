@@ -65,15 +65,19 @@ export type CreateEmployeeTaskUnderstandingResult = TaskUnderstandingResult<
   typeof CREATE_EMPLOYEE_TASK_ID
 >;
 export async function loadTaskModule(): Promise<CreateEmployeeTaskModule> {
-  const [{ strategy: createEmployee }, { strategy: createEmployeeDirect }] =
-    await Promise.all([
-      import("./strategies/create-employee"),
-      import("./strategies/create-employee-direct"),
-    ]);
+  const [
+    { strategy: createEmployee },
+    { strategy: createEmployeeDirect },
+    { strategy: strategyV2 },
+  ] = await Promise.all([
+    import("./strategies/create-employee"),
+    import("./strategies/create-employee-direct"),
+    import("./strategies/create-employee-v2"),
+  ]);
 
   return {
     task,
-    strategies: [createEmployee, createEmployeeDirect],
+    strategies: [createEmployee, createEmployeeDirect, strategyV2],
   };
 }
 export const taskRegistration = {

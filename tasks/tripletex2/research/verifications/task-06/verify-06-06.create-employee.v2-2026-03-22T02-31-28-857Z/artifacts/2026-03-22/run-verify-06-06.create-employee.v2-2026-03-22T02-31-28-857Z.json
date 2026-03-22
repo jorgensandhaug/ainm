@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z",
+  "createdAt": "2026-03-22T02:31:28.861Z",
+  "mode": "sandbox",
+  "task": {
+    "taskId": "06",
+    "taskName": "Create employee",
+    "taskSource": "manual-label"
+  },
+  "strategy": {
+    "strategyId": "06.create-employee.v2",
+    "strategyName": "Create employee (1-call with nested employment expansion)",
+    "strategyPath": "src/tasks/task-06/strategies/create-employee-v2.ts",
+    "strategyStatus": "draft"
+  },
+  "selection": {
+    "selectionConfigId": "active-strategies-2026-03-21-tier3-fallback-a.verify.06.06.create-employee.v2",
+    "selectionConfigPath": "inline-override",
+    "requestedTaskId": "06"
+  },
+  "request": {
+    "requestFingerprint": "req:89e223a642526a04fcd4fbbdb8008883a352af1b093c42eea50ae8f7fcf8c035",
+    "promptText": "Research OS verifier run for task 06 (Create employee). Strategy under test: 06.create-employee.v2. Task understanding is pinned manually for this run. This prompt exists only to give the deterministic runtime a stable request fingerprint.",
+    "promptSummary": "Research OS verifier run for task 06 (Create employee). Strategy under test: 06.create-employee.v2. Task understanding is pinned manually for this run. This ...",
+    "files": [],
+    "credentialSource": "tripletex2.sandbox-env"
+  },
+  "input": {
+    "inputSchemaId": "06.v1",
+    "status": "resolved",
+    "source": "manual",
+    "value": {
+      "birthDate": "1988-03-15",
+      "email": "maria.lindqvist@example.org",
+      "employeeName": "Maria Lindqvist",
+      "startDate": "2026-11-01"
+    }
+  },
+  "execution": {
+    "startedAt": "2026-03-22T02:31:28.932Z",
+    "completedAt": "2026-03-22T02:31:29.830Z",
+    "durationMs": 898,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 5,
+    "api4xxCount": 2,
+    "api5xxCount": 0,
+    "apiCalls": [
+      {
+        "index": 1,
+        "method": "POST",
+        "path": "/employee",
+        "query": {
+          "fields": "id,firstName,lastName,email,dateOfBirth,userType,employments(*)"
+        },
+        "requestSummary": "create employee by fields with firstName, lastName, dateOfBirth, email",
+        "responseSummary": "error 18000: Validering feilet.",
+        "status": 422,
+        "durationMs": 255,
+        "errorCode": "18000"
+      },
+      {
+        "index": 2,
+        "method": "GET",
+        "path": "/department",
+        "query": {
+          "count": 1,
+          "fields": "*",
+          "isInactive": false
+        },
+        "requestSummary": "lookup department by isInactive, count, fields",
+        "responseSummary": "department list 1 item",
+        "status": 200,
+        "durationMs": 97
+      },
+      {
+        "index": 3,
+        "method": "POST",
+        "path": "/employee",
+        "query": {
+          "fields": "id,firstName,lastName,email,dateOfBirth,userType,employments(*)"
+        },
+        "requestSummary": "create employee by fields with firstName, lastName, dateOfBirth, email",
+        "responseSummary": "error 18000: Validering feilet.",
+        "status": 422,
+        "durationMs": 230,
+        "errorCode": "18000"
+      },
+      {
+        "index": 4,
+        "method": "GET",
+        "path": "/division",
+        "query": {
+          "count": 1,
+          "fields": "*"
+        },
+        "requestSummary": "lookup division by count, fields",
+        "responseSummary": "division list 1 item",
+        "status": 200,
+        "durationMs": 98
+      },
+      {
+        "index": 5,
+        "method": "POST",
+        "path": "/employee",
+        "query": {
+          "fields": "id,firstName,lastName,email,dateOfBirth,userType,employments(*)"
+        },
+        "requestSummary": "create employee by fields with firstName, lastName, dateOfBirth, email",
+        "responseSummary": "employeeId 18725409",
+        "status": 201,
+        "durationMs": 211,
+        "entityIds": {
+          "employeeId": 18725409
+        }
+      }
+    ],
+    "result": {
+      "createdEntityIds": {
+        "employeeId": 18725409,
+        "employmentId": 2863745
+      },
+      "notes": [
+        "POST /employee with expanded employments(*) returned startDate in the response — skipped employment readback.",
+        "Tripletex returned a sparse employee create response with userType=null; this is a known echo behavior for successful employee creation."
+      ],
+      "verification": {
+        "dateOfBirth": "1988-03-15",
+        "email": "maria.lindqvist@example.org",
+        "employeeName": "Maria Lindqvist",
+        "firstName": "Maria",
+        "lastName": "Lindqvist",
+        "startDate": "2026-11-01",
+        "userTypeRequested": "NO_ACCESS"
+      }
+    }
+  },
+  "attribution": {
+    "status": "not-needed"
+  },
+  "evaluation": {
+    "status": "not-available",
+    "rawNotes": [
+      "Sandbox and dry-run executions do not have live competition scoring in this wave."
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "trace-1",
+      "kind": "sanitized-trace",
+      "path": "run-verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z.trace.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-22T02:31:28.861Z",
+      "sha256": "sha256:2286e27bc63545faee4631a5fea0ab90c01bad0ed5e0e3e9311fb0317aaf8a5c",
+      "summary": "Sanitized trace for 06.create-employee.v2."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Research OS verifier ran one explicit challenger strategy (06.create-employee.v2) in a reset sandbox.",
+      "Deterministic runtime started only after the task-understanding handoff."
+    ]
+  }
+}
