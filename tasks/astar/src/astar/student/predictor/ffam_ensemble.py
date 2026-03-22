@@ -247,6 +247,15 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_blend=True,
         adaptive_scale=1.5,
     ),
+    # v28: Use improved kNN v7 (k=150, bw=1.5)
+    "ffam_ensemble_v28": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v28",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v7",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+    ),
 }
 
 
