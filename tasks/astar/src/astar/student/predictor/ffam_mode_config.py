@@ -59,6 +59,7 @@ class FFAMModeConfig(BaseModel):
     cluster_count: int = Field(default=1, ge=1)
     evidence_smooth_sigma: float = Field(default=0.0, ge=0.0)
     evidence_propagation_beta_scale: float = Field(default=0.0, ge=0.0)
+    include_spatial_features: bool = False
 
 
 FFAM_MODE_DEFAULT_ALIAS = "ffam_mode_v214"
@@ -4225,6 +4226,34 @@ FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {
         posterior_ridge_lambda=0.05, probability_floor=0.0003, beta_min=12.0, beta_scale=48.0,
         residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0), cells_per_seed=768,
         spatial_smooth_sigma=0.3,
+    ),
+    # v254-v255: Spatial gradient features (NEW FEATURE ENGINEERING)
+    "ffam_mode_v254": FFAMModeConfig(
+        model_name="ffam_mode_v254",
+        projected_mode_dim=5, posterior_input_source="summary_input", posterior_summary_variant="v3",
+        posterior_method="residual_mlp", posterior_residual_hidden_dim=32, posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02, posterior_residual_weight_decay=0.02, posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid", decoder_particle_blend=0.08, decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised", cluster_count=4,
+        posterior_metric_dim=12, posterior_neighbor_count=24, posterior_bandwidth=1.1,
+        prior_blend=0.0, posterior_ood_prior_blend=0.0, operator_ridge_lambda=4.0, temperature=1.0,
+        posterior_ridge_lambda=0.05, probability_floor=0.0003, beta_min=12.0, beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0), cells_per_seed=768,
+        spatial_smooth_sigma=0.3, include_spatial_features=True,
+    ),
+    # v255: Spatial + higher ridge (more features need more regularization)
+    "ffam_mode_v255": FFAMModeConfig(
+        model_name="ffam_mode_v255",
+        projected_mode_dim=5, posterior_input_source="summary_input", posterior_summary_variant="v3",
+        posterior_method="residual_mlp", posterior_residual_hidden_dim=32, posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02, posterior_residual_weight_decay=0.02, posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid", decoder_particle_blend=0.08, decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised", cluster_count=4,
+        posterior_metric_dim=12, posterior_neighbor_count=24, posterior_bandwidth=1.1,
+        prior_blend=0.0, posterior_ood_prior_blend=0.0, operator_ridge_lambda=8.0, temperature=1.0,
+        posterior_ridge_lambda=0.05, probability_floor=0.0003, beta_min=12.0, beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0), cells_per_seed=768,
+        spatial_smooth_sigma=0.3, include_spatial_features=True,
     ),
     # v251-v253: Much larger MLP posterior (testing if more capacity helps with 4 clusters)
     "ffam_mode_v251": FFAMModeConfig(
