@@ -5104,7 +5104,30 @@ Precomputing 20 episodes to test if gains continue to scale.
    - All 5-ep variants within 0.04 of each other
    - 10 episodes is the key driver of improvement, not hyperparameters
 
-533. Next experiments:
+533. **MULTI-EP TRAINING BREAKTHROUGH: 89.64!** (+0.45 over variance-only 10-ep)
+
+| Config | Score | Delta vs baseline |
+|--------|-------|-------------------|
+| **Multi-ep train 3ep + 10 var eps** | **89.64** | **+2.58 (NEW BEST)** |
+| Multi-ep train 5ep + 10 var eps | 89.56 | +2.50 |
+| 10 var eps only (no train augmentation) | 89.19 | +2.13 |
+| 5 var eps only | 88.40 | +1.34 |
+| Solo LGB d10 | 87.06 | 0 (baseline) |
+
+Multi-ep training augments training data: each round provides 3 different sets of
+viewport observations → 3× training examples per round. Combined with variance features
+from 10 episodes, this gives the best generalization.
+
+Per-round highlights (train 3ep):
+- 795bfb1f: 72.09 (was 57.58 solo, **+14.51!**)
+- 36e581f1: 82.60 (was 72.64 solo, **+9.96!**)
+- 3eb0c25d: 86.49 (was 93.34 solo but 82.37 with 10-var, now 86.49 with training)
+- 2a341ace: 92.96 (was 89.22 solo, +3.74)
+- cc5442dd: 94.33 (best individual round)
+
+**CUMULATIVE IMPROVEMENT: 84.94 → 89.64 = +4.70 points** (from original LGB v5 on old 8-round data)
+
+534. Next experiments:
 
 ## Open Questions
 
