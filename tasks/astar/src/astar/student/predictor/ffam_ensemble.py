@@ -409,6 +409,68 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_scale=2.0,
         blend_space="logodds",
     ),
+    # === Round 2: Fine-tuning around best (a5_e5) ===
+    # a5_e7: a5_e5 but 16% kNN
+    "ffam_ensemble_a5_e7": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e7",
+        mode_model="ffam_mode_a5_v4",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.84,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e8: a5_e5 but adaptive_scale=1.5
+    "ffam_ensemble_a5_e8": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e8",
+        mode_model="ffam_mode_a5_v4",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+    ),
+    # a5_e9: a5_e5 but adaptive_scale=2.5
+    "ffam_ensemble_a5_e9": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e9",
+        mode_model="ffam_mode_a5_v4",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.5,
+        blend_space="logodds",
+    ),
+    # a5_e10: a5_e5 but probability blending instead of logodds
+    "ffam_ensemble_a5_e10": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e10",
+        mode_model="ffam_mode_a5_v4",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="probability",
+    ),
+    # a5_e11: Interaction mode (a5_v3) + 15% kNN (combine best ideas)
+    "ffam_ensemble_a5_e11": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e11",
+        mode_model="ffam_mode_a5_v3",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e12: a5_e5 but lower prob floor (0.0001)
+    "ffam_ensemble_a5_e12": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e12",
+        mode_model="ffam_mode_a5_v4",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+        probability_floor=0.0001,
+    ),
 }
 
 
