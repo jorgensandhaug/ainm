@@ -128,7 +128,10 @@ test("task 19 now loads the contract-onboarding strategy", async () => {
   assert.equal(taskModule.task.taskName, "Onboard employee from contract");
   assert.deepEqual(
     taskModule.strategies.map((strategy) => strategy.strategyId),
-    ["19.onboard-employee-from-contract.v1"],
+    [
+      "19.onboard-employee-from-contract.v1",
+      "19.onboard-employee-from-contract.v3",
+    ],
   );
 });
 

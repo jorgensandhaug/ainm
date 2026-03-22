@@ -10,9 +10,14 @@ import {
 } from "../runtime/contracts";
 import {
   createActiveStrategyResolver,
+  loadActiveStrategySelectionConfig,
   parseActiveStrategySelectionConfig,
 } from "./active-strategy-selection";
 import { createTaskRegistry } from "./task-registry";
+import {
+  DEFAULT_ACTIVE_STRATEGY_SELECTION_CONFIG_PATH,
+  taskRegistry,
+} from "./tasks";
 
 interface FakeInput {
   value: string;
@@ -158,6 +163,24 @@ test("createActiveStrategyResolver rejects unknown taskIds and stale strategyIds
       }),
     /does not export selected strategy "task-a.strategy-2"/,
   );
+});
+
+test("checked-in active strategy config resolves against the real task registry", async () => {
+  const loaded = await loadActiveStrategySelectionConfig(
+    DEFAULT_ACTIVE_STRATEGY_SELECTION_CONFIG_PATH,
+  );
+
+  const resolver = await createActiveStrategyResolver({
+    registry: taskRegistry,
+    ...loaded,
+  });
+
+  for (const taskId of Object.keys(loaded.config.taskStrategies).sort()) {
+    assert.equal(
+      resolver.requireStrategy(taskId).strategyId,
+      loaded.config.taskStrategies[taskId],
+    );
+  }
 });
 
 function createFakeTaskRegistration(
