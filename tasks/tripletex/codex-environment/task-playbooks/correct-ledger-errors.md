@@ -76,7 +76,8 @@ The template uses **4-layer detection priority**:
 
 ## Production History
 
-- 13+ runs, best score 2.25/6 (checks 1,2,4 pass; Check 3 always fails)
+- 13+ early runs, best score 2.25/6 (checks 1,2,4 pass; Check 3 always fails due to detection bugs)
 - Run 14 (2026-03-22): 3 calls, 0 errors, discovered Layer 2 trap (multi-line vouchers)
 - Run 463433ee (2026-03-22): 1 POST, 0 errors, 6/6 — discovered Layer 3 trap (vatType=1 error voucher)
-- Template now uses 4-layer detection (sandbox-verified 2026-03-22)
+- Run d9638f91 (2026-03-22): 1 POST, 0 errors, 6/6 — Layer 3 matched again (6300→7100, dup 7100, MV 6500, WA 6590)
+- Template now uses 4-layer detection (sandbox-verified 2026-03-22, 2 consecutive 6/6 runs)

@@ -429,6 +429,14 @@ even when other postings in the same voucher generate 2710 from their own VAT li
 - Layer 3 would have matched "Varekjøp uten MVA" → correct voucher V#29
 - Layer 4 would have matched gross=11050 on 7300 → correct voucher V#29
 
+### Production Run d9638f91 (2026-03-22, 1 POST, 0 errors, 6/6)
+- Accounts: 6300→7100 (7750), dup 7100 (1700), MV 6500 (7450), WA 6590 (24950→12600)
+- **Layer 3 matched again**: V#29 "Varekjøp uten MVA" had vatType=1 on MV_ACCT (6500), has2710=true
+- Layer 1 (vatType=0) returned 0 candidates, Layer 2 (no-2710) returned 0 candidates
+- Layer 3 matched "uten MVA" in description → correct voucher V#29
+- Contra was account 2400 with supplier.id=108583061 — template correctly propagated supplier
+- Second consecutive 6/6 run confirming 4-layer detection robustness
+
 ### Production Run 14 (2026-03-22, 3 calls, 0 errors)
 - Accounts: 7140→7100 (5850), dup 7300 (1200), MV 6540 (13000), WA 7100 (19050→7100)
 - Missing-VAT detection: caseA(no2710)=0, caseB(has2710)=3 — ALL vouchers on 6540 had 2710 from other lines
