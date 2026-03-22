@@ -90,7 +90,7 @@ def _build_evidence(grids, settlements_list, mask, nc=6):
         else:
             for _ in range(10): feats.append(np.zeros((h,w)))
     else:
-        n_ev = 2 + nc + 1 + 3*(1+nc) + 10
+        n_ev = nc + 1 + 3*(1+nc) + 10
         for _ in range(n_ev): feats.append(np.zeros((h,w)))
     return np.stack(feats, axis=-1)
 

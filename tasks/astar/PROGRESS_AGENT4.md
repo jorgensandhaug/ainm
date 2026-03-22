@@ -3660,3 +3660,25 @@ Crossseed ensemble baseline: still computing (expected ~60-90 min for 16 folds)
 - Trajectory features require full 50-year trajectories (not available live)
 - For live: evidence model or crossseed model are the only options
 - Best live model candidate: crossseed ev1 at 87.48 (most realistic scenario)
+
+### 2026-03-22T05:00Z — Live submission pipeline ready
+
+**Environment fix:** urllib-based API calls (curl/httpx have nix glibc stack smashing)
+**Bug fix:** Evidence feature count mismatch when no grids (off by 2, double-counted obs features)
+
+**Dry run SUCCESSFUL on active round 20 (fd82f643):**
+- Trained on ALL 16 historical rounds (no holdout)
+- Generated valid 40x40x6 predictions for all 5 seeds
+- All validations passed (shape, sums, non-negative)
+- Budget: 50/50 queries available
+
+**Ready for live submission:**
+- Script: `scripts/agent4_live_submit.py`
+- `--dry-run` (default): train model, generate predictions, save locally
+- `--submit`: train model, query 50 viewports, generate predictions WITH evidence, submit
+
+**Important notes for live submission:**
+- Dry run predictions use MAP-ONLY features (no observations, no cross-seed)
+- With `--submit`: queries viewports for year-50 evidence, adds cross-seed features
+- This should score between ev1 (86.13) and ev15 (90.40) depending on query quality
+- At 10 queries per seed (full coverage), likely closer to ev15
