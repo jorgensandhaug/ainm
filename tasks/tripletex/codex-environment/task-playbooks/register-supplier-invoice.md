@@ -1,52 +1,71 @@
-# Register Supplier Invoice
+# Register Supplier Invoice (Text-Only — T11)
 
-> **NO BETA ENDPOINTS.** NEVER use `/incomingInvoice*` or any `(BETA)` endpoint. They ALL return `403`.
-> **DO NOT use importDocument.** Use direct `POST /ledger/voucher` with `voucherType: Leverandorfaktura`.
+> **USE importDocument + book.** Direct `POST /ledger/voucher` does NOT create a `supplierInvoice` entity — the scorer requires one.
+> **NO BETA ENDPOINTS.** NEVER use `/incomingInvoice*` — returns `403`.
+> **PDF PROMPTS → use `register-supplier-invoice-from-pdf.md` instead.** This playbook is ONLY for text-only prompts.
 
 ## Scope
 
 Use for tasks like:
-- register one unpaid supplier invoice
+- register one unpaid supplier invoice with all data **inline in the text** (NO PDF attachment)
 - prompt gives supplier identity, invoice number, gross amount, expense account, and VAT rate
-- prompt expects a real supplier-invoice state
 
 Do not use for:
+- **PDF-based supplier invoice prompts** — use `register-supplier-invoice-from-pdf.md` instead (CRITICAL: wrong playbook = 2/10 score)
 - supplier creation as the main task
 - payment/remittance of an already-booked supplier invoice
 - reversal/correction of an existing supplier invoice
 
-## Proven Best Path
+## Proven Best Path (25% VAT)
 
-The current best path for **25% incoming VAT** (most common) is:
-1. `POST /supplier` (with address + bank data from PDF if present)
-2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
-3. `POST /ledger/voucher` with `voucherType: { name: "Leverandørfaktura" }`, `description`, `date`, and balanced `postings`; use hard-coded `vatType: { id: 1 }` on the debit posting
+1. `POST /supplier` (with address + bank data from prompt if present) — response: `.value`; extract `.value.id` AND `.value.ledgerAccount.id` (= account 2400, free)
+2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*` — response: `.values`; for expense account only
+3. `POST /ledger/voucher/importDocument` with EHF/UBL XML — **response: `.values` (plural, NOT `.value`)** — extract `.values[0].id` and `.values[0].version`
+4. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings (version from step 3) — response: `.value`
+5. `PUT /ledger/voucher/{id}?sendToLedger=true` — book the voucher (version from step 4) — response: `.value`
 
-This is **3 calls** total. The voucher is auto-booked (number > 0) on creation.
+**5 calls** total. For non-25% VAT, add `GET /ledger/vatType` → **6 calls**.
 
-**SKIP the GET /ledger/voucherType call** — `POST /ledger/voucher` accepts `voucherType: { name: "Leverandørfaktura" }` directly. The name is stable across all tested instances. The voucherType id varies per instance but the name does not.
+### Why importDocument (NOT direct POST /ledger/voucher)
 
-For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3, making it **4 calls**.
+- `POST /ledger/voucher` does NOT create a `supplierInvoice` entity — confirmed in sandbox 2026-03-22
+- the scorer requires a real `supplierInvoice` with correct `amount`, `amountExcludingVat`, `invoiceNumber`, `orderLines`
+- importDocument creates all of this automatically from the XML
+- the 0b6fe5b8 run (importDocument, NOT booked) scored 1/8 — the ONLY T11 run to ever score above 0
+- direct-voucher runs also peaked at 1/8 despite correct description and auto-booking
+- adding the booking step should unlock 1 more check → potential 3/4
 
-If the prompt says the supplier already exists, switch step 1 to `GET /supplier?organizationNumber=...&fields=*` and only `POST /supplier` if that lookup returns zero hits.
+### CRITICAL: Two separate PUTs required
 
-## Why Direct POST /ledger/voucher (NOT importDocument)
+Single PUT with postings + `sendToLedger=true` → **422** "Bilag uten posteringer kan ikke bli sendt til hovedbok" (tries to book before applying postings). MUST use two PUTs:
+1. PUT postings (sendToLedger=false)
+2. PUT book (sendToLedger=true)
 
-- `POST /ledger/voucher` creates and BOOKS the voucher in one call
-- the `description` field matches the prompt exactly (case-sensitive)
-- `POST /ledger/voucher/importDocument` scored **0/8 on ALL production T11 runs** (10+ runs, all 4 checks failing)
-- importDocument creates an immutable auto-generated description "Faktura nummer {ID} fra {Name}" that cannot be changed via PUT — this breaks scorer description matching
-- importDocument also needs 2 extra PUT calls (postings + booking), totaling 5 calls minimum vs 3
-- the direct-voucher runs from 2026-03-20 achieved T11 best_score=1
-- **NEVER use importDocument for this task**
+## XML Template
 
-## Voucher Payload Shape
+Build a valid EHF/UBL XML with these prompt values:
+- `cbc:ID` = invoice number
+- `cbc:IssueDate` = invoice date (or run date)
+- `cbc:DueDate` = due date (or run date + 30 days, or run date)
+- Supplier name, org number, address in `cac:AccountingSupplierParty`
+- Line item name = prompt description exactly
+- Amounts: net in line/totals, gross in TaxInclusiveAmount/PayableAmount, VAT in TaxAmount
+
+Required XML structure (do not improvise — malformed XML returns 422):
+```
+cbc:CustomizationID = urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0
+cbc:ProfileID = urn:fdc:peppol.eu:2017:poacc:billing:01:1.0
+cbc:InvoiceTypeCode = 380
+cbc:DocumentCurrencyCode = NOK
+```
+
+## Posting Payload (PUT step 4)
+
+Send only `version` and `postings` — do NOT send `description` (immutable on Leverandørfaktura).
 
 ```json
 {
-  "date": "<invoice date or run date>",
-  "description": "<exact prompt description, case-preserved>",
-  "voucherType": { "name": "Leverandørfaktura" },
+  "version": "<from importDocument response .values[0].version>",
   "postings": [
     {
       "row": 1,
@@ -54,7 +73,6 @@ If the prompt says the supplier already exists, switch step 1 to `GET /supplier?
       "description": "<prompt description>",
       "account": { "id": "<expense-account-id>" },
       "vatType": { "id": 1 },
-      "currency": { "id": 1 },
       "amount": "<net>",
       "amountCurrency": "<net>",
       "amountGross": "<gross>",
@@ -64,87 +82,66 @@ If the prompt says the supplier already exists, switch step 1 to `GET /supplier?
       "row": 2,
       "date": "<invoice date>",
       "description": "<prompt description>",
-      "account": { "id": "<supplier.ledgerAccount.id>" },
+      "account": { "id": "<supplier.ledgerAccount.id from step 1 POST response>" },
       "supplier": { "id": "<supplier.id>" },
-      "currency": { "id": 1 },
       "amount": "<-gross>",
       "amountCurrency": "<-gross>",
       "amountGross": "<-gross>",
       "amountGrossCurrency": "<-gross>",
       "invoiceNumber": "<prompt invoice number>",
-      "termOfPayment": "<due date or run date>"
+      "termOfPayment": "<due date>"
     }
   ]
 }
 ```
 
-- Row 0 is reserved for the system-generated VAT posting — do NOT use row 0
-- The response should have 3 postings (debit, credit, auto-VAT) and `number > 0` (booked)
+Row 0 is reserved for the system-generated VAT posting — do NOT use row 0.
+
+## Booking Payload (PUT step 5)
+
+```json
+{
+  "version": "<from step 4 response>",
+  "voucherType": { "name": "Leverandørfaktura" }
+}
+```
+
+Response should have `number > 0` (booked).
 
 ## Supplier Data Extraction (CRITICAL)
 
-When the prompt includes an attached PDF invoice, extract ALL supplier data:
-- `name` and `organizationNumber` (always present)
-- `postalAddress` with `{ addressLine1, postalCode, city, country: { id: 161 } }` (if address on PDF)
-- `physicalAddress` — set to the SAME address as `postalAddress` (CRITICAL: omitting this fails Check 5)
-- `bankAccountPresentation: [{ bban: "<bank-account-number>" }]` (if bank account on PDF)
-- do NOT use deprecated `bankAccounts` string array — it silently does nothing
-
-Include all fields in the same `POST /supplier` — zero extra API calls.
-
-## Known Pitfalls
-
-- do NOT waste a call on `GET /ledger/voucherType` — use `voucherType: { name: "Leverandørfaktura" }` directly; the name is stable across instances, the id is not
-- do NOT use `POST /ledger/voucher/importDocument` — all production runs scored 0/8
-- do NOT use `/incomingInvoice*` — returns 403
-- do NOT omit `row` values on postings — causes 422 (row 0 conflict)
-- do NOT use `account: { number: N }` — only `account: { id }` works; GET is required
-- do NOT capitalize the prompt description — preserve exact casing
-- do NOT omit `physicalAddress` on supplier — set same as `postalAddress`
-- do NOT omit `currency: { id: 1 }` or `amountCurrency`/`amountGrossCurrency` — causes 500
+When the prompt includes supplier address or bank account, include in `POST /supplier`:
+- `postalAddress`: `{ addressLine1, postalCode, city, country: { id: 161 } }`
+- `physicalAddress`: same address as `postalAddress` (CRITICAL: omitting fails a check)
+- `bankAccountPresentation: [{ bban: "<bank-account-number>" }]`
+- do NOT use deprecated `bankAccounts` string array
 
 ## VAT Rules
 
 - **25% VAT**: hard-code `vatType: { id: 1 }` — skip vatType lookup
 - **non-25% VAT**: resolve with `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=...&fields=*`; prefer base code
-- Tripletex recalculates net from gross/1.25 regardless of sent `amount` — rounding differences are expected
+- Tripletex recalculates net from gross/(1+rate) — rounding differences are expected
 
-## What Failed And Why (historical)
+## CRITICAL: importDocument is NOT idempotent
 
-### importDocument path (scored 0/8 on ALL production runs)
-- creates immutable description "Faktura nummer {ID} fra {Name}" — scorer can't match
-- needs 5 calls minimum (vs 4 for direct voucher)
-- needs separate booking step (2 extra PUTs)
-- was the standard from 2026-03-21 but ALL 10+ runs scored 0/8
+If the script crashes AFTER `importDocument` succeeds but BEFORE booking, retrying creates a DUPLICATE supplierInvoice entity. The d49da665 run scored **0/8** because of this. There is no safe retry — the orphaned SI entity cannot be deleted via API. The script MUST handle the response correctly on first attempt.
 
-### direct POST /ledger/voucher without proper postings
-- earlier 2026-03-20 runs had issues with missing supplier data (address, bank)
-- 3 of 6 early attempts scored 0, 1 scored best=1
+## Known Pitfalls
 
-### POST /incomingInvoice
-- beta-only, returns 403 — never use
+- **CRITICAL**: `importDocument` returns `.values[0]` (plural), NOT `.value` — accessing `.value.id` CRASHES and creates orphaned state; all other endpoints return `.value` (singular)
+- do NOT waste a GET on account 2400 — `POST /supplier` response includes `.value.ledgerAccount.id` which IS account 2400's id
+- do NOT use direct `POST /ledger/voucher` — NO supplierInvoice entity created
+- do NOT combine postings + sendToLedger=true in one PUT — 422
+- do NOT send `description` in PUT for Leverandørfaktura — rejected
+- do NOT use `/incomingInvoice*` — 403
+- do NOT omit `row` values — 422 (row 0 conflict)
+- do NOT use `account: { number: N }` — only `account: { id }` works
+- do NOT omit `physicalAddress` on supplier — set same as `postalAddress`
+- preserve prompt description's exact casing in posting descriptions and XML item name
 
-### balanced voucher without debit vatType
-- Tripletex flattens to gross with vatType.id=0 — explicit debit vatType required
+## Production History
 
-### voucher update without currency amounts
-- produces 500 — keep amountCurrency and amountGrossCurrency on both rows
-
-## Production Run History
-
-### 2026-03-22 prod-9b27a332 (English prompt, 25% VAT) — OPTIMAL 3-call run
-- `Oakwood Ltd` / `948453436` / `INV-2026-2823` / gross `56750` / account `6340` / `25%`
-- 3 calls (POST supplier → GET account → POST voucher), 0 errors
-- Voucher 609291942 auto-booked as number 1-2026
-- FIRST production run to achieve the documented 3-call floor
-- Supplier created with postalAddress + physicalAddress + bankAccountPresentation
-- Description "Programvarelisens" preserved exactly
-
-### 2026-03-22 prod-c290243c (French prompt, 25% VAT) — 4 calls (1 wasted)
-- `Lumière SARL` / `904564184` / `INV-2026-5683` / gross `75500` / account `7140` / `25%`
-- 4 calls (wasted GET /ledger/voucherType), 0 errors
-- Voucher 609263595 auto-booked as number 1
-
-### 2026-03-21 (ALL importDocument runs — ALL scored 0/8)
-- 10+ runs using importDocument — every single one scored 0/8
-- importDocument path is permanently BANNED
+- **d49da665** (Spanish prompt, importDocument + booked): scored **0/8** — first attempt crashed after importDocument (`.value` vs `.values` bug), creating orphaned SI entity; retry created duplicate supplier + duplicate SI → scorer found broken state → 0/8; response shape + non-idempotency docs added
+- **0b6fe5b8** (importDocument, NOT booked): scored 1/8 (2/4 passed) — ONLY T11 run above 0
+- direct-voucher runs: peaked at 1/8 despite correct description + auto-booking — NO SI entity
+- **FIX**: added booking step → expected improvement to 3/4 checks
