@@ -1,0 +1,1 @@
+Score reflection complete. T10 scored 3/4 — perfect correctness (5/5 checks), tied all-time best. The 1-point gap is structural: 5 calls is the proven floor and the scoring formula caps there. No changes needed.

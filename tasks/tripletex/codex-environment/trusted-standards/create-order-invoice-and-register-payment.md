@@ -21,43 +21,43 @@
 
 ## Standard Flow
 1. `GET /customer?organizationNumber=...&fields=*` if the prompt identifies the customer by organization number
-2. `GET /product?number=<ref1>,<ref2>&fields=*` using comma-separated prompt refs; verify that the returned count matches the expected count, and confirm each product name from the prompt as a secondary check
+2. `GET /product?number=<ref1>,<ref2>&fields=*,vatType(*)` using comma-separated prompt refs; verify that the returned count matches the expected count, and confirm each product name from the prompt as a secondary check; the expanded `vatType(*)` returns the VAT `percentage` needed to compute the exact invoice total
 3. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`
-4. `POST /order` with embedded `orderLines`
-5. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`
+4. compute `paidAmount = Σ(unitPriceExcludingVat_i × count_i × (1 + vatType.percentage_i / 100))` from the resolved products
+5. `POST /invoice?sendToCustomer=false&paymentTypeId=<id>&paidAmount=<computed total>` with body containing embedded `orders[]` with `orderLines`
 6. verify `amountCurrencyOutstanding=0` or `amountOutstanding=0` from the invoice write response
 7. stop
 
 ## Payload Rules
-- on `POST /order`, send:
-  - `customer: { "id": ... }`
-  - `orderDate`
-  - `deliveryDate`
-  - `orderLines[]` with:
-    - `product: { "id": ... }`
-    - `description`
-    - `count`
-    - `unitPriceExcludingVatCurrency`
+- on `POST /invoice`, send body:
+  - `invoiceDate`
+  - `invoiceDueDate`
+  - `orders[]` containing one order with:
+    - `customer: { "id": ... }`
+    - `orderDate`
+    - `deliveryDate`
+    - `orderLines[]` with:
+      - `product: { "id": ... }`
+      - `description`
+      - `count`
+      - `unitPriceExcludingVatCurrency`
+- `POST /invoice` creates the order and invoice in a single call; the `paymentTypeId` and `paidAmount` query parameters register full payment in the same write
+- **paidAmount computation**: compute the exact invoice total including VAT from the resolved products: `paidAmount = Σ(unitPrice_i × count_i × (1 + vatType.percentage_i / 100))`; this requires `vatType(*)` in the product lookup fields; do NOT use `paidAmount=0.01` with `POST /invoice` — that only pays 0.01 (there is no `paymentTypeIdRestAmount` parameter on `POST /invoice`); do NOT overpay — overpaying creates negative outstanding
 - preserve prompt product names/descriptions exactly when they are part of the scored state
-- when resolving products from `GET /product?number=<ref1>,<ref2>&fields=*`, verify the returned count matches the expected count; if any are missing, fall back to `GET /product?count=1000&fields=*` and filter locally by the `number` response field
+- when resolving products from `GET /product?number=<ref1>,<ref2>&fields=*,vatType(*)`, verify the returned count matches the expected count; if any are missing, fall back to `GET /product?count=1000&fields=*,vatType(*)` and filter locally by the `number` response field
 - do not rely on the `productNumber` field since it is often null/undefined in fresh accounts; `productNumber` is not even a valid field in ProductDTO's `fields` filter (returns 400)
 - **CRITICAL type pitfall**: `product.number` is always a **string** in the API response (e.g. `"6247"`), never an integer; use `String(p.number) === String(promptRef)` or loose equality `p.number == promptRef` — strict `p.number === 6247` silently fails and wastes API calls on the retry
-- do not insert an automatic `GET /order/{id}` just because `POST /order` can echo `orderLines=[]`
 - the canonical exact-match path does not include an automatic `GET /ledger/account` preflight
 - if this is likely the first outgoing invoice in a fresh-account run and you intentionally choose the hedge against the missing-company-bank-account `422`, use one proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write
 - if you take that hedge and the chosen invoice account already has a `bankAccountNumber`, skip the repair and continue with the same invoice write
-- **CRITICAL payment-type pitfall**: payment type objects from `GET /invoice/paymentType` do NOT have an `isIncoming` field; the returned keys are `id`, `version`, `url`, `description`, `displayName`, `debitAccount`, `creditAccount`, `vatType`, `sequence`, `customer`, `supplier`, `currencyId`, `currencyCode` — do NOT filter by `pt.isIncoming === true` as it will always find nothing and block the run; just use the first available payment type (any of them work for the combined invoice-and-payment write)
-- for the combined invoice-and-payment write, use one valid `paymentTypeId`, a minimal positive `paidAmount` seed, and the same id as `paymentTypeIdRestAmount`
-- `paidAmount=0` is not a valid shortcut here; live validation treats it as missing
-- for ordinary NOK runs, `paidAmount=0.01` is a proven safe seed that lets Tripletex calculate the remaining full payment automatically
+- **CRITICAL payment-type pitfall**: payment type objects from `GET /invoice/paymentType` do NOT have an `isIncoming` field; the returned keys are `id`, `version`, `url`, `description`, `displayName`, `debitAccount`, `creditAccount`, `vatType`, `sequence`, `customer`, `supplier`, `currencyId`, `currencyCode` — do NOT filter by `pt.isIncoming === true` as it will always find nothing and block the run; just use the first available payment type (any of them work for the invoice-and-payment write)
 
 ## Reuse From Write Response
-- from `POST /order`:
-  - `value.id`
-- from `PUT /order/{id}/:invoice`:
-  - `value.id`
+- from `POST /invoice`:
+  - `value.id` (invoice id)
   - `value.invoiceNumber`
   - `value.amountCurrencyOutstanding` or `value.amountOutstanding`
+  - `value.orders[0].id` (order id)
   - invoice totals if needed for proof
 
 ## Verification
