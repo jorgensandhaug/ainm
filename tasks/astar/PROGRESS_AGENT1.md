@@ -402,7 +402,15 @@ Carries through to triple blend: 83.46 (was 83.33, +0.13)
 | v004 | 25 | 37 | 38 | 83.49 | 65.73 |
 | v007 | 15 | 42 | 43 | 83.46 | 66.68 |
 
-**Total improvement: 78.38 → 83.50 (+5.12 points)**
+**DT_EW Ridge Lambda Sweep:**
+
+| DT Ridge | Score | Worst |
+|----------|-------|-------|
+| **0.0005** | **83.59** | **65.53** |
+| 0.001 | 83.50 | 65.39 |
+| 0.005 | 83.02 | 64.94 |
+
+**Total improvement: 78.38 → 83.59 (+5.21 points)**
 
 ## Final Summary
 
