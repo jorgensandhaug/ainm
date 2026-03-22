@@ -121,3 +121,6 @@ Log: each project's id, name, isInternal, projectManager, and activity details (
   - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls
   - 7 consecutive optimal runs across en/es/pt prompts confirm this standard is fully stable
   - sandbox re-verified 2026-03-22: `whoAmI` returns employeeId but costs 1 call same as assignableProjectManagers; ledger postings have no employee references to reuse; 3 calls remains provably minimal
+- 8th production run `4810881c` on `2026-03-22` (Norwegian/Nynorsk prompt — "kontoens namn") confirmed the identical 3-call path:
+  - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls
+  - 8 consecutive optimal runs across en/es/pt/nb/nn prompts confirm this standard is fully stable and handles Nynorsk prompts identically
