@@ -18,7 +18,7 @@ The intended research loop is:
 
 1. Start from the prioritized task queue in `task-queue.json`.
 2. Build a packet for one task with `bun scripts/research_os.ts packet build --task <NN>`.
-3. Use that packet as the working source of truth for context, current frontier, and sandbox verification.
+3. Use that packet as the working source of truth for context, current frontier, packet-provided `productionRuns` paths, and sandbox verification.
 4. Verify exactly one challenger in a freshly reset sandbox with `bun scripts/research_os.ts verify ...`.
 5. Let the verifier update `candidate-strategies.json` with the latest sandbox result.
 6. Review successful candidates before promoting anything into `../configs/active-strategies.json`.
@@ -110,5 +110,5 @@ If a challenger is correct but exceeds the stored baseline call budget, it shoul
 1. build one packet,
 2. point the coding agent at `research/AGENTS.md`,
 3. hand it that packet,
-4. require it to read the packet first and beat the packet's documented frontier,
+4. require it to read the packet first, inspect the packet's `productionRuns` paths for that same canonical task id, and beat the packet's documented frontier,
 5. verify the resulting challenger with the packet's `bun scripts/research_os.ts verify ...` command.

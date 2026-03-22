@@ -307,6 +307,8 @@ For manual coding-agent launches, the durable interface is:
 - [`research/AGENTS.md`](./research/AGENTS.md) = instruction surface
 - `src/tasks/task-XX/RESEARCH.md` = task-local memory surface
 
+The packet should now provide task-scoped `productionRuns` paths. Manual research work should stay in canonical task ids `01` through `30` and inspect those actual production-run folders/scripts before proposing changes.
+
 Do not reuse [`codex-environment/AGENTS.md`](./codex-environment/AGENTS.md) for research strategy work. That file remains classifier-only.
 
 ## Sandbox CLI

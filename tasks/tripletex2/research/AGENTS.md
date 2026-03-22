@@ -5,6 +5,7 @@ Packet = context.
 This `research/AGENTS.md` file = instructions and doctrine.
 
 Read the packet first. 
+Then open the packet's `productionRuns` paths for that task and inspect the actual run folders and any checked-in `scripts/` or reflections before proposing changes.
 
 Identify the current frontier to beat before coding. Making a strategy that is not better is pointless.
 
@@ -32,7 +33,7 @@ If you are only given one of them, you are missing context.
 
 1. Read the packet first.
 2. Find the optimization objective and current frontier in the packet.
-3. Use the packet route-map to inspect the task `RESEARCH.md`, task README, current strategies, proof input, verification plan, `openapi.json`, candidate store, and any relevant offline evidence.
+3. Use the packet route-map and `productionRuns` section to inspect the task `RESEARCH.md`, task README, actual production-run folders/scripts, current strategies, proof input, verification plan, `openapi.json`, candidate store, and any relevant offline evidence.
 4. Inspect the active strategy and the strongest known alternative before changing code.
 5. Implement exactly one task-local strategy improvement at a time.
 6. Verify through the research OS or sandbox proof path named in the packet.
@@ -41,6 +42,7 @@ If you are only given one of them, you are missing context.
 ## Hard Constraints
 
 - Keep single-task discipline. Do not broaden the packet into multiple tasks.
+- Keep the operator-facing task model on canonical task ids `01` through `30`. If legacy attribution evidence appears in the packet, treat it as hidden import provenance, not as the task model you speak in.
 - Keep single-strategy discipline. Do not ship vague multi-branch improvisation.
 - Do not promote a strategy because it feels cleaner. Promotion requires better evidence.
 - Do not let sandbox-only repair branches rewrite the production hot path unless the evidence says they should.

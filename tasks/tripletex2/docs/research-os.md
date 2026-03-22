@@ -33,7 +33,7 @@ bun scripts/research_os.ts queue top --count 3
 
 - Output root: `research/packets/task-XX/`
 - Purpose: build one deterministic task packet from checked-in evidence
-- Manual-agent role: expose the current score frontier, success rubric, verification command, and route-map to deeper evidence
+- Manual-agent role: expose the current score frontier, packet-provided production-run paths, success rubric, verification command, and route-map to deeper evidence
 - Inputs:
   - Tripletex2 run artifacts under `runs/`
   - legacy Tripletex1 leaderboard and prompt-label history
@@ -106,6 +106,7 @@ The durable manual-launch rule is explicit:
 
 - give the coding agent `research/AGENTS.md`
 - give it exactly one packet
+- make it inspect the packet's `productionRuns` paths and the actual run folders/scripts for that same canonical task id before proposing changes
 - make it inspect and update the task-local `src/tasks/task-XX/RESEARCH.md`
 - require it to beat the packet's frontier or explain why no plausible improvement exists
 
