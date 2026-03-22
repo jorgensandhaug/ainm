@@ -185,6 +185,39 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_blend=True,
         adaptive_scale=1.5,
     ),
+    # v21-v23: Higher adaptive scales
+    "ffam_ensemble_v21": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v21",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.90,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+    ),
+    "ffam_ensemble_v22": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v22",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+    ),
+    "ffam_ensemble_v23": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v23",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.92,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+    ),
+    "ffam_ensemble_v24": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v24",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.90,
+        adaptive_blend=True,
+        adaptive_scale=3.0,
+    ),
 }
 
 
