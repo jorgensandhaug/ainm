@@ -50,6 +50,7 @@ The following files were removed because they were mostly no-ops, stale, anti-im
 - `task-20.md`
 - `task-21.md`
 - `task-22.md`
+- `task-24.md` — T1 independently solved all T2-identified blockers (hardcoded values, wrong VAT approach, detection algorithm). T1 at 6/6 with 4+ consecutive perfect runs. T2 tasks 20-22 also audited — no imports needed (T1 disproved T2's NET-receipt and NOT_CHOSEN findings with production evidence). Full analysis in `task-24.md`.
 
 If any of those are ever revived, they should come back as much narrower proposals with concrete score-moving evidence.
 
