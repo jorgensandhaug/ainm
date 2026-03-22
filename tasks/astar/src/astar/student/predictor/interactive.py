@@ -1060,7 +1060,7 @@ def build_online_predictor(
     if ffam_config is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
         resolved_policy_name = (policy_name or "coverage").strip().lower()
-        predictor = FFAMModePredictor.fit_from_workspace(
+        predictor = FFAMModePredictor.fit_named_from_workspace(
             workspace_paths,
             config=ffam_config,
             round_ids=(
