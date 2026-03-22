@@ -3094,3 +3094,77 @@ Neither model alone can do both well. The logit-space blend at 35% expansion wei
 - `src/astar/workflows/historical_benchmark.py` — transcript model list
 - `src/astar/cli.py` — model choices
 - `tests/test_historical_benchmark.py` — smoke test matrix
+
+---
+
+## Phase 2: FFAM Architecture Port (2026-03-21)
+
+### Context
+
+After exhausting the query_residual family at 81.09 mean score, discovered that Agent7 achieves **87.86** with the FFAM (Full Forward Active Model) architecture. This is a 6.7 point gap that cannot be closed by parameter tuning alone.
+
+### Cross-Agent Analysis
+
+| Agent | Best Model | Score |
+|-------|-----------|-------|
+| Agent7 | ffam_ensemble_v35 | 87.86 |
+| Agent5 | query_residual (calibrated) | 81.09 |
+
+Agent7's top model per-round scores:
+- 36e581: 72.81 (weakest - still hard round)
+- fd3c92: 84.98
+- 71451d: 88.03
+- ae7800: 88.48
+- f1dac9: 89.02
+- 76909e: 92.19
+- 8e8399: 93.61
+- c5cdf1: 93.73
+
+### FFAM Architecture Understanding
+
+**Key innovations over query_residual:**
+
+1. **Per-round operator fitting**: Instead of one global ridge regression, fits a separate weighted ridge operator for each training round. Each operator maps cell features → logit deltas, capturing round-specific transition laws.
+
+2. **SVD manifold decomposition**: Stack all per-round operators (each ~150-dimensional), subtract global mean, SVD to get a low-rank basis (rank 5). Each round gets 5-dimensional manifold coordinates.
+
+3. **Clustering**: K-means on manifold coordinates (4 clusters is optimal). Within each cluster, fit a local SVD basis. This captures discrete regime families.
+
+4. **Posterior inference from observations**: Multiple methods tested:
+   - `particle_mixture`: kNN from observation summaries to manifold coordinates
+   - `residual_mlp`: Linear map + MLP residual (hidden_dim=32, steps=500)
+   - `cluster_operator_hybrid`: Cluster-aware local linear regression with particle fallback
+
+5. **Best config (v248)**:
+   - projected_mode_dim=5, cluster_count=4
+   - posterior_method=residual_mlp, posterior_input_source=summary_input
+   - decoder_method=cluster_operator_hybrid
+   - posterior_metric_method=supervised, posterior_metric_dim=12
+   - 3-seed MLP ensemble for posterior
+   - beta_min=12.0, beta_scale=48.0
+   - probability_floor=0.0003, temperature=1.0, prior_blend=0.0
+   - spatial_smooth_sigma=0.3, cells_per_seed=768
+
+6. **Ensemble (v35)**: mode (88%) + kNN (12%), adaptive log-odds blending
+
+### Port Status
+
+Copied all FFAM files from Agent7 workspace:
+- `ffam_mode.py`, `ffam_mode_config.py` — core operator manifold model
+- `ffam_knn.py`, `ffam_knn_config.py` — cell-level kNN
+- `ffam_ensemble.py` — mode + kNN ensemble
+- `ffam_pooled.py`, `ffam_pooled_config.py` — pooled predictor
+- `ffam_operator.py`, `ffam_operator_config.py` — operator predictor
+- `ffam_retrieval.py`, `ffam_config.py` — retrieval predictor, config
+- Updated `query_residual.py` with RegimeInputVariant support
+- Updated `deepset_student.py` with summary vector functions
+- Updated `interactive.py`, `cli.py`, workflows for FFAM registration
+
+All imports verified working. Benchmarks launched:
+- `agent5_ffam_mode_v248_probe3_v01` (3 hard rounds)
+- `agent5_ffam_mode_v248_full8_v01` (full 8-round LOO)
+- `agent5_ffam_ensemble_v35_full8_v01` (full 8-round LOO)
+
+### Benchmark Results (pending)
+
+Awaiting results...
