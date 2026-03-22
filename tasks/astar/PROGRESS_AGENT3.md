@@ -5127,7 +5127,32 @@ Per-round highlights (train 3ep):
 
 **CUMULATIVE IMPROVEMENT: 84.94 → 89.64 = +4.70 points** (from original LGB v5 on old 8-round data)
 
-534. Next experiments:
+534. **PREDICTION AVERAGING BREAKS 90: 90.15!** (+0.51 over train-only)
+
+Geometric mean of predictions from 10 different stochastic episodes.
+Each episode observes different viewport data → different evidence features → different predictions.
+Averaging in log-probability space gives a Monte Carlo estimate of the expected prediction.
+
+| Config | Score |
+|--------|-------|
+| **Multi-ep avg 10 eval eps** | **90.15** |
+| Multi-ep avg 5 eval eps | 90.08 |
+| Multi-ep train 3ep (no avg) | 89.64 |
+| 10 var eps only | 89.19 |
+| Solo LGB d10 | 87.06 |
+
+**TOTAL IMPROVEMENT: 84.94 → 90.15 = +5.21 points** (from old LGB v5 on old 8r data)
+
+Per-round best (avg 10 eval):
+- cc5442dd: 95.29 (best)
+- 7b4bda99: 94.30
+- 76909e29: 94.22
+- 8e839974: 94.11
+- 2a341ace: 93.78
+- 795bfb1f: 73.56 (still worst but improved from 57.58, +15.98!)
+- 36e581f1: 82.90 (improved from 72.64, +10.26!)
+
+535. Next experiments:
 
 ## Open Questions
 
