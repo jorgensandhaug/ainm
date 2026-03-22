@@ -2853,6 +2853,19 @@ Score: 80.37
 Note: Earlier 81.24 result not reproducible — likely had a transient parameter
 state. Verified reproducible score with current defaults: 81.09.
 Ridge 0.001 also gives 81.09 — the optimum is around 0.01.
+Beta_min sweep: 2, 4, 6, 8 ALL give 81.09 — beta has no effect with current settings.
+
+### Architecture Ceiling Analysis
+
+The QR model is now at its performance ceiling (~81.09) within the current
+architecture. The remaining ~2.8 point gap to Agent1 (83.89) requires:
+1. Different regime inference (particle-refined posterior vs ridge regression)
+2. Richer teacher (27 features per cell vs 16)
+3. Original coefficient bypass for known rounds
+4. Entropy-conditioned class weighting
+
+These are ARCHITECTURAL differences, not parameter tuning opportunities.
+The QR model has been exhaustively tuned within its design space.
 
 ### Ridge Lambda Sweep (complete)
 
