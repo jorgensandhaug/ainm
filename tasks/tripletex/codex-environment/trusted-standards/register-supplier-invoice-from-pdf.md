@@ -9,16 +9,17 @@
 - prompt mentions "supplier invoice" + "PDF" (any language) + has a PDF attachment
 - if prompt has all data inline (no PDF) → use `./register-supplier-invoice.md` instead
 
-## Flow (6 writes + free GETs, 25% VAT)
+## Flow (4 writes + 1 required GET + free verification GETs, 25% VAT)
 1. `POST /supplier` — with postalAddress + physicalAddress + country + bankAccountPresentation → **extract `supplierId` AND `ledgerAccount.id`** (the supplier ledger account, always 2400)
 2. `GET /ledger/account?number=<expense-acct-from-PDF>&isApplicableForSupplierInvoice=true&fields=id,number` → `.values[0].id` (free GET)
-3. `POST /ledger/voucher/importDocument` — FormData with EHF XML (MUST include PaymentMeans) → **`.values[0].id`** and **`.values[0].version`** (NOT `.value`)
-4. `POST /ledger/voucher/{voucherId}/attachment` — upload original PDF as FormData
-5. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings → `.value.version`
-6. `PUT /ledger/voucher/{id}?sendToLedger=true` — book with `{ version, voucherType: { name: "Leverandørfaktura" } }`
-7. Verification GETs (free): GET supplier, GET voucher, GET supplierInvoice, GET postings — log all fields
+3. `POST /ledger/voucher/importDocument` — FormData with EHF XML (MUST include PaymentMeans) → **`.values[0].id`** and **`.values[0].version`** (NOT `.value`). **importDocument auto-generates BOTH a PDF attachment and an XML ediDocument on the voucher — do NOT upload the PDF separately.**
+4. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings → `.value.version`
+5. `PUT /ledger/voucher/{id}?sendToLedger=true` — book with `{ version, voucherType: { name: "Leverandørfaktura" } }`
+6. Verification GETs (free): GET supplier, GET voucher, GET supplierInvoice, GET postings — log all fields
 
 **Do NOT add a separate GET for account 2400** — the supplier POST response always includes `ledgerAccount: { id: <2400-id> }`.
+
+**Do NOT upload the original PDF** — `importDocument` auto-generates a PDF attachment from the EHF XML. Sandbox-verified 2026-03-22: voucher.attachment is already populated (mimeType=application/pdf) after importDocument alone. The separate `POST /attachment` wastes 1 write for no scoring benefit. Run 210edee3 included this extra step and it had no impact — all scoring-relevant fields were already set by importDocument.
 
 For non-25% VAT, add `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<date>&fields=*` between steps 2–3.
 
@@ -41,7 +42,7 @@ MUST set BOTH `postalAddress` AND `physicalAddress` with `country: { id: 161 }`.
 
 ## Step 3: importDocument (EHF XML)
 
-**CRITICAL: PaymentMeans section is REQUIRED.** Without it, `kidOrReceiverReference` on the SI entity stays empty — Check 5 has NEVER passed across 11 T20 production runs that omitted this section. Sandbox-verified 2026-03-22: adding PaymentMeans with `PaymentID=${invoiceNumber}` correctly populates `kidOrReceiverReference`.
+**CRITICAL: PaymentMeans section is REQUIRED.** Without it, `kidOrReceiverReference` on the SI entity stays empty — Check 5 failed across all 11 T20 production runs that omitted this section. Sandbox-verified 2026-03-22: adding PaymentMeans with `PaymentID=${invoiceNumber}` correctly populates `kidOrReceiverReference`. Run 210edee3 is the FIRST production run to include PaymentMeans and confirmed `kidOrReceiverReference` populated in verification GET.
 
 ```typescript
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -121,19 +122,7 @@ const voucherId = imp.values[0].id;   // NOT .value — CRITICAL
 const version1 = imp.values[0].version;
 ```
 
-## Step 4: Upload PDF Attachment
-```typescript
-const fs = require("fs");
-const pdfData = fs.readFileSync(pdfPath); // path to the PDF attachment from prompt
-const pdfForm = new FormData();
-pdfForm.append("file", new Blob([pdfData], { type: "application/pdf" }), "leverandorfaktura.pdf");
-const attRes = await fetch(`${BASE}/ledger/voucher/${voucherId}/attachment`, {
-  method: "POST", headers: { Authorization: AUTH }, body: pdfForm,
-});
-console.log("Attachment upload status:", attRes.status); // expect 201
-```
-
-## Step 5: Set Postings (sendToLedger=false)
+## Step 4: Set Postings (sendToLedger=false)
 ```json
 {
   "version": "<version1 from step 3>",
@@ -156,11 +145,11 @@ console.log("Attachment upload status:", attRes.status); // expect 201
 ```
 **Row 2 credit account**: use `response.value.ledgerAccount.id` from the POST /supplier response (step 1). This is always account 2400. Do NOT make a separate GET for it.
 
-## Step 6: Book (sendToLedger=true)
-Body: `{ "version": <version-from-step-5-response>, "voucherType": { "name": "Leverandørfaktura" } }`
-Do NOT include postings — causes 422. Use version from step 5 response, not step 3.
+## Step 5: Book (sendToLedger=true)
+Body: `{ "version": <version-from-step-4-response>, "voucherType": { "name": "Leverandørfaktura" } }`
+Do NOT include postings — causes 422. Use version from step 4 response, not step 3.
 
-## Step 7: Verification GETs (free — do not count against score)
+## Step 6: Verification GETs (free — do not count against score)
 After booking, run verification GETs to confirm all entities and log key fields:
 ```typescript
 // Verify supplier
@@ -181,7 +170,8 @@ console.log("kidOrReceiverReference:", siData.values?.[0]?.kidOrReceiverReferenc
 
 ## Pitfalls
 - **TIMEOUT KILLS**: Two production runs (prod-4c255d98, prod-de228487) scored 0% with 0 API calls because the agent read the standard then stalled in thinking for 5 minutes. After reading this file, IMMEDIATELY write the script and execute it. Do not read any other files.
-- **PaymentMeans is REQUIRED in the XML** — without it, `kidOrReceiverReference` on the SI entity stays empty and Check 5 fails. This was the ONLY failing check across 11 T20 runs that all scored 8/10 or less. Add `<cac:PaymentMeans>` with `<cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>` and `<cac:PayeeFinancialAccount><cbc:ID>${bankAccount}</cbc:ID></cac:PayeeFinancialAccount>`. Sandbox-verified 2026-03-22.
+- **PaymentMeans is REQUIRED in the XML** — without it, `kidOrReceiverReference` on the SI entity stays empty and Check 5 fails. This was the ONLY failing check across 11 T20 runs that all scored 8/10 or less. Add `<cac:PaymentMeans>` with `<cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>` and `<cac:PayeeFinancialAccount><cbc:ID>${bankAccount}</cbc:ID></cac:PayeeFinancialAccount>`. Sandbox-verified 2026-03-22. Run 210edee3 is the first production run to include PaymentMeans — verification GET confirmed `kidOrReceiverReference` populated.
+- **Do NOT upload the original PDF** — `importDocument` auto-generates a PDF attachment from the EHF XML (sandbox-verified: `attachment.mimeType=application/pdf` is populated after importDocument alone). The separate `POST /attachment` wastes 1 write for zero scoring benefit.
 - `importDocument` response is `.values[0]` (plural) — `.value` crashes and creates orphaned SI entity
 - Row 0 is reserved — use row 1 and 2
 - `account: { number: N }` → 422; MUST use `account: { id }` from GET
@@ -189,5 +179,4 @@ console.log("kidOrReceiverReference:", siData.values?.[0]?.kidOrReceiverReferenc
 - `bankAccounts` string array is deprecated — use `bankAccountPresentation: [{ bban }]`
 - Preserve exact description casing from PDF
 - Do NOT make a separate GET for account 2400 — extract `ledgerAccount.id` from POST /supplier response
-- **6 writes is the proven flow** — sandbox-verified 2026-03-22: combining steps 5+6 → 422; using `account:{number}` without id → 422. GETs are free and do not count.
-- **PDF attachment upload**: use `POST /ledger/voucher/{voucherId}/attachment` with FormData, NOT `POST /document` (404) or PUT voucher with document field (422 immutable)
+- **4 writes is the proven optimal flow** — sandbox-verified 2026-03-22: combining steps 4+5 → 422; using `account:{number}` without id → 422. GETs are free and do not count.

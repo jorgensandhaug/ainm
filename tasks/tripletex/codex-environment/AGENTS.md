@@ -141,12 +141,12 @@ Authentication:
 | Reconcile bank statement with open invoices | `./trusted-standards/reconcile-bank-statement-open-invoices.md` — **HAS PRE-BUILT SCRIPT** at `./scripts/reconcile-bank-statement.ts` — copy it, run with `bun run reconcile.ts <BASE_URL> <TOKEN> <CSV_PATH>`, do NOT write your own script |
 
 ### CRITICAL: supplier invoice TEXT vs PDF disambiguation
-- If the prompt has a **PDF attachment** and says "attached PDF" / "vedlagt PDF" / "PDF adjunto" / "PDF ci-joint" / "beigefügte PDF" / "sjå vedlagt PDF" / "PDF anexo" — **ALWAYS** use `./trusted-standards/register-supplier-invoice-from-pdf.md`.
+- If the prompt has a **PDF attachment** and says "attached PDF" / "vedlagt PDF" / "PDF adjunto" / "PDF ci-joint" / "beigefügte PDF" / "sjå vedlagt PDF" / "sjaa vedlagt PDF" / "PDF anexo" — **ALWAYS** use `./trusted-standards/register-supplier-invoice-from-pdf.md`.
 - If the prompt provides all invoice data **inline in text** (invoice number, supplier name, org number, amount, account) with **NO PDF** — use `./trusted-standards/register-supplier-invoice.md`.
 - These are **DIFFERENT tasks** (T20 vs T11) with **DIFFERENT scorers**. Using the wrong approach scores 2/10 instead of 8-10/10.
 - **BOTH T11 and T20 MUST use `importDocument`** to create a real `supplierInvoice` entity. Direct `POST /ledger/voucher` does NOT create a SI entity and scores 0/8. This applies to ALL supplier invoice prompts — text-only AND PDF-based.
 - T11 flow: POST supplier → GET account → POST importDocument → GET supplierInvoice (verify) → PUT postings → PUT book → GET voucher (verify) → GET supplier (verify). 4 writes + 4 GETs.
-- T20 flow: POST supplier (with physicalAddress+postalAddress) → GET account → POST importDocument → GET supplierInvoice (verify) → PUT postings → PUT book → GET voucher (verify) → GET supplier (verify). 4 writes + 4 GETs.
+- T20 flow: POST supplier (with physicalAddress+postalAddress) → GET account → POST importDocument → PUT postings → PUT book → verification GETs. 4 writes + free GETs. **Do NOT upload PDF separately** — importDocument auto-generates a PDF attachment (sandbox-verified 2026-03-22).
 - **GETs do NOT lower score** — always include verification GETs and log full JSON responses.
 - **CRITICAL**: `account: { number: N }` does NOT work in postings — requires `account: { id }` (422 without). The `GET /ledger/account` call cannot be eliminated.
 - **CRITICAL**: prod-4c255d98 and prod-de228487 both scored 0% because the agent read the trusted standard but never wrote or executed a script — the entire 300s budget was consumed by thinking. After reading the matched trusted standard, IMMEDIATELY write the script and run it. Do not hesitate, do not read any additional files, do not re-process the standard content.
