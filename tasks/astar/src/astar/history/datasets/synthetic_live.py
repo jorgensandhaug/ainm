@@ -44,6 +44,8 @@ class SyntheticEpisodeArtifact(BaseModel):
     observations: tuple[LiveQueryObs, ...]
     target_sources: dict[int, str]
     target_paths: dict[int, Path]
+    map_width: int = Field(default=0, ge=0)
+    map_height: int = Field(default=0, ge=0)
 
 
 def load_synthetic_live_dataset_ref(
@@ -123,6 +125,16 @@ def _resolve_workspace_path(
         attempted.append(remapped)
         if remapped.exists():
             return remapped
+
+    # Last resort: search all dataset directories for this episode file
+    if not candidate.is_absolute() and "episodes" in str(candidate):
+        datasets_root = Path("data/artifacts/datasets")
+        if datasets_root.exists():
+            for dataset_subdir in datasets_root.iterdir():
+                if dataset_subdir.is_dir():
+                    full_candidate = (dataset_subdir / candidate).resolve()
+                    if full_candidate.exists():
+                        return full_candidate
 
     attempted_text = ", ".join(str(item) for item in attempted) or "none"
     raise FileNotFoundError(

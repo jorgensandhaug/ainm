@@ -508,7 +508,11 @@ def _fit_attention_refined_student_components(
     episode_rows: list[tuple[np.ndarray, tuple[np.ndarray, ...], np.ndarray]] = []
     token_rows: list[np.ndarray] = []
     for path_value in index_table["episode_path"].to_list():
-        artifact = load_synthetic_episode(Path(str(path_value)))
+        artifact = load_synthetic_episode(
+            Path(str(path_value)),
+            dataset_dir=dataset_ref.dataset_dir if hasattr(dataset_ref, 'dataset_dir') else None,
+            workspace_root=Path("."),
+        )
         observations = list(artifact.observations)
         target_seed_indexes = [int(seed_index) for seed_index in artifact.target_sources]
         inferred_width = artifact.map_width or max(

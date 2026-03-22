@@ -2792,6 +2792,14 @@ episode_seed: 0
 budget: 50
 Score: 80.37
 ```
+
+### 2026-03-22T00:30:00Z — v15 Port Attempt
+
+- Attempted full port of Agent1's hazard_posterior_v15 model (83.89)
+- Copied all required files and fixed 4 compatibility issues
+- **BLOCKED**: regime vector dimension mismatch (12 vs 5) between v1/v2 teachers
+- Would need complete dataset rebuild — abandoned for time reasons
+- **Final best remains: QR recalibrated at 80.37** (+5.18 over original 75.19)
   - Or tristack e30_c05/e30_c10 at 77.39 (marginal improvement)
   - Architecture: 65% QR + 35% expansion-conditioned kNN in logit space
   - Uses 1D expansion rate for regime conditioning
