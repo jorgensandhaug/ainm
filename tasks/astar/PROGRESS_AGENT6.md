@@ -4249,6 +4249,18 @@
 | **0.0001** | **79.67** | **84.16** |
 - Floor sweep converges around f=0.0001-0.0003
 - Agent1's m=0.30 (trust particles more) slightly hurts our ensemble (79.29 vs 79.63 at same floor)
+
+### Observation-frequency blending sweep:
+| obs_temp | Probe3 |
+|----------|--------|
+| 0 (off) | 79.67 |
+| 10 | 79.57 |
+| 15 | 80.05 |
+| **20** | **80.17** |
+| 30 | 80.17 |
+- t=20-30 optimal range, t=10 too aggressive
+- Dev5 with obs_t=20: **84.29** (+0.13 over no obs)
+- Full 8-round running
 2. ensemble hv2+qr GEO 50/50: 79.50
 3. ensemble hv2+sx ARITH 50/50: 79.48
 4. hazard_posterior_v2 k7_r3: 77.40
