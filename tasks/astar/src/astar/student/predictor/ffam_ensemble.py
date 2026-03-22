@@ -160,6 +160,31 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_blend=True,
         adaptive_scale=1.0,
     ),
+    # v18-v20: Sweep adaptive scale with best setup (3-seed, 4c)
+    "ffam_ensemble_v18": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v18",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.92,
+        adaptive_blend=True,
+        adaptive_scale=1.0,
+    ),
+    "ffam_ensemble_v19": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v19",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.0,
+    ),
+    "ffam_ensemble_v20": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v20",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.90,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+    ),
 }
 
 
