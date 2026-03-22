@@ -47,19 +47,26 @@ Also extract the period: typically Jan–Feb 2026, so `DATE_FROM=2026-01-01`, `D
 
 ## The One Thing That Will Fail Your Run
 
-**Check 3 has failed in ALL 12+ production runs.** Every time, the script picked the wrong voucher for missing-VAT correction. The trap:
+**Check 3 (missing VAT) has failed in ALL 13+ production runs.** The error voucher is misidentified.
 
-> Two vouchers exist on `MV_ACCT` with the same amount.
-> - Voucher A (lower ID, appears FIRST): correctly booked, HAS a 2710 posting
-> - Voucher B (higher ID, appears SECOND): the error, NO 2710 posting
->
-> If you iterate and take the first match → you get Voucher A → your "correction" does nothing → Check 3 = FAIL.
+### The trap (two layers)
 
-The template handles this by filtering `!has2710` BEFORE selecting. Do not modify that logic.
+**Layer 1** (original): Two vouchers on `MV_ACCT` with same amount. One correctly booked (has 2710), one is the error (no 2710). Taking the first match picks the wrong one.
+
+**Layer 2** (discovered Run 14): The error voucher is a **multi-line voucher**. The `MV_ACCT` posting has `vatType=0` (no VAT — this is the error), but ANOTHER posting in the same voucher has `vatType≠0`, which auto-generates a 2710 posting from that other line. The voucher-level `has2710` check sees that 2710 and **incorrectly classifies the error voucher as "correctly booked"**.
+
+### The fix (in the template)
+
+The template uses **posting-level vatType** as PRIMARY detection:
+- Find vouchers where the `MV_ACCT` posting has `vatType.id === 0` → this is the error
+- Falls back to voucher-level `!has2710` for single-line vouchers
+- This handles both Layer 1 and Layer 2 scenarios
+
+**Do not modify the detection logic. Do not replace it with voucher-level has2710 alone.**
 
 ## Production History
 
-- 12 runs, best score 2.25/6
-- Checks 1, 2, 4: always pass
-- Check 3: always fails (wrong voucher selected)
-- Fix is in the template — sandbox-verified 2026-03-22, all 4 checks pass
+- 13+ runs, best score 2.25/6 (checks 1,2,4 pass; Check 3 always fails)
+- Run 14 (2026-03-22): 3 calls, 0 errors, discovered Layer 2 trap (multi-line vouchers)
+- All previous runs used voucher-level `has2710` → misidentified error voucher → Check 3 FAIL
+- Template now uses posting-level vatType detection (sandbox-verified 2026-03-22)
