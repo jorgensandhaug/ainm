@@ -14,20 +14,14 @@ Do not use for:
 
 | Mistake | Points lost | How to avoid |
 |---------|-------------|--------------|
-| `remunerationType: "MONTHLY_WAGE"` on tilbudsbrev | 2 pts | Use `"NOT_CHOSEN"` when PDF has no "Lønnstype" field |
+| Check 5 (tilbudsbrev only) | 2 pts | TESTING FIX: use employmentType+workingHoursScheme=NOT_CHOSEN for tilbudsbrev — see trusted standard RULE 4 |
 | Missing standard worktime | 2 pts | ALWAYS call `POST /employee/standardTime` (even when PDF omits hours → default 7.5) |
 | Wrong/missing occupation code | 2 pts | Check hardcoded mapping table first; send by `id`, never `code` |
 | Wrong standard time endpoint | 2 pts | Use `/employee/standardTime` NOT `/salary/settings/standardTime` |
 
-## How to Decide remunerationType
+## remunerationType
 
-This is the #1 source of lost points. The rule is simple:
-
-**Look at the PDF attachment:**
-- **Tilbudsbrev** (offer letter): Says "Årslønn: X kr" but has NO "Lønnstype" field → `"NOT_CHOSEN"`
-- **Arbeidskontrakt** (employment contract): Says "Lønnstype: Fastlønn (månedlig)" → `"MONTHLY_WAGE"`
-
-Evidence: All 5 task 21 production runs sent MONTHLY_WAGE for tilbudsbrev and all failed Check 5. Task 19 (arbeidskontrakt) sends MONTHLY_WAGE and passes.
+Use `"MONTHLY_WAGE"` for **both** tilbudsbrev and arbeidskontrakt. The NOT_CHOSEN hypothesis was disproven — production run fd3075b7 used NOT_CHOSEN and still scored 12/14 with Check 5 failing, identical to 4 prior runs using MONTHLY_WAGE.
 
 ## Occupation Code Hardcoded Mappings
 
@@ -72,10 +66,22 @@ Total: 4 calls (hardcoded occ code) or 5 calls (dynamic lookup)
 - Has rows → include `division: { id }` in employment
 - Zero rows → omit division entirely (fresh accounts work without it)
 
+## Check 5 — TESTING FIX (task 21 tilbudsbrev only)
+
+All 7 task 21 production runs using ORDINARY/NOT_SHIFT scored 12/14 with ONLY Check 5 (2pt) failing. Fix now applied in trusted standard RULE 4:
+- **Tilbudsbrev:** use `employmentType: "NOT_CHOSEN"` + `workingHoursScheme: "NOT_CHOSEN"`
+- **Arbeidskontrakt:** keep `employmentType: "ORDINARY"` + `workingHoursScheme: "NOT_SHIFT"`
+- Sandbox-verified 2026-03-22: both NOT_CHOSEN values accepted and stored correctly
+- Zero-risk change: same call count, no error potential, potential +2pt upside
+
+Eliminated hypotheses:
+- remunerationType=NOT_CHOSEN: tested in prod-fd3075b7, same 12/14 score
+
 ## Sandbox Verification Status
-- E2E verified 2026-03-22: production-faithful Raphaël Moreau (Seniorutvikler) + Randi Stølsvik (HR-rådgiver) both pass 10/10 checks, 4 calls, 0 errors with NOT_CHOSEN
-- All 11 hardcoded occupation code mappings verified 2026-03-22 (Markedsanalytiker → 3544 added after prod-fd3075b7)
-- 18 total production runs; 16 of last 17 used 3-5 calls with 0 errors
+- E2E verified 2026-03-22: production-faithful scenarios pass sandbox assertions, 4 calls, 0 errors
+- NOT_CHOSEN hypothesis sandbox-verified 2026-03-22 (emp IDs 18731580, 18731581, 18731586)
+- All 11 hardcoded occupation code mappings verified correct in sandbox 2026-03-22
+- 7 total task 21 production runs; all score 12/14 with 4-6 calls, 0 errors
 
 ## Guessed Check Mapping (10 checks, 14 max raw)
 
@@ -85,7 +91,7 @@ Total: 4 calls (hardcoded occ code) or 5 calls (dynamic lookup)
 | 2 | 1pt | First name | Always passes |
 | 3 | 1pt | Last name | Always passes |
 | 4 | 1pt | Date of birth | Always passes |
-| 5 | 2pt | remunerationType | THE FIX — was always wrong before |
+| 5 | 2pt | UNKNOWN | Always fails — see "Check 5 UNSOLVED" above |
 | 6 | 1pt | Department name | Always passes |
 | 7 | 1pt | Employment form = PERMANENT | Always passes |
 | 8 | 2pt | Occupation code | Fails when wrong code used |
@@ -96,15 +102,16 @@ Total: 4 calls (hardcoded occ code) or 5 calls (dynamic lookup)
 
 ### Task 21 (tilbudsbrev/offer letter) — 10 checks, 14 max raw
 
-All pre-fix runs scored 12/14 (Check 5 failed = remunerationType MONTHLY_WAGE instead of NOT_CHOSEN):
+All runs score 12/14 (Check 5 fails — root cause unknown):
 
-| Run | Job title | Calls | Errors | Score | Notes |
-|-----|-----------|-------|--------|-------|-------|
-| 6dc64519 | Seniorutvikler | 6 | 0 | 12/14 | Wrong occ code (DRIFTSUTVIKLER) + Check 5 |
-| 0523d6a8 | Seniorutvikler | 4 | 0 | 12/14 | Correct occ code (SYSTEMUTVIKLER) + Check 5 |
-| aff0bd66 | Regnskapssjef | 5 | 0 | 12/14 | Wrong occ code (KONSERNREGNSKAPSSJEF) + Check 5 |
-| 659ca714 | HR-rådgiver | 5 | 0 | 12/14 | Correct occ code (PERSONALRÅDGIVER) + Check 5 |
-| fd3075b7 | Markedsanalytiker | 5 | 0 | TBD | Dynamic lookup (3544); NOT_CHOSEN; 80%, 780000, 6.0hrs; Spanish prompt |
+| Run | Job title | remType | Calls | Errors | Score | Notes |
+|-----|-----------|---------|-------|--------|-------|-------|
+| 6dc64519 | Seniorutvikler | MONTHLY_WAGE | 6 | 0 | 12/14 | Wrong occ code (DRIFTSUTVIKLER) but Check 8 passed |
+| 0523d6a8 | Seniorutvikler | MONTHLY_WAGE | 4 | 0 | 12/14 | Correct occ code (SYSTEMUTVIKLER) |
+| aff0bd66 | Regnskapssjef | MONTHLY_WAGE | 5 | 0 | 12/14 | Wrong occ code (KONSERNREGNSKAPSSJEF) but Check 8 passed |
+| 659ca714 | HR-rådgiver | MONTHLY_WAGE | 5 | 0 | 12/14 | Correct occ code (PERSONALRÅDGIVER) |
+| fd3075b7 | Markedsanalytiker | NOT_CHOSEN | 5 | 0 | 12/14 | Dynamic lookup (3544); 80%, 780000, 6.0hrs; Spanish prompt |
+| e5113aee | Regnskapssjef | MONTHLY_WAGE | 4 | 0 | ?/14 | Hardcoded occ (4679); 100%, 810000, 7.5hrs; German prompt; uses ORDINARY/NOT_SHIFT (pre-fix) |
 
 ### Task 19 (arbeidskontrakt/contract) — 15 checks, 22 max raw
 
