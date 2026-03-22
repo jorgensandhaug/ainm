@@ -1169,6 +1169,9 @@ def _feature_variant_summary_lengths(feature_variant: str) -> tuple[int, int]:
         return (base_global_len, base_seed_len)
     if normalized == "v8_supportxbase":
         return (base_global_len, base_seed_len)
+    if normalized in ("base", "motif_v1"):
+        # base/motif_v1 are agent7 regime variants - use all available features
+        return (len(_global_summary_names()), len(_seed_summary_names()))
     raise ValueError(f"unsupported query_residual feature variant: {feature_variant}")
 
 
