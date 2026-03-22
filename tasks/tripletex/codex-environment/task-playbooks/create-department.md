@@ -42,6 +42,9 @@ Production and sandbox re-verification on 2026-03-21 showed:
 - a Spanish prompt asking for `Utvikling`, `Kvalitetskontroll`, and `Markedsføring` was the same exact-match flow: one `POST /department/list`, 201, 7/7 score (normalized 2), 1 call 0 errors; `ø` in `Markedsføring` preserved correctly; Spanish prompt language triggers no endpoint deviation
 - a Spanish prompt asking for `Lager`, `Økonomi`, and `Drift` (2d9b6947) was the same exact-match flow: one `POST /department/list`, 201, 7/7 score (normalized 2), 1 call 0 errors; second Spanish confirmation with `Ø` in department name
 
+Production and sandbox re-verification on 2026-03-22 showed:
+- a Norwegian prompt asking for `HR`, `Salg`, and `Økonomi` (e78d62fc) was the same exact-match flow: one `POST /department/list`, 201, 1 call 0 errors; sandbox re-verified same day
+
 ## Minimal Safe Flow
 
 1. Confirm `POST /department` and `POST /department/list` in `./openapi.json`
