@@ -1,0 +1,1 @@
+Score reflection written to canonical path. T29 scored 4/11 (tied best, no improvement). Correctness problem, not efficiency — checks 3,4,5,7 have never passed across 18 attempts. Key investigation gaps: PUT project to change PM, importDocument for supplier cost entity, invoice projectInvoiceDetails, and employment records.

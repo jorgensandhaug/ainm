@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-104317453Z-d9638f91",
+  "request_id": "19ce318d",
+  "prompt_raw": "We have discovered errors in the general ledger for January and February 2026. Review all vouchers and find the 4 errors: a posting to the wrong account (account 6300 used instead of 7100, amount 7750 NOK), a duplicate voucher (account 7100, amount 1700 NOK), a missing VAT line (account 6500, amount excl. 7450 NOK missing VAT on account 2710), and an incorrect amount (account 6590, 24950 NOK posted instead of 12600 NOK). Correct all errors with appropriate correction vouchers.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T10:45:48Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T10:43:17.506Z",
+  "after_captured_at": "2026-03-22T10:46:19.462Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T10:46:19.467Z"
+}
