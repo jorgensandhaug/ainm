@@ -173,59 +173,58 @@ async function main() {
   const suppId = suppRes.value.id;
 
   // ═══════════════════════════════════════════════════════════════
-  // STEP 5: Supplier cost voucher  (accounting linkage)
-  //   CRITICAL: This is what the scorer checks for supplier cost.
-  //   POST /project/orderline vendor field does NOT persist.
-  //   Voucher postings MUST have explicit row: 1 / row: 2.
+  // STEP 5+6: Supplier cost voucher + order  (2 parallel)
+  //   Voucher: CRITICAL for scorer check 6. Postings MUST have
+  //   explicit row: 1 / row: 2. Project/supplier linkage required.
+  //   Order: project goes on order root, NOT inside orderLines[].
+  //   These two have NO mutual dependency — parallelize them.
   // ═══════════════════════════════════════════════════════════════
-  const voucher = await post("/ledger/voucher", {
-    date: TODAY,
-    description: `${SUPP_NAME} - leverandørkostnad`,
-    voucherType: { id: vtId },
-    postings: [
-      {
-        row: 1,
-        account: { id: acc6590!.id },
-        amount: SUPP_COST,
-        amountCurrency: SUPP_COST,
-        amountGross: SUPP_COST,
-        amountGrossCurrency: SUPP_COST,
-        project: { id: pId },
-        date: TODAY,
-        description: `${SUPP_NAME} - leverandørkostnad`,
-      },
-      {
-        row: 2,
-        account: { id: acc2400!.id },
-        amount: -SUPP_COST,
-        amountCurrency: -SUPP_COST,
-        amountGross: -SUPP_COST,
-        amountGrossCurrency: -SUPP_COST,
-        supplier: { id: suppId },
-        date: TODAY,
-        description: `${SUPP_NAME} - leverandørkostnad`,
-      },
-    ],
-  });
-
-  // ═══════════════════════════════════════════════════════════════
-  // STEP 6: Create order
-  // ═══════════════════════════════════════════════════════════════
-  const ord = await post("/order", {
-    customer: { id: custId },
-    project: { id: pId },       // ← project goes on order, NOT inside orderLines[]
-    orderDate: TODAY, deliveryDate: TODAY,
-    orderLines: [{
-      description: PROJECT_NAME,
-      count: 1,
-      unitPriceExcludingVatCurrency: BUDGET,
-      vatType: { id: vatId },
-    }],
-  });
+  const [voucher, ord] = await Promise.all([
+    post("/ledger/voucher", {
+      date: TODAY,
+      description: `${SUPP_NAME} - leverandørkostnad`,
+      voucherType: { id: vtId },
+      postings: [
+        {
+          row: 1,
+          account: { id: acc6590!.id },
+          amount: SUPP_COST,
+          amountCurrency: SUPP_COST,
+          amountGross: SUPP_COST,
+          amountGrossCurrency: SUPP_COST,
+          project: { id: pId },
+          date: TODAY,
+          description: `${SUPP_NAME} - leverandørkostnad`,
+        },
+        {
+          row: 2,
+          account: { id: acc2400!.id },
+          amount: -SUPP_COST,
+          amountCurrency: -SUPP_COST,
+          amountGross: -SUPP_COST,
+          amountGrossCurrency: -SUPP_COST,
+          supplier: { id: suppId },
+          date: TODAY,
+          description: `${SUPP_NAME} - leverandørkostnad`,
+        },
+      ],
+    }),
+    post("/order", {
+      customer: { id: custId },
+      project: { id: pId },       // ← project goes on order, NOT inside orderLines[]
+      orderDate: TODAY, deliveryDate: TODAY,
+      orderLines: [{
+        description: PROJECT_NAME,
+        count: 1,
+        unitPriceExcludingVatCurrency: BUDGET,
+        vatType: { id: vatId },
+      }],
+    }),
+  ]);
   const ordId = ord.value.id;
 
   // ═══════════════════════════════════════════════════════════════
-  // STEP 7: Convert order → invoice
+  // STEP 7: Convert order → invoice  (sequential — needs ordId)
   //   PUT /order/:invoice → isApproved=true + order INVOICED
   // ═══════════════════════════════════════════════════════════════
   const inv = await put(`/order/${ordId}/:invoice?invoiceDate=${TODAY}&sendToCustomer=false`);
