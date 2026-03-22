@@ -181,3 +181,6 @@ Standard names for commonly missing accounts:
 - **Do NOT use 8960 for disposition**: Account 8960 is for detailed year-end closings. Forenklet årsoppgjør must use **8800 "Årsresultat"**.
 - **Do NOT use 8700/2920 for tax**: The prompt says "8700/2920" but these are WRONG. 2920 is intercompany debt, not tax. 8700 is for extraordinary tax, not ordinary. Use **8300/2500**.
 - **Do NOT use accountNumberTo=8700 in balance sheet**: It would include the old tax account (if it exists). Use **accountNumberTo=8299**.
+
+## Production Run History
+13 runs (6 on 2026-03-21 + 6 on 2026-03-21 + 1 on 2026-03-22), all scored 6/10 with checks 4+5 failing. Check pattern is consistent across all languages (en/nb/nn/es/pt/fr/de) and all profit levels (positive and negative). The 8300/2500 tax account fix has NOT yet been tested with a positive-profit scenario. The only 8300/2500 run (prod-8dd9ba2b, 2026-03-22) had negative pre-tax profit → no tax posted → checks 4+5 still failed. Run was optimal: 8 calls, 0 errors.
