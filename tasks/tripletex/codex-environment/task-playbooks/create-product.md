@@ -113,6 +113,13 @@ Fresh-account production verification on 2026-03-22 also showed:
 - 12th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape
 - 2nd Spanish 25% confirmation (previously `Mantenimiento` / `7266` / `650`); all 7 languages confirmed: {de, en, es, fr, nn, no, pt}
 
+Fresh-account production verification on 2026-03-22 also showed:
+- an exact standard-25% product-create task in Norwegian Bokmål (`Konsulenttimer` / `9497` / `17300 kr eksklusiv MVA` / standard `25%`) succeeded with one `POST /product`
+- the `201` write response returned `priceIncludingVatCurrency=21625` and `vatType.id=3`
+- 1 write + 1 verification GET, 0 errors, minimal-call execution
+- 13th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape
+- 2nd Norwegian Bokmål 25% confirmation
+
 Persistent-sandbox re-verification on 2026-03-22 (later session) showed:
 - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-22&fields=*` now returns full VAT set: `id=3` (25%), `id=31` (15%), `id=32` (12%), `id=5` (0%), `id=52` (0%), `id=6` (0%)
 - sandbox is NO LONGER blocked for 25%/15%/12% VAT verification
@@ -194,7 +201,7 @@ Persistent-sandbox re-verification later on 2026-03-20 with the same Spanish `Ma
 - localized French wording such as `hors TVA` also belongs to this same fast path when the rest of the prompt is the ordinary standard-`25%` create-one-product shape
 - for an exact trusted-standard match, that one write call is the full path; do not spend an extra `openapi.json` check or a `GET /ledger/vatType` before it
 - Do not add a pre-read on `/product` for a pure create task
-- Do not fetch the product again if the `201` body already proves the scored fields
+- Always do a verification `GET /product/{id}?fields=*,vatType(*)` after the write for logging — GETs are free and do not affect scoring
 
 ## Recommended Payload Shape
 
