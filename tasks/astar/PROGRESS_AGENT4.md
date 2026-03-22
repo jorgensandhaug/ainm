@@ -3646,3 +3646,20 @@ Successfully submitted predictions for round #19 (597e60cf-d1a1-4627-ac4d-2a61da
 Adding ExtraTrees as a third model provides genuine diversity.
 The improvement is largest at low evidence (+0.60 at ev1) where
 model diversity matters most.
+
+5-model ensemble (LGB+Cat+ET+LGB_variant+RF) was attempted at ev15 but
+killed due to excessive runtime (30 models per fold × 8 folds = 240 models).
+
+## ABSOLUTE FINAL BEST RESULTS
+
+| Rank | Model | ev | Score |
+|------|-------|-----|-------|
+| **1** | **Triple ensemble cross-seed** | **30** | **88.67** |
+| 2 | Double ensemble cross-seed | 30 | 88.60 |
+| 3 | Triple ensemble cross-seed | 15 | 88.27 |
+| 4 | Double ensemble cross-seed | 15 | 88.09 |
+| 5 | Triple ensemble cross-seed | 1 | **85.71** |
+| 6 | Double ensemble cross-seed | 1 | 85.11 |
+
+**88.67 is the BEST score across all 7 agents.**
+**85.71 is the best single-observation score (live-applicable).**
