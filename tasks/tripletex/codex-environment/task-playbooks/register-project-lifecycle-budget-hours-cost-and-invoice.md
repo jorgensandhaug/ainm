@@ -25,7 +25,13 @@ Every failure traces to agents improvising instead of copying the script templat
 
 ## Optimal Path
 
-**15 calls, 0 errors, 5 sequential steps.** Sandbox-verified 2026-03-22 (39/39 checks, 4 consecutive clean runs).
+**15 calls, 0 errors, 4 sequential phases.** Sandbox-verified 2026-03-22 (15 calls, all 201s, 4 phases).
+
+Phase layout (optimized from 5→4 sequential phases):
+1. **Phase 1** (7 parallel): 5 GETs + POST customer + POST supplier — supplier has NO dependencies
+2. **Phase 2** (2-3 parallel): POST employee/list + POST project + conditional PUT bank account
+3. **Phase 3** (4 parallel): POST activity + POST participant/list + POST orderline + POST voucher — all depend only on phase 1+2 results
+4. **Phase 4** (2 parallel): POST timesheet/entry/list + POST invoice
 
 ## Common 422 Causes
 
@@ -39,3 +45,7 @@ Every failure traces to agents improvising instead of copying the script templat
 - including `employments[]` on employees (triggers division/startDate traps)
 - putting `project` inside `orderLines[]` instead of on `orders[]`
 - omitting `invoiceDueDate` on invoice
+
+## 409 Recovery
+
+If POST /invoice returns 409 "Duplicate entry" (transient proxy issue), retry the same POST directly. Do NOT waste calls checking existing orders/invoices with GET — those endpoints require `orderDateFrom/To` or `invoiceDateFrom/To` params, and omitting them causes 422.

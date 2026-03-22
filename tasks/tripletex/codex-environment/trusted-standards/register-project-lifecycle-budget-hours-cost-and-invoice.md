@@ -17,7 +17,7 @@
 
 ## Script Template
 
-Copy-paste the script below. Replace only the `// PROMPT VALUES` block with values from the prompt. Do NOT modify payload shapes — they are sandbox-verified (2026-03-22, 39/39 checks, 0 errors).
+Copy-paste the script below. Replace only the `// PROMPT VALUES` block with values from the prompt. Do NOT modify payload shapes — they are sandbox-verified (2026-03-22, 15 calls, 0 errors, 4 sequential phases).
 
 ```typescript
 // ── PROMPT VALUES (replace these from the prompt) ──────────────────
@@ -75,15 +75,17 @@ function splitHours(total: number, start: string): { date: string; hours: number
 
 async function main() {
   // ═══════════════════════════════════════════════════════════════
-  // STEP 1: Frontload ALL reads + create customer  (6 parallel)
+  // PHASE 1: All reads + customer + supplier  (7 parallel)
+  //   POST /supplier has NO dependencies — include here to save a phase
   // ═══════════════════════════════════════════════════════════════
-  const [dept, pm, acct, vt, vat, cust] = await Promise.all([
+  const [dept, pm, acct, vt, vat, cust, supp] = await Promise.all([
     get("/department?isInactive=false&count=1&fields=*"),
     get("/employee?assignableProjectManagers=true&count=1&fields=*"),
     get("/ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber"),
     get("/ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name"),
     get("/ledger/vatType?typeOfVat=OUTGOING&vatDate=" + TODAY + "&fields=id,name,percentage"),
     post("/customer", { name: CUST_NAME, organizationNumber: CUST_ORG, isCustomer: true }),
+    post("/supplier", { name: SUPP_NAME, organizationNumber: SUPP_ORG, isSupplier: true }),
   ]);
   const deptId  = dept.values[0].id;
   const pmAssId = pm.values[0].id;   // account owner — only assignable PM
@@ -93,9 +95,10 @@ async function main() {
   const vtId    = vt.values[0].id;   // NEVER hardcode — environment-specific
   const vatId   = vat.values[0].id;
   const custId  = cust.value.id;
+  const sId     = supp.value.id;
 
   // ═══════════════════════════════════════════════════════════════
-  // STEP 2: Batch employees + project  (2-3 parallel)
+  // PHASE 2: Batch employees + project  (2-3 parallel)
   //   CRITICAL: isFixedPrice + fixedprice on project
   //   CRITICAL: NO employments[] on employees
   // ═══════════════════════════════════════════════════════════════
@@ -122,11 +125,14 @@ async function main() {
   const pId = proj.value.id;
 
   // ═══════════════════════════════════════════════════════════════
-  // STEP 3: Activity + participants  (2 parallel)
+  // PHASE 3: Activity + participants + orderline + voucher (4 parallel)
   //   CRITICAL: budgetHours on activity
   //   CRITICAL: adminAccess: true on PM participant
+  //   CRITICAL: POST /project/orderline — voucher alone = check 5 FAILS
+  //   Voucher depends on: vtId + a6590 + a2400 (phase 1), pId (phase 2), sId (phase 1)
+  //   Orderline depends on: pId (phase 2) — all deps satisfied
   // ═══════════════════════════════════════════════════════════════
-  const [act, parts] = await Promise.all([
+  const [act, _parts, _ol, _vouch] = await Promise.all([
     post("/project/projectActivity", {
       project: { id: pId },
       startDate: TODAY,
@@ -142,22 +148,6 @@ async function main() {
       { project: { id: pId }, employee: { id: e1 }, adminAccess: true },   // ← CRITICAL: PM = true
       { project: { id: pId }, employee: { id: e2 }, adminAccess: false },
     ]),
-  ]);
-  const actId = act.value.activity.id;
-
-  // ═══════════════════════════════════════════════════════════════
-  // STEP 4: Timesheet + supplier + orderline  (3 parallel)
-  //   CRITICAL: POST /project/orderline — voucher alone = check 5 FAILS
-  // ═══════════════════════════════════════════════════════════════
-  const ts1 = splitHours(PM_HOURS, TODAY).map(e => ({
-    employee: { id: e1 }, project: { id: pId }, activity: { id: actId }, date: e.date, hours: e.hours,
-  }));
-  const ts2 = splitHours(CON_HOURS, TODAY).map(e => ({
-    employee: { id: e2 }, project: { id: pId }, activity: { id: actId }, date: e.date, hours: e.hours,
-  }));
-  const [ts, supp, ol] = await Promise.all([
-    post("/timesheet/entry/list", [...ts1, ...ts2]),
-    post("/supplier", { name: SUPP_NAME, organizationNumber: SUPP_ORG, isSupplier: true }),
     post("/project/orderline", {             // ← CRITICAL — this call is REQUIRED
       project: { id: pId },
       description: "Leverandørkostnad",
@@ -166,14 +156,6 @@ async function main() {
       unitCostCurrency: SUPP_COST,           // ← CRITICAL — populates project costs
       isChargeable: false,
     }),
-  ]);
-  const sId = supp.value.id;
-
-  // ═══════════════════════════════════════════════════════════════
-  // STEP 5: Voucher + invoice  (2 parallel)
-  // ═══════════════════════════════════════════════════════════════
-  const dd = new Date(Date.UTC(+TODAY.slice(0,4), +TODAY.slice(5,7)-1, +TODAY.slice(8,10)+14)).toISOString().slice(0,10);
-  await Promise.all([
     post("/ledger/voucher", {
       date: TODAY, description: "Leverandørkostnad", voucherType: { id: vtId },
       postings: [
@@ -185,6 +167,23 @@ async function main() {
           supplier: { id: sId } },
       ],
     }),
+  ]);
+  const actId = act.value.activity.id;
+
+  // ═══════════════════════════════════════════════════════════════
+  // PHASE 4: Timesheet + invoice  (2 parallel)
+  //   Timesheet needs actId from phase 3
+  //   Invoice is independent — all deps from phase 1+2
+  // ═══════════════════════════════════════════════════════════════
+  const ts1 = splitHours(PM_HOURS, TODAY).map(e => ({
+    employee: { id: e1 }, project: { id: pId }, activity: { id: actId }, date: e.date, hours: e.hours,
+  }));
+  const ts2 = splitHours(CON_HOURS, TODAY).map(e => ({
+    employee: { id: e2 }, project: { id: pId }, activity: { id: actId }, date: e.date, hours: e.hours,
+  }));
+  const dd = new Date(Date.UTC(+TODAY.slice(0,4), +TODAY.slice(5,7)-1, +TODAY.slice(8,10)+14)).toISOString().slice(0,10);
+  await Promise.all([
+    post("/timesheet/entry/list", [...ts1, ...ts2]),
     post("/invoice?sendToCustomer=false", {
       invoiceDate: TODAY, invoiceDueDate: dd, customer: { id: custId },
       orders: [{
@@ -210,8 +209,9 @@ main().catch(e => { console.error("FATAL:", e.message); process.exit(1); });
 If a step fails, handle these known cases:
 - no department → `POST /department` with `{ "name": "Avdeling" }` (+1 call)
 - account 1920 missing → `GET /ledger/account?isBankAccount=true&fields=*` (+1 call)
-- bank account lacks number → already handled in step 2 (PUT with `"12345678903"`, MOD11-valid)
-- PM constraint: only account owner can be `projectManager`; already handled (use assignable PM from step 1, add prompt-named PM as participant with `adminAccess: true` in step 3)
+- bank account lacks number → already handled in phase 2 (PUT with `"12345678903"`, MOD11-valid)
+- PM constraint: only account owner can be `projectManager`; already handled (use assignable PM from phase 1, add prompt-named PM as participant with `adminAccess: true` in phase 3)
+- POST /invoice returns 409 "Duplicate entry" → retry the same POST once directly; do NOT waste calls checking existing orders/invoices first (their GET endpoints require date range params you don't have, wasting 422s)
 
 ## Do NOT
 - include `employments[]` on employees — causes division/startDate 422 traps
@@ -226,3 +226,4 @@ If a step fails, handle these known cases:
 - use `bankAccountNumber: "12345678901"` — not MOD11-valid; use `"12345678903"`
 - omit `row: 1` / `row: 2` on voucher postings — causes 422
 - omit `invoiceDueDate` on invoice — causes 422
+- on 409 invoice failure: do NOT use GET /order or GET /invoice to check state — they require `orderDateFrom/To` or `invoiceDateFrom/To` params; missing them → 422; just retry the POST directly
