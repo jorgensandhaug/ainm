@@ -2977,4 +2977,46 @@ R7's entropy (0.3917) is LOWER than R1 (0.6919) and R6 (0.8082) which both score
 - Pooled training across all rounds
 - Currently benchmarking, results pending
 
-### Still running: v234 (4 clusters), v235 (q=8), v236 (pure particle), v238 (s=12), kNN v1/v5
+### v234-v247 results (cluster sweep, beta sweep, combos)
+
+| Model | Score | R7 | Key change |
+|-------|-------|-----|-----------|
+| v234 (4 clusters) | 87.64 | 72.4 | Best R7 for cluster sweep |
+| v244 (5 clusters) | 87.61 | 72.4 | Tied |
+| v245 (6 clusters) | 87.59 | 72.4 | Slightly worse |
+| v243 (3c + evidence) | 87.62 | 72.0 | Neutral |
+| v247 (4c + evidence) | 87.62 | 72.1 | Neutral |
+| v240 (beta=6/24) | 87.54 | 72.8 | R7 improves, overall -0.11 |
+| v242 (3c + beta=6/24) | 87.53 | 73.1 | R7=73.1 but -0.12 overall |
+| v246 (4c + beta=6/24) | 87.53 | 73.2 | Best R7 balance! -0.12 overall |
+| v241 (beta=3/12) | 86.60 | 73.3 | Best R7 ever but -1.05 overall |
+| v235 (q=8) | 87.54 | 72.0 | Worse |
+| v236 (pure particle) | 83.57 | 68.5 | SVD modes add +4 points |
+| v238 (s=12) | 86.88 | 70.7 | More samples HURTS (s=6 optimal) |
+
+### kNN predictor results (NEW ARCHITECTURE)
+
+| Model | Score | R7 | Transcript features |
+|-------|-------|-----|-----|
+| knn_v1 (k=100, with tx) | **77.47** | 69.2 | Yes |
+| knn_v5 (k=100, no tx) | 70.82 | 60.0 | No |
+| **Ablation: transcript features add +6.65 points!** |
+
+kNN is too simple to compete alone, but proves cell-level transcript features are highly valuable.
+
+### Ensemble predictor results (NEW CHAMPION!)
+
+| Model | Score | R7 | Blend |
+|-------|-------|-----|-------|
+| **ensemble_v5 (95/5)** | **87.70** | **72.2** | **NEW BEST! +0.05** |
+| ensemble_v1 (90/10) | 87.64 | 72.4 | Tied |
+| ensemble_v3 (80/20) | 87.32 | 72.6 | Too much kNN |
+
+## Current Champion
+
+- model: `ffam_ensemble_v5` (95% ffam_mode_v214 + 5% ffam_knn_v1)
+- score: **87.6968** (was 87.6540)
+- improvement: **+0.0428**
+- First model to break 87.65 plateau via model diversity
+
+### Testing: finer blend weights (97/3, 98/2) and cluster-enhanced variants (v8, v9)
