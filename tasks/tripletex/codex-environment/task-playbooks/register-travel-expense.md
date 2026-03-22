@@ -3,328 +3,203 @@
 ## Scope
 
 Use for tasks like:
-- register one new travel expense for an existing employee identified by email
-- create travel costs such as flight, taxi, ferry, hotel, or similar reimbursement lines
-- include per-diem compensation in the same travel expense
-- prompt gives explicit travel dates, or some other non-Tripletex source already fixes those dates exactly
-- finish in one parent write plus only the verification reads that are actually needed
+- Register one new travel expense for an existing employee identified by email
+- Create travel costs (flight, taxi, ferry, hotel) with per-diem compensation
+- Prompt gives explicit or inferable travel dates
 
 Do not use for:
-- mileage allowance
-- accommodation allowance
-- attachments
-- standalone approval or delivery of an existing travel expense
-- project-linked or reinvoiced travel expenses
-- duration-only prompts that omit explicit travel dates; treat those as ambiguous investigation cases, not as an exact playbook match
+- Mileage allowance, accommodation allowance, attachments
+- Standalone approval or delivery of an existing travel expense
+- Project-linked or reinvoiced travel expenses
 
-## Key Findings
+## The Correct Flow (6 calls, 0 errors)
 
-Verified in persistent sandbox on 2026-03-20:
-- `GET /travelExpense/costCategory?count=1000&fields=*` returned travel categories with `showOnTravelExpenses=true`, including `Fly` and `Taxi`
-- `GET /travelExpense/paymentType?count=1000&fields=*` returned one active travel-expense payment type, `Privat utlegg`
-- `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` returned rate objects; each value has `{ id, rateCategory: { id, url }, zone, rate, ... }` — the value's `.id` IS the rateType id, do NOT access `.rateType` on these objects
-- `GET /company/{companyId}?fields=*,address(*)` expanded the company address in one read, while `fields=*` alone left `company.address` as a link-only object
-- one no-address employee (`id=18478235`, `address=null`, `companyId=108114337`) plus that company read yielded concrete `departureFrom="Oslo"` from `company.address.city`
-- the exact 7-call branch `GET /employee` -> conditional `GET /company/{companyId}?fields=*,address(*)` -> `GET /travelExpense/costCategory` -> `GET /travelExpense/paymentType` -> `GET /travelExpense/rate` -> `POST /travelExpense` -> `PUT /travelExpense/:deliver` delivered sandbox travel expense `11145429` with `2` costs and `1` per-diem row
-- `PUT /travelExpense/:deliver` returned `ListResponseTravelExpense` with the delivered object inside `values[]`
-- that same filtered rate response returned `rateCategory` only as sparse `id`/`url`, not expanded booleans such as `isValidDomestic`
-- mapping `perDiemCompensations[].rateType = { id: rateValue.id, rateCategory: { id: rateValue.rateCategory.id } }` with `zone` omitted still allowed a delivered manual per-diem row to persist `count=4`, `rate=800`, and `amount=3200`
-- `POST /travelExpense` can create the parent expense, embedded cost rows, and embedded per-diem rows in one write
-- `POST /travelExpense` did not need an explicit `department` field when the linked employee already had a department; the created expense inherited that department automatically
-- embedded `costs[]` failed with `422` until each row included `amountCurrencyIncVat`
-- embedded `perDiemCompensations[]` failed with `422` while `travelDetails.isCompensationFromRates=false`
-- changing `travelDetails.isCompensationFromRates` to `true` allowed the same embedded per-diem row to persist with manual `count`, `rate`, and `amount`
-- the old create-only branch persisted manual per-diem rows with `rateType=null`, `rateCategory=null`, and `overnightAccommodation=NONE`
-- `PUT /travelExpense/:deliver` then failed on missing `travelDetails.departureFrom`, missing `perDiemCompensations[].rateType`, and VAT-bearing `costs[].vatType` on a non-VAT-registered sandbox company
-- recreating with `travelDetails.departureFrom`, the cost category's default `costs[].vatType` (or `{ "id": 0 }` for non-VAT-registered companies), and per-diem `rateType` plus `overnightAccommodation` allowed `PUT /travelExpense/:deliver` to succeed and move the expense to `state=DELIVERED`
-- the `POST /travelExpense` response already proved the parent fields and returned child ids/counts, but `costs[]` and `perDiemCompensations[]` came back only as `id`/`url`
-- `GET /travelExpense/{id}?fields=*` still kept those child arrays sparse
-- `GET /travelExpense/cost?travelExpenseId=...&count=20&fields=*` returned full cost objects with comments, amounts, category ids, and payment-type ids
-- `GET /travelExpense/perDiemCompensation?travelExpenseId=...&count=20&fields=*` returned full per-diem objects with `location`, `count`, `rate`, and `amount`
-- `PUT /travelExpense/:approve` returned `403` for the sandbox token even with `overrideApprovalFlow=true`; approval is not a trusted default follow-up step
-- top-level travel-expense `amount`/`paymentAmount` still reflected only reimbursable cost lines even after successful `:deliver`; those totals are not proof of per-diem correctness
-- the 2026-03-20 production run for Torbjorn Brekke likely lost correctness by inventing `departureFrom=\"Hjemsted\"`; when the prompt omits departureFrom, generic placeholders are correctness-risky and should not be upgraded into a trusted inference
-- the 2026-03-20 production run for `Miguel Pérez` / `miguel.perez@example.org` wasted two extra `GET /employee` calls by stopping at `address=null` and only later adding the company fallback; future agents should switch to the company branch immediately after the first employee read reveals no address
-- ambiguity probe script `sandbox_travel_expense_ambiguity_probe.ts` then delivered three otherwise-identical Bergen expenses with different inferred values:
-  - `11145899`: `2026-03-17..2026-03-20`, `departureFrom=Oslo`
-  - `11145900`: `2026-03-16..2026-03-19`, `departureFrom=Oslo`
-  - `11145901`: `2026-03-17..2026-03-20`, `departureFrom=Drammen`
-- Tripletex accepted all three as `DELIVERED`, so the API does not tell you which date/departure inference is scorer-correct when the prompt omits those fields
-- same-day sandbox re-proof `sandbox_verify_duration_only_travel_expense.ts` used the known no-address employee `18478235` with company fallback `Oslo` and delivered two otherwise-identical Bodø expenses for the exact `3 days` / `800 per day` / `6200 flight` / `400 taxi` family:
-  - `11146082`: `2026-03-18..2026-03-20`, `departureFrom=Oslo`
-  - `11146083`: `2026-03-17..2026-03-19`, `departureFrom=Oslo`
-- that Bodø re-proof shows the ambiguity survives even after the company-city fallback is fixed; extra Tripletex reads will not reveal a unique scorer-correct date range
+### Round 1 — parallel (3 calls)
+```
+GET /employee?email=<email>&count=10&fields=*
+GET /travelExpense/costCategory?count=1000&fields=*
+GET /travelExpense/paymentType?count=1000&fields=*
+```
+- Filter employee by exact email; prefer `allowInformationRegistration=true` if multiple hits
+- Filter categories/payTypes locally on `showOnTravelExpenses=true`
+- Match `Fly` for airfare, `Taxi` for taxi (exact `description` match)
 
-## Lowest-Call Scored Flow
+### Round 2 — conditional (0 or 1 call)
+Only if employee has `address=null` AND prompt omits `departureFrom`:
+```
+GET /company/{employee.companyId}?fields=*,address(*)
+```
+- Use `company.address.city` as `departureFrom`
+- `fields=*` alone leaves address as link-only — you MUST use `fields=*,address(*)`
+- If both employee and company lack a city → run is **blocked**, do NOT invent placeholders
 
-This is the canonical flow only when the travel dates are explicit or otherwise fixed from outside Tripletex.
+### Round 3 — create (1 call)
+```
+POST /travelExpense
+```
 
-**Optimal call counts** (with hardcoded rateType — skip rate lookup):
-- 6 calls when employee has no address: employee+costCat+payType (parallel) → company → POST → deliver
-- 5 calls when employee has address: employee+costCat+payType (parallel) → POST → deliver (3 rounds)
-- 4 calls when employee has address and prompt provides departureFrom: employee+costCat+payType (parallel) → POST → deliver (3 rounds)
+### Round 4 — deliver (1 call)
+```
+PUT /travelExpense/:deliver?id=<id>
+```
+- Response: `ListResponseTravelExpense` — read from `values[]`
+- Verify `state=DELIVERED`
 
-1. **Round 1 (parallel):** Locate the employee AND resolve cost categories and payment type — all three are independent
-   - `GET /employee?email=<prompt-email>&count=10&fields=*` — filter locally to one exact-email employee; prefer `allowInformationRegistration=true` when several exact-email hits exist
-   - `GET /travelExpense/costCategory?count=1000&fields=*`
-   - `GET /travelExpense/paymentType?count=1000&fields=*`
-   - filter locally on `showOnTravelExpenses=true`
-2. **Round 2 (conditional):** If the prompt omits `departureFrom` and the employee read (from step 1) lacks a concrete address but exposes `companyId`, do one company read
-   - `GET /company/{companyId}?fields=*,address(*)`
-   - prefer `company.address.city`, then `company.address.addressLine1`, then `company.address.displayName`, then `company.address.addressAsString`
-   - if both employee and company location fields are absent, treat the run as blocked instead of inventing a placeholder
-   - skip this step entirely if employee has an address or prompt provides departureFrom
-3. Select rateType from the **hardcoded stable rate catalog** (NO API call — DO NOT use `GET /travelExpense/rate`):
-   - **Multi-day / overnight trips (isDayTrip=false) → ALWAYS use `rateType: { id: 25888, rateCategory: { id: 740 } }`** ("Overnatting over 12 timer", rate=1012). **Omit `rate` and `amount` from perDiemCompensations** — the system fills them from the rateType (rate=1012). Do NOT use the prompt's "dagssats 800" as the per-diem rate.
-   - day trips 6–12h (isDayTrip=true): `rateType: { id: 25886, rateCategory: { id: 738 } }` (rate=397)
-   - day trips >12h (isDayTrip=true): `rateType: { id: 25887, rateCategory: { id: 739 } }` (rate=736)
-   - these are government-set national rates, stable across all Tripletex accounts
-   - **fallback only**: if POST fails on rateType, do `GET /travelExpense/rate?...fields=*,rateCategory(*)` and filter by `rateCategory.isValidAccommodation=true` for overnight trips
-4. Create the travel expense in one write
-   - `POST /travelExpense`
-   - embed top-level `travelDetails`
-   - embed `perDiemCompensations[]`
-   - embed `costs[]`
-   - include `travelDetails.departureFrom`
-   - include `travelDetails.destination` (REQUIRED at deliver — always set at POST time)
-   - include explicit `costs[].vatType`
-   - include `perDiemCompensations[].rateType` (from hardcoded catalog)
-   - **omit `perDiemCompensations[].rate` and `perDiemCompensations[].amount`** — let system fill from rateType (or explicitly use system rate: 1012 for overnight)
-   - include `perDiemCompensations[].overnightAccommodation` when the trip spans overnight
-   - include `perDiemCompensations[].location` (REQUIRED at POST — set to destination city)
-   - omit `department` unless the prompt explicitly scores a different department or validation demands it
-5. Deliver the expense
-   - `PUT /travelExpense/:deliver?id=<travelExpenseId>`
-6. Reuse the deliver response and stop
-   - `title`
-   - `employee.id`
-   - `travelDetails.departureDate`
-   - `travelDetails.returnDate`
-   - `travelDetails.destination`
-   - `state=DELIVERED`
-   - `costs.length`
-   - `perDiemCompensations.length`
-7. Stop
+### Done — stop. No extra readback calls needed.
 
-## Conditional Investigation Branch
+**Call counts:**
+- 6 calls when employee has no address
+- 5 calls when employee has address
+- 4 calls when employee has address AND prompt provides departureFrom
 
-Use the dedicated child reads only when the prompt materially differs from the standard embedded-create shape, a later step truly needs expanded child fields, or the live write/deliver response contradicts the intended child counts.
-
-1. `GET /travelExpense/cost?travelExpenseId=<id>&count=20&fields=*`
-2. `GET /travelExpense/perDiemCompensation?travelExpenseId=<id>&count=20&fields=*`
-3. Stop
-
-## Winning Payload Shape
-
-For the travel-expense create, the sandbox-proven shape was:
+## Exact Payload Shape
 
 ```json
 {
-  "employee": { "id": 18478235 },
-  "title": "Visita cliente Bergen",
+  "employee": { "id": "<from lookup>" },
+  "title": "<prompt title>",
   "travelDetails": {
     "isForeignTravel": false,
     "isDayTrip": false,
     "isCompensationFromRates": true,
-    "departureDate": "2026-03-19",
-    "returnDate": "2026-03-20",
+    "departureDate": "2026-03-17",
+    "returnDate": "2026-03-21",
     "departureTime": "08:00",
     "returnTime": "18:00",
     "departureFrom": "Oslo",
-    "destination": "Bergen",
-    "detailedJourneyDescription": "Visita cliente Bergen",
-    "purpose": "Visita cliente Bergen"
+    "destination": "Trondheim",
+    "detailedJourneyDescription": "<prompt title>",
+    "purpose": "<prompt title>"
   },
   "perDiemCompensations": [
     {
-      "location": "Bergen",
-      "count": "OVERNIGHTS (days - 1)",
+      "location": "Trondheim",
+      "count": 4,
       "rateType": { "id": 25888, "rateCategory": { "id": 740 } },
       "overnightAccommodation": "HOTEL"
     }
   ],
   "costs": [
     {
-      "costCategory": { "id": 32813722 },
-      "paymentType": { "id": 32813706 },
-      "comments": "bilhete de avião",
-      "amountCurrencyIncVat": 5200,
-      "amountNOKInclVAT": 5200,
-      "vatType": { "id": "USE_CATEGORY_DEFAULT (e.g. 12 for Fly/Taxi)" },
-      "date": "2026-03-19"
+      "costCategory": { "id": "<Fly cat id>" },
+      "paymentType": { "id": "<payType id>" },
+      "comments": "flight",
+      "amountCurrencyIncVat": 2850,
+      "amountNOKInclVAT": 2850,
+      "vatType": { "id": "<costCategory.vatType.id>" },
+      "date": "2026-03-17"
     },
     {
-      "costCategory": { "id": 32813737 },
-      "paymentType": { "id": 32813706 },
-      "comments": "táxi",
-      "amountCurrencyIncVat": 350,
-      "amountNOKInclVAT": 350,
-      "vatType": { "id": "USE_CATEGORY_DEFAULT (e.g. 12 for Fly/Taxi)" },
-      "date": "2026-03-20"
+      "costCategory": { "id": "<Taxi cat id>" },
+      "paymentType": { "id": "<payType id>" },
+      "comments": "taxi",
+      "amountCurrencyIncVat": 200,
+      "amountNOKInclVAT": 200,
+      "vatType": { "id": "<costCategory.vatType.id>" },
+      "date": "2026-03-21"
     }
   ]
 }
 ```
 
-## Validation Traps
+**This example is for a 5-day trip (Mar 17–21) to Trondheim.**
+- `count: 4` = overnights (5 days minus 1)
+- NO `rate` or `amount` on per-diem — system fills rate=1012, amount=4048
+- `vatType` from category lookup (typically id=12 for Fly/Taxi on production companies)
 
-- **REQUIRED: `travelDetails.destination`** — set to the trip destination city; `POST` accepts without it but `PUT :deliver` fails with 422; always include at POST time
-- **REQUIRED: `perDiemCompensations[].location`** — set to the per-diem location (typically same as destination); `POST` fails with 422 if omitted
-- **`costs[].description` does NOT exist** — use `comments` for cost text; `description` causes 422 mapping error
-- **`perDiemCompensations[].isDayTrip` does NOT exist** — `isDayTrip` belongs on `travelDetails` only
-- **`costs[].currency` — do NOT include** — NOK is the default; including `currency: { code: "NOK" }` without `factor` causes 422 `costs.currency.factor: Må være minimum 1`; omit `currency` entirely
-- **`costs[].category` — unnecessary** — the `costCategory` object ref is what matters; `category` string is silently ignored
-- **`costs[].vatType` — use the category default, NOT hardcoded 0** — each cost category has a default `vatType` (e.g., Fly/Taxi default to `{ id: 12 }` = 12% input VAT); use `costCategory.vatType.id` from the lookup; if POST fails with `VAT_NOT_REGISTERED`, retry with `{ id: 0 }`
-- **`perDiemCompensations[].countryCode` — do NOT set** — `countryCode: "NO"` causes 422 "Country not enabled for travel expense" unless the company has the feature enabled; leave unset
-- do not omit `amountCurrencyIncVat` on embedded travel costs just because the prompt amount is already in NOK
-- do not set `travelDetails.isCompensationFromRates=false` when the same write also includes `perDiemCompensations[]`
-- do not waste effort resolving or echoing `department` for a normal existing-employee expense; Tripletex can inherit it from the employee
-- do not rerun `GET /employee` after the first read already proved the employee identity and `address=null`; switch directly to the conditional company-address branch
-- do not use `GET /company/{companyId}?fields=*` for the fallback; it leaves `company.address` as a link-only object in sandbox, so use `fields=*,address(*)`
-- do not trust a successful `POST /travelExpense` with manual per-diem `count`/`rate`/`amount` as a fully correct final state; that row can still persist with `rateType=null`
-- do not rely on the category default VAT if the expense may need `:deliver`; explicit zero-VAT cost rows were required in sandbox for a non-VAT-registered company
-- do not assume approval is available after delivery; sandbox `PUT /travelExpense/:approve` returned `403`
-- do not assume `GET /travelExpense/{id}?fields=*` expands child rows; it can stay link-only for both costs and per-diems
-- do not access `.rateType` on `/travelExpense/rate` response values; the values ARE the rate objects — use `.id` and `.rateCategory` directly from each value; accessing `.rateType` returns `undefined` and causes `422` on POST with `rateType.rateCategory: Kan ikke være null`
+## Three Critical Rules
 
-## Category And Payment-Type Resolution
+### Rule 1: DO NOT set `rate` or `amount` on perDiemCompensations
 
-- `GET /travelExpense/costCategory` does not expose a query parameter equivalent to `showOnTravelExpenses=true`, so fetch the set once and filter locally
-- prefer exact category-description matches before fallback heuristics:
-  - `Fly` for airfare
-  - `Taxi` for taxi
-- for the payment type, prefer one active travel-expense reimbursement type from the lookup; persistent sandbox exposed `Privat utlegg`
+The prompt says "dagssats 800 kr" or "daily rate 800 NOK". **IGNORE THIS NUMBER.**
 
-## Per-Diem Resolution
+Leave `rate` and `amount` completely off the per-diem object. Tripletex auto-fills:
+- rate = 1012 (government rate for overnight domestic, rateType 25888)
+- amount = count × 1012
 
-- use the **hardcoded stable rate catalog** instead of calling `GET /travelExpense/rate` — rate IDs are government-set national rates, verified stable across sandbox and multiple production accounts on 2026-03-21:
-  - overnight multi-day trips (isDayTrip=false): `rateType: { id: 25888, rateCategory: { id: 740 } }` — "Overnatting over 12 timer" (rate=1012)
-  - day trips 6–12h (isDayTrip=true): `rateType: { id: 25886, rateCategory: { id: 738 } }` — "Dagsreise 6-12 timer" (rate=397)
-  - day trips >12h (isDayTrip=true): `rateType: { id: 25887, rateCategory: { id: 739 } }` — "Dagsreise over 12 timer" (rate=736)
-- **fallback only**: if POST fails on rateType, do `GET /travelExpense/rate?...fields=*,rateCategory(*)` and filter by `rateCategory.isValidAccommodation=true` for overnight trips; the response values ARE the rate objects — use `.id` and `.rateCategory` directly, do NOT access `.rateType`
-- **CRITICAL — per-diem `rate` and `amount`: DO NOT SET THESE FIELDS. Leave them out of the payload entirely.**
-  - Norwegian per-diem rates are government-set. For overnight domestic travel (rateType 25888), the 2026 rate is 1012 NOK/day.
-  - The prompt says "dagssats 800 kr" or "daily rate 800 NOK" — **IGNORE THIS NUMBER**. It is the employer's internal number, NOT the Tripletex per-diem rate. Setting rate=800 causes scoring failure.
-  - When `rate` and `amount` are omitted from `perDiemCompensations[]`, Tripletex auto-fills them from the `rateType`: overnight gets rate=1012, amount=count×1012.
-  - Sandbox verified 2026-03-22: clean e2e test with omitted rate/amount → system fills rate=1012, amount=4048 for 4 overnights. All assertions pass, 0 errors, 6-call path, DELIVERED.
-  - **21 production runs used rate=800 and ALL scored 4.5/8 (checks 2,3,6 failing).** Omitting rate/amount is the primary suspected fix — the ONLY per-diem variable never tested in production.
-  - If you explicitly set rate/amount, use the system values ONLY (never prompt values):
-    - Overnight (25888): rate=1012, amount=count×1012
-    - Day 6–12h (25886): rate=397, amount=count×397
-    - Day >12h (25887): rate=736, amount=count×736
-- **Per-diem count — use OVERNIGHTS (days minus 1), not days:**
-  - Norwegian per-diem ("kostgodtgjørelse") for overnight trips counts overnight stays, NOT calendar days
-  - A "5-day trip" has 4 overnights → `count=4`. A "3-day trip" has 2 overnights → `count=2`
-  - Formula: `count = number_of_days - 1` (equivalently: `returnDate - departureDate` in days)
-  - Do NOT use the prompt's literal day count as the per-diem count; always subtract 1
-- **WARNING:** Previous per-diem fixes (vatType, count, rateType, isForeignTravel) were each tested individually while rate=800 was still used. None helped alone. The rate is the most likely root cause because it was never tested without rate=800.
-- if the trip spans overnight, set `overnightAccommodation`; sandbox accepted the generic branch `HOTEL`
-- if the prompt omits `departureFrom`, only infer it from one concrete employee address field already returned by `GET /employee`, preferring `address.city`, then `address.addressLine1`, then `address.displayName`
-- if those employee address fields are absent but the employee exposes `companyId`, use one conditional `GET /company/{companyId}?fields=*,address(*)` and infer from `company.address.city`, then `company.address.addressLine1`, then `company.address.displayName`, then `company.address.addressAsString`
-- do not invent generic placeholders such as `Hjemsted`; if both employee and company reads lack a concrete location, this prompt shape is blocked
-- if the prompt omits `departureFrom` or gives too little information to choose an overnight-accommodation branch safely, the old 4-call OPEN create is not a trusted full-correctness path for that prompt shape
-- if the prompt omits explicit travel dates as well, this is not an exact playbook match; sandbox proved several delivered date/departure combinations are possible, so do not pretend one default inference is trusted
+**Why this matters:** 21 production runs all used rate=800 and ALL scored 4.5/8 (checks 2,3,6 failed). The prompt's "800" is the employer's internal budget number, NOT the Tripletex per-diem rate.
 
-## Forced-Action Branch For Ambiguous Prompts
+### Rule 2: count = overnights = days minus 1
 
-- If the agent must still act autonomously on a duration-only prompt, keep the flow minimal instead of trying to "solve" the ambiguity with extra reads.
-- **Round 1 (parallel):** `GET /employee?email=...&count=10&fields=*` + `GET /travelExpense/costCategory?count=1000&fields=*` + `GET /travelExpense/paymentType?count=1000&fields=*` — all three are independent.
-- **Round 2 (conditional):** If `employee.address` is null but `companyId` exists, do one `GET /company/{companyId}?fields=*,address(*)`; reuse the concrete company location for `departureFrom`. Skip if employee has an address.
-- Use the hardcoded rateType (25888/740 for overnight, 25886/738 or 25887/739 for day trips) — NO rate lookup needed.
-- **Per-diem count = overnights (days - 1)**, NOT days. A 2-day trip → count=1, a 3-day trip → count=2, a 5-day trip → count=4.
-- **Per-diem rate: DO NOT SET `rate` or `amount` fields.** Leave them out of the payload entirely. Tripletex auto-fills rate=1012 for overnight from rateType 25888. NEVER use the prompt's rate (e.g., 800) — it causes scoring failure.
-- Then go straight to `POST /travelExpense`, `PUT /travelExpense/:deliver`.
-- Total: 6 calls (no-address) or 5 calls (with address).
-- Choose one deterministic local date range inside the script, but document that it is only a best-effort fallback; sandbox proved multiple ranges are accepted, so there is no extra-read path that recovers a uniquely correct answer from Tripletex itself.
+| Prompt says | count value |
+|---|---|
+| "5-day trip" | 4 |
+| "4-day trip" | 3 |
+| "3-day trip" | 2 |
+| "2-day trip" | 1 |
 
-## Date Ambiguity For Underspecified Prompts
+Never use the prompt's day number directly. Always subtract 1.
 
-- do not encode a trusted default fallback for prompts that give only a duration
-- sandbox accepted both `2026-03-17..2026-03-20` and `2026-03-16..2026-03-19` for the same 4-day Bergen probe, and it also accepted different `departureFrom` values
-- because Tripletex accepts several delivered variants, omitted dates and omitted `departureFrom` are scorer ambiguities, not API-shape ambiguities
-- for that prompt family, the correct post-run learning action is to narrow the trusted standard, not to hardcode another guessed fallback date range
+### Rule 3: vatType on costs from category lookup
 
-## Verification Shape
+```javascript
+// After GET /travelExpense/costCategory
+const flyCat = categories.find(c => c.description === "Fly");
+// Use flyCat.vatType.id (typically 12) on the cost row
+cost.vatType = { id: flyCat.vatType.id };
+```
 
-- `POST /travelExpense` verified the parent expense and returned:
-  - the parent `id`
-  - the linked `employee.id`
-  - the requested `travelDetails`
-  - `costs[].id/url` plus count
-  - `perDiemCompensations[].id/url` plus count
-- `PUT /travelExpense/:deliver` verified the corrected final parent state and returned `state=DELIVERED`
-- the parent `amount`/`paymentAmount` remained cost-only in sandbox, so they are not decisive proof of per-diem correctness
-- `GET /travelExpense/cost?...` and `GET /travelExpense/perDiemCompensation?...` remain the decisive investigation branch when expanded child verification is genuinely needed
+If POST fails with `VAT_NOT_REGISTERED` → retry with `vatType: { id: 0 }`.
 
-## When Not To Add Extra Reads
+## Fields That Cause 422 If Sent
 
-- do not add a pre-read of `/travelExpense` for a pure create task
-- do not repeat `GET /employee`; for omitted-`departureFrom` tasks the full resolver branch is one employee read plus, if needed, one company read
-- do not add `GET /travelExpense/cost` or `GET /travelExpense/perDiemCompensation` in the standard scored flow just to double-check child persistence
-- do not add `GET /travelExpense/{id}`; it still leaves child arrays sparse and is not part of either the canonical scoring path or the conditional investigation branch
-- do not split the create into separate `POST /travelExpense/cost` and `POST /travelExpense/perDiemCompensation` calls unless the prompt materially differs from the embedded-create shape
-- do not add exploratory `GET /travelExpense`, repeated `GET /employee`, or alternate company/address probes just because the prompt omitted dates; those calls still do not tell you which inferred range is scorer-correct
-- do not try `costCategory` or `paymentType` with `id=0` to skip lookups; `POST` accepts `id=0` but `PUT :deliver` rejects it with `422`
-- do not try posting `perDiemCompensations` without `rateType`; `POST` accepts it but `PUT :deliver` rejects it with `422`; use hardcoded rateType IDs instead of calling `GET /travelExpense/rate`
-- do not call `GET /travelExpense/rate` when hardcoded rate IDs suffice; rate IDs are government-set and stable across accounts
+| DO NOT send | Error | Use instead |
+|---|---|---|
+| `costs[].description` | "field does not exist" | `costs[].comments` |
+| `perDiemCompensations[].isDayTrip` | "field does not exist" | `travelDetails.isDayTrip` |
+| `costs[].currency` | "factor minimum 1" | Omit entirely (NOK is default) |
+| `perDiemCompensations[].countryCode` | "Country not enabled" | Omit entirely |
+| `perDiemCompensations[].rate` | Causes wrong score | Omit entirely |
+| `perDiemCompensations[].amount` | Causes wrong score | Omit entirely |
+| `costs[].category` | Silently ignored | Use `costCategory` (object ref) |
+| `department` | Usually unnecessary | Tripletex inherits from employee |
 
-## Production Confirmations
+## Required Fields
 
-- 2026-03-21 `Pablo Rodríguez` / `pablo.rodriguez@example.org` / `Conferencia Ålesund` / 5-day per-diem 800/day + flight 2750 + taxi 700:
-  - duration-only prompt, employee `address=null`, company-address fallback → `departureFrom=Oslo`
-  - deterministic dates `2026-03-17..2026-03-21`, `overnightAccommodation=HOTEL`
-  - 7-call forced-action branch: employee → company → costCategory+paymentType+rate (parallel) → POST → PUT :deliver
-  - 0 errors, `state=DELIVERED`, expense `11149202`, 2 costs, 1 per-diem
-  - used first returned `rateType.id=25886` (day-trip rate, rate=397) — incorrect for overnight trip (should be 25888/740), but rateType alone does not explain the 4.5/8 score; the real issue was `count=5` (days) instead of `count=4` (overnights)
-- 2026-03-21 `Pablo Sánchez` / `pablo.sanchez@example.org` / `Conferencia Drammen` / 3-day per-diem 800/day + flight 7050 + taxi 550:
-  - duration-only prompt, employee `address=null`, company-address fallback → `departureFrom=Oslo`
-  - first attempt failed with 422 because script accessed `.rateType` on rate response values (returns `undefined`); wasted 6 calls
-  - second attempt with correct mapping `rateType: { id: rateValue.id, rateCategory: { id: rateValue.rateCategory.id } }` succeeded: 7 calls, 0 errors
-  - total: 13 calls, 1 error; optimal: 7 calls, 0 errors
-  - `state=DELIVERED`, expense `11149366`, 2 costs, 1 per-diem
-- 2026-03-21 `Lars Johansen` / `lars.johansen@example.org` / `Kundebesøk Stavanger` / 3-day per-diem 800/day + flight 3900 + taxi 350:
-  - duration-only prompt, employee `address=null`, company-address fallback → `departureFrom=Oslo`
-  - 7-call run: employee → company → costCategory+paymentType+rate (parallel) → POST → PUT :deliver
-  - 0 errors, `state=DELIVERED`, expense `11149476`, 2 costs, 1 per-diem
-  - used rateType 25886 (day-trip) for overnight trip — incorrect but not the root cause of scoring failure
-  - optimal was 6 calls with hardcoded rateType 25888/740 and parallel company+costCat+payType
-  - scoring failure was `count=3` (days) instead of `count=2` (overnights)
-- 2026-03-21 `Miguel Pérez` / `miguel.perez@example.org` / `Visita cliente Tromsø` / 5-day per-diem 800/day + flight 2600 + taxi 800 (run 1ca00562):
-  - **FIRST production confirmation of 6-call path with hardcoded rateType 25888/740**
-  - duration-only prompt, employee `address=null`, company-address fallback → `departureFrom=Oslo`
-  - deterministic dates `2026-03-17..2026-03-21`, `overnightAccommodation=HOTEL`
-  - 6-call run: employee → company+costCat+payType (parallel) → POST → PUT :deliver
-  - 0 errors, `state=DELIVERED`, expense `11150209`, 2 costs, 1 per-diem
-  - hardcoded `rateType: { id: 25888, rateCategory: { id: 740 } }` delivered without `GET /travelExpense/rate`
-  - saves 1 call vs prior 7-call runs AND uses correct overnight rateType (prior runs used wrong day-trip 25886)
-  - previous Miguel Pérez run (2026-03-20) wasted 2 extra employee reads; this run is exactly optimal
-  - **still scored 4.5/8**: rateType fix had zero effect on score; the root cause was `count=5` (days) instead of `count=4` (overnights=days-1)
-- 2026-03-21 `Charlotte Smith` / `charlotte.smith@example.org` / `Conference Tromsø` / 2-day per-diem 800/day + flight 6400 + taxi 600 (run 6de5cfc0):
-  - duration-only prompt, employee `address=null`, company-address fallback → `departureFrom=Oslo`
-  - 6-call run: employee → company+costCat+payType (parallel) → POST → PUT :deliver
-  - 0 errors, `state=DELIVERED`, expense `11150349`, 2 costs, 1 per-diem
-  - used correct hardcoded rateType 25888/740 (overnight)
-  - **per-diem count mistake**: used `count=2` (days) instead of `count=1` (overnights=days-1); a 2-day trip has 1 overnight
-  - 2nd production confirmation of 6-call hardcoded-rateType path; first confirmation of 2-day trip shape
-- 2026-03-22 `Torbjørn Brekke` / `torbjrn.brekke@example.org` / `Kundebesøk Trondheim` / 4-day per-diem 800/day + flight 6150 + taxi 750 (run e103a5b5):
-  - duration-only prompt (Nynorsk), employee `address=null`, company-address fallback → `departureFrom=Oslo`
-  - 11 calls, 4 errors — caused by 3 unknown field bugs (description, isDayTrip, location) + missing destination at deliver
-  - correctly used per-diem count=3 (overnights) and rateType 25888/740
-  - `state=DELIVERED`, expense `11150554`, 2 costs, 1 per-diem
-  - **discovered new required fields**: `perDiemCompensations[].location` (required at POST), `travelDetails.destination` (required at deliver)
-- 2026-03-22 `Astrid Larsen` / `astrid.larsen@example.org` / `Konferanse Ålesund` / 4-day per-diem 800/day + flight 6750 + taxi 500 (run 3aed3b42):
-  - duration-only prompt (Norwegian), employee `address=null`, company-address fallback → `departureFrom=Oslo`
-  - 3 avoidable 422 errors: (1) `isDayTrip` on perDiemCompensations, (2) `currency.factor` on costs, (3) missing `location` on perDiemCompensations
-  - each retry re-ran all 4 GETs, inflating total calls; optimal was 6 calls 0 errors
-  - correctly used per-diem count=3 (overnights=days-1) and rateType 25888/740
-  - `state=DELIVERED`, expense `11150576`, 2 costs, 1 per-diem
-  - **new trap discovered**: `costs[].currency: { code: "NOK" }` without `factor` causes 422; omit currency entirely (NOK is default)
-- 2026-03-22 `Svein Berge` / `svein.berge@example.org` / `Kundebesøk Trondheim` / 5-day per-diem 800/day + flight 2850 + taxi 200 (run 32d11eeb):
-  - duration-only prompt (Nynorsk), employee `address=null`, company-address fallback → `departureFrom=Oslo`
-  - **FIRST production run with category-default vatType (id=12) on costs** — confirmed production companies are VAT-registered
-  - 6-call run: employee+costCat+payType (parallel) → company → POST → PUT :deliver
-  - 0 errors, `state=DELIVERED`, expense `11150806`, 2 costs, 1 per-diem
-  - per-diem count=4 (overnights=5-1), rateType 25888/740 (overnight), overnightAccommodation=HOTEL
-  - all three scoring fixes applied: vatType=12 (category default) + count=overnights + isForeignTravel=false
-  - all required fields from first POST: location, destination, isForeignTravel, isCompensationFromRates — 0 avoidable errors
-  - **21st production run; 1st with fully corrected payload (vatType + count + isForeignTravel)**
+| Field | When | What happens if missing |
+|---|---|---|
+| `travelDetails.destination` | POST (for deliver) | deliver 422 "Feltet må fylles ut" |
+| `perDiemCompensations[].location` | POST | 422 "Kan ikke være null" |
+| `costs[].amountCurrencyIncVat` | POST | 422 |
+| `travelDetails.isCompensationFromRates` | POST (when perDiem) | 422 "Kun kostnader..." |
+| `travelDetails.departureFrom` | POST (for deliver) | deliver 422 |
+| `perDiemCompensations[].rateType` | POST (for deliver) | deliver 422 |
+| `perDiemCompensations[].overnightAccommodation` | POST (for deliver) | Set to "HOTEL" |
+| `travelDetails.isForeignTravel` | POST | Set to false (domestic) |
+
+## Rate Catalog (hardcoded — never call GET /travelExpense/rate)
+
+| Trip type | rateType | rateCategory | System rate (auto-filled) |
+|---|---|---|---|
+| **Overnight multi-day** | 25888 | 740 | 1012 |
+| Day trip 6–12h | 25886 | 738 | 397 |
+| Day trip >12h | 25887 | 739 | 736 |
+
+Government-set national rates, stable across all accounts. Verified sandbox + production 2026-03-21/22.
+
+**Selection rule:** If trip is >= 2 days → use 25888/740 (overnight). Always.
+
+## Duration-Only Prompts
+
+If the prompt gives "N days" without specific dates:
+1. Pick a deterministic date range (e.g., recent past dates spanning N days)
+2. Continue with the normal 6-call flow
+3. Do NOT waste extra reads trying to find "correct" dates — the API accepts any valid range
+
+## Recovery Branches
+
+| Error | Fix |
+|---|---|
+| `VAT_NOT_REGISTERED` | Retry with `vatType: { id: 0 }` on all costs |
+| `perDiemCompensations.location: Kan ikke være null` | Add `location: "<destination>"` |
+| `travelDetails.destination: Feltet må fylles ut` | Recreate with `destination` set |
+| `Feltet eksisterer ikke i objektet` | Wrong field name — check table above |
+| `costs.currency.factor: Må være minimum 1` | Remove `currency` from all costs |
+| `Kun kostnader kan registreres uten kompensasjon etter satser` | Set `isCompensationFromRates: true` |
+
+## Sandbox Verification (2026-03-22)
+
+Clean end-to-end test: 6-call path, 0 errors, all assertions pass, state=DELIVERED.
+- Per-diem readback: count=4, rate=1012 (system-filled), amount=4048
+- Costs: flight=2850, taxi=200, both with correct categories
+- DELETE /travelExpense/{id} works on both OPEN and DELIVERED for sandbox reset

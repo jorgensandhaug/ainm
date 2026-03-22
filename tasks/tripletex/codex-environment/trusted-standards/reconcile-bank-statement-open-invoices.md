@@ -26,7 +26,7 @@ Parse locally. Classify lines:
 - **Incoming customer**: description contains customer name + invoice reference, `Inn` column populated
 - **Outgoing supplier**: description contains supplier name, `Ut` column populated (negative)
 - **Non-invoice**: bank fees, tax, interest — **MUST be booked** (see Step 5)
-- **Compute opening balance for Step 0**: `first_saldo - first_inn + first_ut` (e.g. 104200 - 4200 + 0 = 100000). This is the bank balance before the first CSV transaction.
+- **Compute opening balance for Step 0**: `first_saldo - first_inn + Math.abs(first_ut)` (e.g. 104200 - 4200 + 0 = 100000). Ut values are negative in production CSVs, so use `Math.abs`. This is the bank balance before the first CSV transaction.
 - **Closing balance for Step 8**: Use the CSV ending Saldo directly (last line's Saldo value). After posting the opening balance in Step 0, the ledger balance matches the CSV saldo.
 
 ## Optimal call flow (mixed incoming/outgoing, no supplier invoices — common case)
@@ -181,7 +181,7 @@ Required columns and structure:
 
 **Conversion rules from task CSV** (`Dato;Forklaring;Inn;Ut;Saldo`):
 - Dates: convert `YYYY-MM-DD` → `DD.MM.YYYY`
-- Amounts: convert period decimal to comma decimal; merge Inn/Ut into single Beløp (positive for Inn, negative for Ut)
+- Amounts: convert period decimal to comma decimal; merge Inn/Ut into single Beløp (positive for Inn, negative for Ut — Ut values are already negative in production CSVs, use directly)
 - Opening saldo: first CSV line's Saldo minus first transaction amount (e.g., `104200 - 4200 = 100000`)
 - Closing saldo: last CSV line's Saldo value
 - Metadata row dates: use first transaction date for Inngående, last for Utgående
@@ -190,7 +190,7 @@ Required columns and structure:
 function toSbankenBedriftCsv(csvLines: Array<{date: string, desc: string, inn: number, ut: number, saldo: number}>): string {
   const firstDate = csvLines[0].date.split("-").reverse().join(".");
   const lastDate = csvLines[csvLines.length - 1].date.split("-").reverse().join(".");
-  const openingSaldo = csvLines[0].saldo - csvLines[0].inn + csvLines[0].ut;
+  const openingSaldo = csvLines[0].saldo - csvLines[0].inn + Math.abs(csvLines[0].ut || 0);
   const closingSaldo = csvLines[csvLines.length - 1].saldo;
 
   const fmt = (n: number) => n.toFixed(2).replace(".", ",");
@@ -199,7 +199,7 @@ function toSbankenBedriftCsv(csvLines: Array<{date: string, desc: string, inn: n
   out += `"Bokført";"Rentedato";"Beskrivelse";"Beløp"\n`;
   for (const l of csvLines) {
     const d = l.date.split("-").reverse().join(".");
-    const amount = l.inn > 0 ? l.inn : -l.ut;
+    const amount = l.inn > 0 ? l.inn : l.ut;  // Ut is already negative in production CSVs
     out += `"${d}";"${d}";"${l.desc}";"${fmt(amount)}"\n`;
   }
   return out;
@@ -212,7 +212,7 @@ const importUrl = `${BASE}/bank/statement/import?bankId=112&accountId=${acct1920
 await fetch(importUrl, { method: "POST", headers: { Authorization: AUTH }, body: formData });
 ```
 
-**Key facts (sandbox-verified 2026-03-21)**:
+**Key facts (sandbox-verified 2026-03-21, production-shaped E2E verified 2026-03-22)**:
 - `POST /bank/statement/import` returns `201` with `{ value: { id, openingBalanceCurrency, closingBalanceCurrency, transactions: [...] } }`
 - All 10 CSV lines became 10 `BankStatementTransaction` entries with correct dates, descriptions, and amounts
 - Transactions have `matchType: "NO_MATCH"` and `matched: false` initially
@@ -318,7 +318,7 @@ await put(`bank/reconciliation/${recon.id}`, {
 
 ## Proven results
 
-**ALL completed production runs scored 0.6/6.** None included the full Steps 0+6+7+8. The full flow (opening balance + bank import + matching + close) was sandbox-verified END-TO-END on 2026-03-22: 11/11 matches, 0 errors, all verification checks passed (reconciliation closed, all txns matched, balance correct, invoices paid). Production test pending.
+**ALL completed production runs scored 0.6/6.** None included the full Steps 0+6+7+8. The full flow (opening balance + bank import + matching + close) was sandbox-verified END-TO-END on 2026-03-22: 11/11 matches, 0 errors, all verification checks passed. **Production-shaped E2E also verified on 2026-03-22** using exact CSV from production run 4edaedea (10 lines: 5 customer payments including 1 partial, 3 supplier payments with negative Ut, Bankgebyr Inn, Skattetrekk Inn): 10/10 matches, 0 errors, reconciliation closed, all bank txns `matched:true` with `matchType:ONE_TRANSACTION_TO_ONE_POSTING`, `groupedPostings` populated with voucher/customer/amount detail.
 
 - **Norwegian run (ac903481): 16 calls, 1 error (422), scored pending** — 3rd bank reconciliation attempt. 6 reads + 5 customer payments (all full: Moe AS ×2, Johansen AS, Nilsen AS ×2) + 1 combined voucher (10 postings: 3 supplier Ødegård/Moe/Hansen + 2 Bankgebyr Ut) + 1 failed recon (floating-point 3506.4300000000003 caused 422) + 1 redundant account re-read + 1 balance sheet read + 1 successful recon (closingBalance=3506.43). **Wasted 3 calls** due to floating-point precision bug. Optimal would have been 13 calls (or 14 with bank statement import). No bank statement import attempted.
 - **English run 11 (02daaa35): 13 calls, 0 errors, scored 0.6/6** — 2nd bank reconciliation attempt, optimal call count. 6 reads + 5 customer payments (4 full + 1 partial: Taylor Ltd 5156.25 of 10312.50) + 1 combined voucher (12 postings: 3 supplier payments Taylor+Taylor+Smith + 1 Renteinntekter Ut 1495.08 + 1 Skattetrekk Ut 1819.20 + 1 Skattetrekk Inn 1947.28) + 1 bank reconciliation (closingBalance=56951.75, Feb period). Used computed closing balance (no balance sheet fallback needed). **Confirms**: bank reconciliation alone does not affect the score.
@@ -341,6 +341,7 @@ await put(`bank/reconciliation/${recon.id}`, {
 - **RECONCILIATION MUST BE OPEN FOR MATCHING**: Create the reconciliation OPEN first (`isClosed: false`), create all matches, THEN close it in Step 8 via `PUT /bank/reconciliation/{id}` with `isClosed: true`.
 - **MUST GET FRESH RECON VERSION BEFORE CLOSE**: Each `POST /bank/reconciliation/match` increments the reconciliation version. You MUST `GET /bank/reconciliation/{id}?fields=*` to get the current version right before the close PUT, or it will fail with `409 Conflict`.
 - **SBANKEN CSV REQUIRES NORWEGIAN CHARS**: Headers must use `å`, `ø` (`Inngående`, `Utgående`, `Bokført`, `Beløp`). Without these chars the import returns `422`.
+- **SBANKEN CSV Ut SIGN**: Production CSVs have NEGATIVE Ut values (e.g., `-11600.00`). When converting to Sbanken Beløp, use `l.ut` directly (already negative). Do NOT negate: `-l.ut` would produce positive amounts for outgoing, breaking the match. Production-shaped E2E verified 2026-03-22.
 - **ROUND CLOSING BALANCE**: Always use `Math.round(saldo * 100) / 100` before sending to the API. Production run ac903481 had unrounded balance causing 422.
 - **USE CSV ending saldo as closing balance** (after posting opening balance in Step 0): `csvLines[csvLines.length - 1].saldo`. After Step 0, the ledger balance = openingBalance + net movements = CSV ending saldo.
 - **OPENING BALANCE VOUCHER REQUIRES ALL 4 AMOUNT FIELDS**: `amount`, `amountCurrency`, `amountGross`, `amountGrossCurrency` must ALL be set. Without `amountGross`/`amountGrossCurrency`, amounts are silently zeroed to 0.00.

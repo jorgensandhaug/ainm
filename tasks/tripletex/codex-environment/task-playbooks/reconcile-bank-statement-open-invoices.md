@@ -178,7 +178,7 @@ Key findings:
 - **total: 2 reads + N customer payments**
 
 ### Mixed incoming/outgoing runs (COMPLETE 9-step flow — sandbox-verified END-TO-END 2026-03-22)
-1. parse CSV locally — compute opening balance: `first_saldo - first_inn + first_ut` (e.g. 100000). Closing balance = last line's Saldo.
+1. parse CSV locally — compute opening balance: `first_saldo - first_inn + Math.abs(first_ut)` (e.g. 100000). Ut values are negative in production CSVs. Closing balance = last line's Saldo.
 2. fire all 6 reads in parallel:
    - `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,customer(*)`
    - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*)`
@@ -198,6 +198,7 @@ Key findings:
 - **ROUND closing balance** — `Math.round(saldo * 100) / 100`
 - **USE CSV ending saldo** as closing balance (after posting opening balance in Step 0)
 - **SBANKEN CSV MUST USE NORWEGIAN CHARS** (`å`, `ø`) — without them import returns 422
+- **SBANKEN CSV Ut VALUES ARE ALREADY NEGATIVE** — use `l.ut` directly for Beløp, do NOT negate
 
 ### Critical: do not split into multiple scripts or debug passes
 - write one comprehensive script that handles the complete flow
@@ -252,10 +253,11 @@ Sandbox-verified: voucher #609157175 with Renteinntekter Ut/8050 posted successf
 
 ## Pitfalls To Avoid
 
-- **ALL 4 STEPS REQUIRED FOR CHECK 1 (8 points)**: Step 0 (opening balance) + Step 6 (bank import) + Step 7 (match txns to postings via `POST /bank/reconciliation/match`) + Step 8 (close recon). Without matching, bank txns remain `NO_MATCH` and reconciliation has empty `transactions: []`. Matching requires `txn.amountCurrency === posting.amount` (same sign, same value) — mismatched amounts cause `422 "Summen av posteringer og transaksjoner er ikke lik null."`. Create recon OPEN first, create matches, THEN close. **Sandbox-verified END-TO-END 2026-03-22: 11/11 matches, 0 errors.**
+- **ALL 4 STEPS REQUIRED FOR CHECK 1 (8 points)**: Step 0 (opening balance) + Step 6 (bank import) + Step 7 (match txns to postings via `POST /bank/reconciliation/match`) + Step 8 (close recon). Without matching, bank txns remain `NO_MATCH` and reconciliation has empty `transactions: []`. Matching requires `txn.amountCurrency === posting.amount` (same sign, same value) — mismatched amounts cause `422 "Summen av posteringer og transaksjoner er ikke lik null."`. Create recon OPEN first, create matches, THEN close. **Sandbox-verified END-TO-END 2026-03-22: 11/11 matches, 0 errors. Production-shaped E2E also verified: 10/10 matches with real CSV (negative Ut, partial payment, mixed customer/supplier/non-invoice lines), reconciliation closed, all txns matched:true with groupedPostings.**
 - **IMPORT RESPONSE HAS INCOMPLETE FIELDS**: `POST /bank/statement/import` returns transaction objects but `amountCurrency` and `description` are `undefined`. You MUST fetch full details via `GET /bank/statement/transaction?bankStatementId=<id>&count=1000&fields=id,postedDate,amountCurrency,description`.
 - **MUST GET FRESH RECON VERSION BEFORE CLOSE**: Each `POST /bank/reconciliation/match` increments the reconciliation version. `GET /bank/reconciliation/{id}?fields=*` is required before `PUT close` to avoid `409 Conflict`.
 - **SBANKEN CSV MUST USE NORWEGIAN CHARS**: Headers must contain `Inngående`, `Utgående`, `Bokført`, `Beløp` (with `å` and `ø`). Without Norwegian chars the import returns `422 "Filen må inneholde følgende kolonner..."`. ALWAYS round: `Math.round(saldo * 100) / 100`.
+- **SBANKEN CSV Ut SIGN**: Production CSVs have NEGATIVE Ut values (e.g., `-11600.00`). When converting to Sbanken Beløp, use `l.ut` directly (already negative). Do NOT negate with `-l.ut` — that would produce positive amounts for outgoing, breaking the amount match in Step 7. Production-shaped E2E verified 2026-03-22: 10/10 matches with negative Ut values.
 - `/bank/reconciliation*` is NOT beta — the AGENTS.md claim that it is beta is WRONG for this task shape
 - `/incomingInvoice*` is beta-only; treat it as dead
 - unfiltered `/supplierInvoice` can be misleading (may return 0 even when supplier-filtered returns rows)

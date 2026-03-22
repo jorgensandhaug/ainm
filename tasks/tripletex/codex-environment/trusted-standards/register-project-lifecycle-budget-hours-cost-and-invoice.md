@@ -15,108 +15,214 @@
 - the prompt is really a fixed-price update/billing task rather than a fresh project-lifecycle create task
 - CRITICAL: if the prompt gives project name + customer org + PM email + fixed price + milestone % WITHOUT mentioning employees to create, hours to register, or supplier costs, use `set-project-fixed-price-and-invoice-partial-payment` instead
 
-## STOP — READ THIS FIRST
+## Script Template
 
-**Every production run (15 attempts) has scored 1.09/6 or worse because agents skip the 4 fields below.** The scoring system has 7 checks; checks 3-5 and 7 ALWAYS fail because agents omit these fields. Omitting ANY ONE of them fails the corresponding check. There are NO shortcuts. Do not optimize for call count at the expense of these fields. Copy the payload shapes EXACTLY — do not improvise.
+Copy-paste the script below. Replace only the `// PROMPT VALUES` block with values from the prompt. Do NOT modify payload shapes — they are sandbox-verified (2026-03-22, 39/39 checks, 0 errors).
 
-## CRITICAL CHECKLIST — 4 Fields That MUST Be Set (scored independently)
+```typescript
+// ── PROMPT VALUES (replace these from the prompt) ──────────────────
+const PROJECT_NAME = "ERP-implementering Havbris";     // from prompt
+const CUST_NAME    = "Havbris AS";                     // from prompt
+const CUST_ORG     = "851704027";                      // from prompt
+const BUDGET       = 418100;                           // from prompt
+const PM_FIRST     = "Sigurd";                         // from prompt
+const PM_LAST      = "Berg";                           // from prompt
+const PM_EMAIL     = "sigurd.berg@example.org";        // from prompt
+const PM_HOURS     = 75;                               // from prompt
+const CON_FIRST    = "Marte";                          // from prompt
+const CON_LAST     = "Johansen";                       // from prompt
+const CON_EMAIL    = "marte.johansen@example.org";     // from prompt
+const CON_HOURS    = 47;                               // from prompt
+const SUPP_NAME    = "Lysgård AS";                     // from prompt
+const SUPP_ORG     = "964716188";                      // from prompt
+const SUPP_COST    = 56200;                            // from prompt
+// ── END PROMPT VALUES ──────────────────────────────────────────────
 
-1. **`isFixedPrice: true` + `fixedprice: <budget>`** on POST /project — omitting these → project.fixedprice=0, check 3 FAILS
-2. **`budgetHours: <sum of all employees' hours>`** on POST /project/projectActivity — omitting this → budgetHours=0, check 3 FAILS
-3. **`POST /project/orderline`** with `unitCostCurrency: <supplier-cost>` — voucher alone does NOT populate project costs, check 5 FAILS
-4. **`adminAccess: true`** on POST /project/participant for the prompt-named project manager — omitting this → check 6 FAILS
+const TOTAL_HOURS = PM_HOURS + CON_HOURS;
+const TODAY = new Date().toISOString().slice(0, 10);
+const h = { "Content-Type": "application/json", Authorization: AUTH };
 
-Sandbox-verified 2026-03-22 (3 consecutive runs, all checks pass when all 4 fields present).
+async function get(path: string) {
+  const r = await fetch(`${BASE}${path}`, { headers: h });
+  const b = await r.json();
+  if (!r.ok) throw new Error(`GET ${path} ${r.status}: ${JSON.stringify(b).slice(0, 200)}`);
+  return b;
+}
+async function post(path: string, body: any) {
+  const r = await fetch(`${BASE}${path}`, { method: "POST", headers: h, body: JSON.stringify(body) });
+  const b = await r.json();
+  if (!r.ok) throw new Error(`POST ${path} ${r.status}: ${JSON.stringify(b).slice(0, 200)}`);
+  return b;
+}
+async function put(path: string, body: any) {
+  const r = await fetch(`${BASE}${path}`, { method: "PUT", headers: h, body: JSON.stringify(body) });
+  const b = await r.json();
+  if (!r.ok) throw new Error(`PUT ${path} ${r.status}: ${JSON.stringify(b).slice(0, 200)}`);
+  return b;
+}
 
-## Standard Flow (15 calls, 5 sequential steps, 0 errors)
+function splitHours(total: number, start: string): { date: string; hours: number }[] {
+  const [y, m, d] = start.split("-").map(Number);
+  const out: { date: string; hours: number }[] = [];
+  let rem = total, off = 0;
+  while (rem > 0) {
+    const hrs = Math.min(rem, 7.5);
+    out.push({ date: new Date(Date.UTC(y, m - 1, d + off)).toISOString().slice(0, 10), hours: hrs });
+    rem -= hrs; off++;
+  }
+  return out;
+}
 
-1. `GET /department?isInactive=false&count=1&fields=*` + `POST /customer` + `GET /employee?assignableProjectManagers=true&count=1&fields=*` + `GET /ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber` + `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` + `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` (6 parallel — frontload ALL reads)
-2. `POST /employee/list` (both employees in one batch) + `POST /project` with `isFixedPrice: true` + `fixedprice` + (if 1920 lacks `bankAccountNumber`: `PUT /ledger/account/{id}` with `"12345678903"`) (2-3 parallel)
-3. `POST /project/projectActivity` with `budgetHours` + `POST /project/participant/list` (both participants in one batch — PM `adminAccess: true`, other `adminAccess: false`) (2 parallel)
-4. `POST /timesheet/entry/list` + `POST /supplier` + `POST /project/orderline` (3 parallel)
-5. `POST /ledger/voucher` + `POST /invoice?sendToCustomer=false` (2 parallel — voucher and invoice are independent)
+async function main() {
+  // ═══════════════════════════════════════════════════════════════
+  // STEP 1: Frontload ALL reads + create customer  (6 parallel)
+  // ═══════════════════════════════════════════════════════════════
+  const [dept, pm, acct, vt, vat, cust] = await Promise.all([
+    get("/department?isInactive=false&count=1&fields=*"),
+    get("/employee?assignableProjectManagers=true&count=1&fields=*"),
+    get("/ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber"),
+    get("/ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name"),
+    get("/ledger/vatType?typeOfVat=OUTGOING&vatDate=" + TODAY + "&fields=id,name,percentage"),
+    post("/customer", { name: CUST_NAME, organizationNumber: CUST_ORG, isCustomer: true }),
+  ]);
+  const deptId  = dept.values[0].id;
+  const pmAssId = pm.values[0].id;   // account owner — only assignable PM
+  const a1920   = acct.values.find((a: any) => a.number === 1920);
+  const a6590   = acct.values.find((a: any) => a.number === 6590);
+  const a2400   = acct.values.find((a: any) => a.number === 2400);
+  const vtId    = vt.values[0].id;   // NEVER hardcode — environment-specific
+  const vatId   = vat.values[0].id;
+  const custId  = cust.value.id;
 
-## Payload Shapes
+  // ═══════════════════════════════════════════════════════════════
+  // STEP 2: Batch employees + project  (2-3 parallel)
+  //   CRITICAL: isFixedPrice + fixedprice on project
+  //   CRITICAL: NO employments[] on employees
+  // ═══════════════════════════════════════════════════════════════
+  const s2: Promise<any>[] = [
+    post("/employee/list", [
+      { firstName: PM_FIRST,  lastName: PM_LAST,  email: PM_EMAIL,  dateOfBirth: "1988-01-01", userType: "NO_ACCESS", department: { id: deptId } },
+      { firstName: CON_FIRST, lastName: CON_LAST, email: CON_EMAIL, dateOfBirth: "1992-01-01", userType: "NO_ACCESS", department: { id: deptId } },
+    ]),
+    post("/project", {
+      name: PROJECT_NAME,
+      startDate: TODAY,
+      customer: { id: custId },
+      projectManager: { id: pmAssId },
+      isFixedPrice: true,       // ← CRITICAL — omitting = check 3 FAILS
+      fixedprice: BUDGET,       // ← CRITICAL — omitting = check 3 FAILS
+    }),
+  ];
+  if (a1920 && !a1920.bankAccountNumber) {
+    s2.push(put(`/ledger/account/${a1920.id}`, { ...a1920, bankAccountNumber: "12345678903" }));
+  }
+  const [emps, proj] = await Promise.all(s2);
+  const e1 = emps.values[0].id;  // PM employee
+  const e2 = emps.values[1].id;  // consultant employee
+  const pId = proj.value.id;
 
-### Employees (POST /employee/list) — batch both in ONE call, NO `employments[]`
-```json
-[
-  { "firstName": "X", "lastName": "Y", "email": "x@example.org", "dateOfBirth": "1990-01-01", "userType": "NO_ACCESS", "department": { "id": "<deptId>" } },
-  { "firstName": "A", "lastName": "B", "email": "a@example.org", "dateOfBirth": "1992-06-15", "userType": "NO_ACCESS", "department": { "id": "<deptId>" } }
-]
+  // ═══════════════════════════════════════════════════════════════
+  // STEP 3: Activity + participants  (2 parallel)
+  //   CRITICAL: budgetHours on activity
+  //   CRITICAL: adminAccess: true on PM participant
+  // ═══════════════════════════════════════════════════════════════
+  const [act, parts] = await Promise.all([
+    post("/project/projectActivity", {
+      project: { id: pId },
+      startDate: TODAY,
+      budgetHours: TOTAL_HOURS,  // ← CRITICAL — omitting = check 3 FAILS
+      budgetFeeCurrency: BUDGET,
+      activity: {
+        name: "Prosjektaktivitet",
+        activityType: "PROJECT_SPECIFIC_ACTIVITY",
+        isChargeable: false,     // MUST be inside activity{}, NOT on root
+      },
+    }),
+    post("/project/participant/list", [
+      { project: { id: pId }, employee: { id: e1 }, adminAccess: true },   // ← CRITICAL: PM = true
+      { project: { id: pId }, employee: { id: e2 }, adminAccess: false },
+    ]),
+  ]);
+  const actId = act.value.activity.id;
+
+  // ═══════════════════════════════════════════════════════════════
+  // STEP 4: Timesheet + supplier + orderline  (3 parallel)
+  //   CRITICAL: POST /project/orderline — voucher alone = check 5 FAILS
+  // ═══════════════════════════════════════════════════════════════
+  const ts1 = splitHours(PM_HOURS, TODAY).map(e => ({
+    employee: { id: e1 }, project: { id: pId }, activity: { id: actId }, date: e.date, hours: e.hours,
+  }));
+  const ts2 = splitHours(CON_HOURS, TODAY).map(e => ({
+    employee: { id: e2 }, project: { id: pId }, activity: { id: actId }, date: e.date, hours: e.hours,
+  }));
+  const [ts, supp, ol] = await Promise.all([
+    post("/timesheet/entry/list", [...ts1, ...ts2]),
+    post("/supplier", { name: SUPP_NAME, organizationNumber: SUPP_ORG, isSupplier: true }),
+    post("/project/orderline", {             // ← CRITICAL — this call is REQUIRED
+      project: { id: pId },
+      description: "Leverandørkostnad",
+      date: TODAY,
+      count: 1,
+      unitCostCurrency: SUPP_COST,           // ← CRITICAL — populates project costs
+      isChargeable: false,
+    }),
+  ]);
+  const sId = supp.value.id;
+
+  // ═══════════════════════════════════════════════════════════════
+  // STEP 5: Voucher + invoice  (2 parallel)
+  // ═══════════════════════════════════════════════════════════════
+  const dd = new Date(Date.UTC(+TODAY.slice(0,4), +TODAY.slice(5,7)-1, +TODAY.slice(8,10)+14)).toISOString().slice(0,10);
+  await Promise.all([
+    post("/ledger/voucher", {
+      date: TODAY, description: "Leverandørkostnad", voucherType: { id: vtId },
+      postings: [
+        { row: 1, date: TODAY, description: "Leverandørkostnad", account: { id: a6590!.id },
+          amount: SUPP_COST, amountCurrency: SUPP_COST, amountGross: SUPP_COST, amountGrossCurrency: SUPP_COST,
+          project: { id: pId } },
+        { row: 2, date: TODAY, description: "Leverandørgjeld", account: { id: a2400!.id },
+          amount: -SUPP_COST, amountCurrency: -SUPP_COST, amountGross: -SUPP_COST, amountGrossCurrency: -SUPP_COST,
+          supplier: { id: sId } },
+      ],
+    }),
+    post("/invoice?sendToCustomer=false", {
+      invoiceDate: TODAY, invoiceDueDate: dd, customer: { id: custId },
+      orders: [{
+        customer: { id: custId },
+        project: { id: pId },   // ← project goes HERE on orders[], NOT inside orderLines[]
+        orderDate: TODAY, deliveryDate: TODAY,
+        orderLines: [{
+          description: PROJECT_NAME,
+          count: 1,
+          unitPriceExcludingVatCurrency: BUDGET,
+          vatType: { id: vatId },
+        }],
+      }],
+    }),
+  ]);
+}
+
+main().catch(e => { console.error("FATAL:", e.message); process.exit(1); });
 ```
-- returns `{ values: [emp1, emp2] }` — use `values[0].id` and `values[1].id`
-- saves 1 call vs two separate POST /employee
-
-### Project (POST /project)
-```json
-{ "name": "<project name>", "startDate": "<today>", "customer": { "id": "<custId>" }, "projectManager": { "id": "<assignablePmId>" }, "isFixedPrice": true, "fixedprice": "<budget>" }
-```
-
-### Project Activity (POST /project/projectActivity)
-```json
-{ "project": { "id": "<projId>" }, "startDate": "<today>", "budgetHours": "<sum of all hours>", "budgetFeeCurrency": "<budget>", "activity": { "name": "Prosjektaktivitet", "activityType": "PROJECT_SPECIFIC_ACTIVITY", "isChargeable": false } }
-```
-- `isChargeable` MUST be inside `activity`, NOT on root (root → 422)
-- both `name` and `activityType` are mandatory (omitting either → 422)
-
-### Timesheet (POST /timesheet/entry/list)
-- split totals > 24h into consecutive dates (max 7.5h/entry recommended, 24h hard max)
-- all dates >= project `startDate`
-- CRITICAL: use `new Date(Date.UTC(y, m-1, d))` for date arithmetic — `new Date(str + "T00:00:00")` shifts dates in CET/CEST
-```json
-[{ "employee": { "id": "<empId>" }, "project": { "id": "<projId>" }, "activity": { "id": "<actId>" }, "date": "<date>", "hours": 7.5 }]
-```
-
-### Project Participants (POST /project/participant/list) — batch both in ONE call
-```json
-[
-  { "project": { "id": "<projId>" }, "employee": { "id": "<pmEmpId>" }, "adminAccess": true },
-  { "project": { "id": "<projId>" }, "employee": { "id": "<otherEmpId>" }, "adminAccess": false }
-]
-```
-- PM employee: `adminAccess: true`; other: `adminAccess: false`
-- returns `{ values: [part1, part2] }` — saves 1 call vs two separate POST /project/participant
-
-### Supplier Cost — Orderline (POST /project/orderline)
-```json
-{ "project": { "id": "<projId>" }, "description": "Leverandørkostnad", "date": "<today>", "count": 1, "unitCostCurrency": "<cost>", "isChargeable": false }
-```
-
-### Supplier Cost — Voucher (POST /ledger/voucher)
-```json
-{ "date": "<today>", "description": "Leverandørkostnad", "voucherType": { "id": "<lookedUpId>" },
-  "postings": [
-    { "row": 1, "date": "<today>", "description": "Leverandørkostnad", "account": { "id": "<6590id>" }, "amount": "<cost>", "amountCurrency": "<cost>", "amountGross": "<cost>", "amountGrossCurrency": "<cost>", "project": { "id": "<projId>" } },
-    { "row": 2, "date": "<today>", "description": "Leverandørgjeld", "account": { "id": "<2400id>" }, "amount": "-<cost>", "amountCurrency": "-<cost>", "amountGross": "-<cost>", "amountGrossCurrency": "-<cost>", "supplier": { "id": "<suppId>" } }
-  ] }
-```
-- MUST include `row: 1` / `row: 2` — omitting row → 422
-- voucherType ID is environment-specific — NEVER hardcode, always use GET result
-- BOTH orderline AND voucher are needed: orderline for project costs, voucher for accounting + supplier linkage
-
-### Invoice (POST /invoice?sendToCustomer=false)
-```json
-{ "invoiceDate": "<today>", "invoiceDueDate": "<today+14d>", "customer": { "id": "<custId>" },
-  "orders": [{ "customer": { "id": "<custId>" }, "project": { "id": "<projId>" }, "orderDate": "<today>", "deliveryDate": "<today>",
-    "orderLines": [{ "description": "<project name>", "count": 1, "unitPriceExcludingVatCurrency": "<budget>", "vatType": { "id": "<vatTypeId>" } }]
-  }] }
-```
-- `invoiceDueDate` is mandatory (omitting → 422)
-- `project` goes on `orders[]`, NOT inside `orderLines[]`
 
 ## Recovery
+
+If a step fails, handle these known cases:
 - no department → `POST /department` with `{ "name": "Avdeling" }` (+1 call)
 - account 1920 missing → `GET /ledger/account?isBankAccount=true&fields=*` (+1 call)
-- bank account lacks number → `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (MOD11-valid)
-- PM constraint: only account owner can be `projectManager`; use generic assignable PM, add prompt-named PM as participant with `adminAccess: true`
+- bank account lacks number → already handled in step 2 (PUT with `"12345678903"`, MOD11-valid)
+- PM constraint: only account owner can be `projectManager`; already handled (use assignable PM from step 1, add prompt-named PM as participant with `adminAccess: true` in step 3)
 
 ## Do NOT
-- include `employments[]` on employees (avoids division/startDate traps, saves GET /division)
-- use two separate `POST /employee` calls — use `POST /employee/list` batch (saves 1 call)
-- use two separate `POST /project/participant` calls — use `POST /project/participant/list` batch (saves 1 call)
-- use `POST /supplierInvoice` (no POST method in spec)
-- use individual `POST /timesheet/entry` (use batch /list)
-- use `POST /order` + `PUT /order/:invoice` (use direct POST /invoice)
-- use two separate GET /ledger/account reads (combine into `number=1920,6590,2400`)
-- use `bankAccountNumber: "12345678901"` (not MOD11-valid; use `"12345678903"`)
+- include `employments[]` on employees — causes division/startDate 422 traps
+- use two separate `POST /employee` — use batch `/list`
+- use two separate `POST /project/participant` — use batch `/list`
+- use `POST /supplierInvoice` — no POST method exists
+- skip `POST /project/orderline` — voucher alone does NOT populate project costs
+- put `isChargeable` on projectActivity root — must be inside `activity{}`
+- put `project` inside `orderLines[]` — must be on `orders[]`
+- hardcode voucherType ID — always use GET result
+- use `new Date(str + "T00:00:00")` — shifts in CET/CEST; use `Date.UTC()`
+- use `bankAccountNumber: "12345678901"` — not MOD11-valid; use `"12345678903"`
+- omit `row: 1` / `row: 2` on voucher postings — causes 422
+- omit `invoiceDueDate` on invoice — causes 422
