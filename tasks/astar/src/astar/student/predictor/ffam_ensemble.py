@@ -41,6 +41,8 @@ class FFAMEnsembleConfig(BaseModel):
     policy_name: str = "exploration_r3"
     samples_per_round: int = Field(default=6, ge=1)
     probability_floor: float = Field(default=0.0003, gt=0.0, lt=1.0)
+    adaptive_blend: bool = False
+    adaptive_scale: float = Field(default=1.0, ge=0.0)
 
 
 FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
@@ -133,6 +135,31 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         knn_model="ffam_knn_v1",
         mode_weight=0.95,
     ),
+    # v15-v17: Adaptive blending (more kNN where mode is uncertain)
+    "ffam_ensemble_v15": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v15",
+        mode_model="ffam_mode_v248",  # 4c + 3-seed MLP
+        knn_model="ffam_knn_v1",
+        mode_weight=0.90,
+        adaptive_blend=True,
+        adaptive_scale=1.0,
+    ),
+    "ffam_ensemble_v16": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v16",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=0.5,
+    ),
+    "ffam_ensemble_v17": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v17",
+        mode_model="ffam_mode_v234",  # 4c without multi-seed
+        knn_model="ffam_knn_v1",
+        mode_weight=0.90,
+        adaptive_blend=True,
+        adaptive_scale=1.0,
+    ),
 }
 
 
@@ -189,6 +216,8 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
     knn_predictor: FFAMKNNPredictor
     mode_weight: float = Field(default=0.85, ge=0.0, le=1.0)
     probability_floor: float = Field(default=0.0003, gt=0.0, lt=1.0)
+    adaptive_blend: bool = False
+    adaptive_scale: float = Field(default=1.0, ge=0.0)
 
     @classmethod
     def fit_named_from_workspace(
@@ -228,7 +257,34 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
             knn_predictor=knn_predictor,
             mode_weight=config.mode_weight,
             probability_floor=config.probability_floor,
+            adaptive_blend=config.adaptive_blend,
+            adaptive_scale=config.adaptive_scale,
         )
+
+    def _blend_predictions(
+        self,
+        mode_pred: np.ndarray,
+        knn_pred: np.ndarray,
+    ) -> np.ndarray:
+        if not self.adaptive_blend:
+            return self.mode_weight * mode_pred + (1.0 - self.mode_weight) * knn_pred
+
+        # Adaptive blending: where mode prediction is less confident, use more kNN
+        mode_entropy = -np.sum(
+            mode_pred * np.log(np.clip(mode_pred, 1e-10, 1.0)),
+            axis=-1, keepdims=True,
+        ) / np.log(6.0)  # normalized to [0, 1]
+
+        # Higher entropy → lower confidence → more kNN weight
+        # effective_mode_weight = mode_weight + (1 - mode_weight) * (1 - entropy * scale)
+        # When entropy=0 (confident): weight = 1.0
+        # When entropy=1 (uncertain): weight = mode_weight
+        effective_mode_weight = np.clip(
+            self.mode_weight + (1.0 - self.mode_weight) * (1.0 - self.adaptive_scale * mode_entropy),
+            0.5,
+            1.0,
+        )
+        return effective_mode_weight * mode_pred + (1.0 - effective_mode_weight) * knn_pred
 
     def build_prediction_bundle_from_context(
         self,
@@ -241,7 +297,7 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
         for seed_index in mode_bundle.predictions_by_seed:
             mode_pred = np.asarray(mode_bundle.predictions_by_seed[seed_index], dtype=np.float64)
             knn_pred = np.asarray(knn_bundle.predictions_by_seed[seed_index], dtype=np.float64)
-            combined = self.mode_weight * mode_pred + (1.0 - self.mode_weight) * knn_pred
+            combined = self._blend_predictions(mode_pred, knn_pred)
             blended[seed_index] = apply_probability_floor(combined, self.probability_floor)
 
         return PredictionBundle(
@@ -263,7 +319,7 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
         for seed_index in mode_bundle.predictions_by_seed:
             mode_pred = np.asarray(mode_bundle.predictions_by_seed[seed_index], dtype=np.float64)
             knn_pred = np.asarray(knn_bundle.predictions_by_seed[seed_index], dtype=np.float64)
-            combined = self.mode_weight * mode_pred + (1.0 - self.mode_weight) * knn_pred
+            combined = self._blend_predictions(mode_pred, knn_pred)
             blended[seed_index] = apply_probability_floor(combined, self.probability_floor)
 
         return PredictionBundle(
@@ -280,6 +336,8 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
             "name": self.name,
             "mode_weight": self.mode_weight,
             "probability_floor": self.probability_floor,
+            "adaptive_blend": self.adaptive_blend,
+            "adaptive_scale": self.adaptive_scale,
             "mode_checkpoint_path": str(mode_cp),
             "knn_checkpoint_path": str(knn_cp),
         }
@@ -297,4 +355,6 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
             knn_predictor=knn_predictor,
             mode_weight=meta["mode_weight"],
             probability_floor=meta["probability_floor"],
+            adaptive_blend=meta.get("adaptive_blend", False),
+            adaptive_scale=meta.get("adaptive_scale", 1.0),
         )
