@@ -29,9 +29,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from agent4_gt_evidence_model import _build_evidence, _coverage_mask, _neighbor_sum_2d
 
 
-def _api_call(method, endpoint, data=None):
-    """Make API call via urllib (pure Python, no subprocess/curl needed)."""
+def _api_call(method, endpoint, data=None, max_retries=4, backoff=0.5):
+    """Make API call via urllib with retry on 429 / transient errors."""
     import urllib.request
+    import urllib.error
     import ssl
 
     base_url = os.environ.get("ASTAR_BASE_URL", "https://api.ainm.no/astar-island")
@@ -56,10 +57,31 @@ def _api_call(method, endpoint, data=None):
     if data is not None:
         body = json.dumps(data).encode("utf-8")
 
-    req = urllib.request.Request(url, data=body, headers=headers, method=method)
     ctx = ssl.create_default_context()
-    with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    last_err = None
+    for attempt in range(max_retries + 1):
+        try:
+            req = urllib.request.Request(url, data=body, headers=headers, method=method)
+            with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < max_retries:
+                retry_after = e.headers.get("Retry-After")
+                delay = float(retry_after) if retry_after else backoff * (2 ** attempt)
+                print(f"  Rate limited (429), retrying in {delay:.1f}s...")
+                time.sleep(delay)
+                last_err = e
+                continue
+            raise
+        except (urllib.error.URLError, OSError) as e:
+            if attempt < max_retries:
+                delay = backoff * (2 ** attempt)
+                print(f"  Network error: {e}, retrying in {delay:.1f}s...")
+                time.sleep(delay)
+                last_err = e
+                continue
+            raise
+    raise last_err  # type: ignore[misc]
 
 
 def _get_coverage_queries(h, w, max_viewport=15):
@@ -418,30 +440,38 @@ def _build_crossseed_features_local(all_seeds_replay_data, current_seed, serve_e
 
 
 def _assemble_viewport_evidence(obs_list, h, w):
-    """Assemble viewport observations into full-map evidence."""
-    # Each observation has 'viewport' with grid and settlements
-    grids = []
+    """Assemble viewport observations into full-map evidence.
+
+    Creates ONE composite grid by pasting all viewports into a single full-map
+    grid. Each /simulate call uses a different sim seed, so each viewport is an
+    independent stochastic outcome. For non-overlapping coverage viewports this
+    gives correct per-cell class data. For overlapping viewports the last
+    viewport's data wins at each overlapping cell.
+
+    The previous implementation created a SEPARATE full-map grid per viewport
+    (zeros elsewhere), then _build_evidence averaged across all grids. This
+    diluted class frequencies by factor N at cells covered by only 1 viewport
+    and inflated class-0 (empty) from the zero fill.
+    """
+    composite_grid = np.zeros((h, w), dtype=np.int64)
     setts_list = []
     for obs in obs_list:
-        # Create full-map grid with viewport pasted in
         vp = obs.get("viewport", obs)
         vx = vp.get("viewport_x", 0)
         vy = vp.get("viewport_y", 0)
         vgrid = vp.get("grid", [])
         vsetts = vp.get("settlements", [])
 
-        full_grid = np.zeros((h, w), dtype=np.int64)
         vh = len(vgrid)
         vw = len(vgrid[0]) if vgrid else 0
         for dy in range(vh):
             for dx in range(vw):
                 if vy + dy < h and vx + dx < w:
-                    full_grid[vy + dy, vx + dx] = vgrid[dy][dx]
+                    composite_grid[vy + dy, vx + dx] = vgrid[dy][dx]
 
-        grids.append(full_grid)
         setts_list.append(vsetts)
 
-    return grids, setts_list
+    return [composite_grid], setts_list
 
 
 def _build_observation_mask(obs_list, h, w):
@@ -465,7 +495,7 @@ def _build_crossseed_from_observations(observations, current_seed, h, w, nc=6):
     feats = []
     class_counts = np.zeros(nc, dtype=np.float64)
     total_cells = 0
-    all_pop, all_food, all_wealth = [], [], []
+    all_pop, all_food, all_wealth, all_def = [], [], [], []
     alive_total, dead_total, port_total = 0, 0, 0
     owners = set()
     n_other_seeds = 0
@@ -489,6 +519,7 @@ def _build_crossseed_from_observations(observations, current_seed, h, w, nc=6):
                     all_pop.append(float(s.get("population", 0)))
                     all_food.append(float(s.get("food", 0)))
                     all_wealth.append(float(s.get("wealth", 0)))
+                    all_def.append(float(s.get("defense", 0)))
                     if s.get("has_port", False):
                         port_total += 1
                     owners.add(s.get("owner_id", 0))
@@ -507,7 +538,7 @@ def _build_crossseed_from_observations(observations, current_seed, h, w, nc=6):
         np.mean(all_pop) / 5.0 if all_pop else 0.0,
         np.mean(all_food) / 2.0 if all_food else 0.0,
         np.mean(all_wealth) / 2.0 if all_wealth else 0.0,
-        0.0,  # defense not critical
+        np.mean(all_def) if all_def else 0.0,
         np.std(all_pop) / 3.0 if len(all_pop) > 1 else 0.0,
         np.std(all_food) if len(all_food) > 1 else 0.0,
         alive_total / max(n_other_seeds, 1) / 60.0,
