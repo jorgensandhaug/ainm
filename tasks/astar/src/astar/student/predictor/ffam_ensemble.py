@@ -98,6 +98,20 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         knn_model="ffam_knn_v1",
         mode_weight=0.95,
     ),
+    # v10: Try different kNN component
+    "ffam_ensemble_v10": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v10",
+        mode_model="ffam_mode_v234",  # 4 clusters
+        knn_model="ffam_knn_v1",
+        mode_weight=0.97,
+    ),
+    # v11: 4-cluster mode + 3% kNN (finer blend for the best mode)
+    "ffam_ensemble_v11": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v11",
+        mode_model="ffam_mode_v234",  # 4 clusters
+        knn_model="ffam_knn_v1",
+        mode_weight=0.93,
+    ),
 }
 
 
