@@ -53,6 +53,7 @@ The receipts show "herav MVA 25%: X" which means "of which VAT = X" — the VAT 
 | Tastatur 6900 | **6900** | ~~6900 × 1.25 = 8625~~ (WRONG, failed Check 3 in production) |
 | Togbillett 8750 | **8750** | ~~8750 × 1.12 = 9800~~ |
 | Kontorstoler 10800 | **10800** | ~~10800 × 1.25 = 13500~~ |
+| Kontorstoler 3000 | **3000** | ~~3000 × 1.25 = 3750~~ |
 | Kaffemøte 6600 | **6600** | ~~6600 × 1.25 = 8250~~ |
 | Forretningslunsj 13650 | **13650** | ~~13650 × 1.25 = 17062.50~~ |
 
@@ -263,3 +264,4 @@ All 4 branches verified end-to-end with GROSS interpretation (line amount direct
 | 67d4ddca | C (Overnatting) | ? | 0/10 | Missing sendToLedger |
 | 1519c2a7 | C (Togbillett) | ? | 0/10 | Missing sendToLedger |
 | 70014f3c | A (Forretningslunsj 13200) | 13200 | **pending** | Clean run: 0 errors, 3 writes, all checks verified |
+| 822ad6b6 | B (Kontorstoler 3000) | — | **blocked** | Expired proxy token (403) before any API call; script was correct |
