@@ -44,7 +44,7 @@
   - one positive posting on account `1500`
   - `customer: { "id": ... }` on that `1500` posting
   - one negative posting on account `3400`
-  - `currency: { "id": 1 }`
+  - do NOT include `currency` at the voucher level — VoucherDTO has no `currency` field; sandbox-verified on `2026-03-22`: voucher-level `currency: { id: 1 }` fails `422 Feltet eksisterer ikke i objektet`; `currency` is a PostingDTO field but is optional and can be omitted entirely (both posting-level and omitted-entirely succeed `201`)
   - `amount`, `amountCurrency`, `amountGross`, and `amountGrossCurrency` all set to the prompt fee amount / negative prompt fee amount
   - explicit `row: 1` on the first posting and `row: 2` on the second posting; omitting `row` defaults to row 0 which is system-generated, causing `422 Posteringene på rad 0 (guiRow 0) er systemgenererte` — sandbox-verified as consistent, not account-specific
 - on the fee-invoice `POST /invoice`, create one direct order line for the prompt fee amount using `orders[].orderLines[]` — the order line goes **inside** an order object within the `orders` array, not as a top-level `orderLines` field on the invoice; the invoice must include `orders[{ customer, orderDate, deliveryDate, orderLines: [...] }]`; using `orders: []` with top-level `orderLines: [...]` fails `422 orders: Listen kan ikke være tom.` — sandbox-verified on `2026-03-21` and hit in production run `ba977073`
@@ -232,4 +232,16 @@ These verification GETs catch silent failures and provide diagnostic data for de
   - payment type `39752986`
   - payment reduced outstanding from `36812.5` to `31812.5`
   - 12th production confirmation of the `6`-call path; first `nn`+`65` combination; now verified across `nb`, `nn`, `en`, `es`, `pt`, `de`, and `fr` prompts with fee amounts `35`, `40`, `50`, `60`, `65`, `70`
-- the `6`-call path is confirmed across 12 clean production runs + 1 blocked run and multiple sandbox proofs on `2026-03-21` and `2026-03-22`; no `5`-call standalone path exists
+- production proof on `2026-03-22` (`prod-2026-03-22-105224979Z-f1046aaf`) hit the `currency` on voucher-level trap, requiring 7 write-path calls (1 wasted 422):
+  - overdue invoice `#1` (`id=2147696691`), customer `108585789` (Blueshore Ltd), outstanding `31625`, due `2026-02-13`
+  - first `POST /ledger/voucher` with `currency: { id: 1 }` at voucher level failed `422 currency: Feltet eksisterer ikke i objektet`; retry without `currency` succeeded as voucher `#1` (`id=609406195`)
+  - fee invoice `#4` (`id=2147696882`, amount `55`)
+  - payment type `39751124`
+  - payment reduced outstanding from `31625` to `26625`
+  - **fix**: `currency` is a PostingDTO field, NOT a VoucherDTO field; the trusted standard's ambiguous `currency: { "id": 1 }` bullet was at voucher-level indentation, causing agents to place it on the voucher body; sandbox-verified `2026-03-22`: voucher-level fails 422, posting-level works 201, omitted entirely works 201; safest path is to omit `currency` entirely
+- sandbox verification on `2026-03-22` tested all three `currency` placements:
+  - `currency: { id: 1 }` at voucher level: `422 Feltet eksisterer ikke i objektet`
+  - `currency: { id: 1 }` on each posting: `201` (works)
+  - no `currency` anywhere: `201` (works)
+  - conclusion: `currency` on PostingDTO is optional; omitting it is safest and avoids the voucher-level misplacement trap
+- the `6`-call path is confirmed across 12 clean production runs + 1 currency-trap run + 1 blocked run and multiple sandbox proofs on `2026-03-21` and `2026-03-22`; no `5`-call standalone path exists

@@ -108,7 +108,6 @@ Voucher:
       "description": "Manual reminder fee 180",
       "account": { "id": 424190806 },
       "customer": { "id": 108334046 },
-      "currency": { "id": 1 },
       "amount": 35,
       "amountCurrency": 35,
       "amountGross": 35,
@@ -119,7 +118,6 @@ Voucher:
       "date": "2026-03-21",
       "description": "Manual reminder fee 180",
       "account": { "id": 424191002 },
-      "currency": { "id": 1 },
       "amount": -35,
       "amountCurrency": -35,
       "amountGross": -35,
@@ -158,6 +156,7 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
 
 ## Pitfalls
 
+- Do NOT include `currency` at the voucher level — VoucherDTO has no `currency` field; `currency: { id: 1 }` at voucher level fails `422 Feltet eksisterer ikke i objektet`; `currency` is a PostingDTO field but is optional and can be omitted entirely (sandbox-verified `2026-03-22`); production run `f1046aaf` hit this trap due to ambiguous trusted-standard wording
 - Do not use `/invoice/{id}/:createReminder` for exact prompt-fee reminder-fee tasks on `1500` / `3400`
 - Do not assume the reminder endpoint's configured charge equals the prompt amount; the sandbox charged `38`
 - Do not omit the reminder fee's separate manual voucher just because the prompt also asks for a fee invoice
@@ -280,4 +279,16 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
   - fee invoice `#4` (`id=2147696827`, amount `65`)
   - payment type `39752986`
   - remaining outstanding `31812.5`
-- the `6`-call path is confirmed across 12 clean production runs + 1 blocked run; first `nn` (Nynorsk) prompt; fee amounts now include `35`, `40`, `50`, `60`, `65`, `70`; no `5`-call standalone path exists
+- production run `prod-2026-03-22-105224979Z-f1046aaf` hit the `currency` on voucher-level trap on English prompt with fee `55`, wasting 1 call (7 write-path calls total):
+  - overdue invoice `#1` (`id=2147696691`), customer `108585789` (Blueshore Ltd), outstanding `31625`, due `2026-02-13`
+  - first `POST /ledger/voucher` with `currency: { id: 1 }` at voucher level failed `422 currency: Feltet eksisterer ikke i objektet`
+  - retry without `currency` succeeded as voucher `#1` (`id=609406195`)
+  - fee invoice `#4` (`id=2147696882`, amount `55`)
+  - payment type `39751124`
+  - payment reduced outstanding from `31625` to `26625`
+  - root cause: trusted standard's `currency: { "id": 1 }` bullet was ambiguously placed at voucher indentation level; VoucherDTO has no `currency` field (PostingDTO does, but it's optional); fix: removed `currency` from trusted standard and playbook winning payload
+- sandbox verification on `2026-03-22` confirmed:
+  - voucher-level `currency: { id: 1 }`: `422 Feltet eksisterer ikke i objektet`
+  - posting-level `currency: { id: 1 }`: `201` (works but unnecessary)
+  - no `currency` at all: `201` (works — simplest and safest)
+- the `6`-call path is confirmed across 12 clean production runs + 1 currency-trap run + 1 blocked run; fee amounts now include `35`, `40`, `50`, `55`, `60`, `65`, `70`; no `5`-call standalone path exists
