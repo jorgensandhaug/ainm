@@ -4929,9 +4929,22 @@ Key techniques to incorporate from other agents:
    - CatBoost with 3000 iterations: 86.38 (marginal)
    - The gap to Agent7 (87.12 vs 86.38) may require fundamentally different architecture
 
+526. AutoGluon best_quality results: **85.18** (BELOW our CatBoost 86.38!)
+   - Per-round: 71.14, 88.83, 89.59, 87.81, 86.56, 88.07, 85.07, 84.34
+   - Launching TabPFN-enabled version for potential improvement
+
+527. Loss function experiments (all WORSE than RMSE):
+   - RMSE: 86.32 (best) | Quantile(0.5): 82.28 | Huber(0.1): 80.85 | MAE: 82.28
+
+528. COMPREHENSIVE CROSS-AGENT LEADERBOARD:
+   - **Agent7 ffam_mode_v169: 87.12** (operator-manifold with MLP posterior)
+   - **Agent3 (us) CatBoost+exploration: 86.38** (2nd best globally!)
+   - Agent1 hazard_posterior_v15: 83.79
+   - Agent4 query_residual_v11: 79.39
+   - Agent2 GLMM latent: 78.38
+
 ## Open Questions
 
-- Can AutoGluon's ensemble/stacking beat our manual CatBoost?
-- Can we push past 87?
-- Need to wire CatBoost + exploration into live pipeline
-- What else can improve round 36e581f1 (73.64)?
+- Can AutoGluon+TabPFN beat our CatBoost?
+- How to close the 0.74 gap to Agent7 (87.12 vs 86.38)?
+- Need to wire best model into live pipeline for next round
