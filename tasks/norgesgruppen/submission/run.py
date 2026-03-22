@@ -18,7 +18,7 @@ WBF_SKIP_THR = 0.0001
 MAX_DET = 600
 MAX_PREDICTIONS = 50000
 PAD_COLOR = (114, 114, 114)
-MODEL_NAMES = ["model_b8.onnx", "model_1280.onnx", "model_long.onnx"]
+MODEL_NAMES = ["model_haug.onnx", "model_l.onnx", "model_1280v2.onnx"]
 
 
 def get_model_imgsz(session):
