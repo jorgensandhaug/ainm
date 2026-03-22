@@ -130,9 +130,21 @@
 - Both detection AND classification improved significantly
 - Script: `yolo/train_v6_pipeline.sh`
 
+### Exp 17: V7 Pipeline (250 epochs + label smoothing 0.05) — IN PROGRESS
+- Stage 2 at epoch ~177/250, mAP50=0.734 (behind V6's 0.738 at same point)
+- Label smoothing appears to slightly hurt convergence
+- Pipeline: `yolo/train_v7_pipeline.sh`
+
+### Submission Engineering: ONNX + Letterbox + Flip TTA
+- **Letterbox preprocessing was worth +2% over stretch resize**
+- Per-class NMS via torchvision.batched_nms matches ultralytics behavior
+- FP16 ONNX: 108MB (lossless vs FP32: <0.01% degradation)
+- Fixed zero-width bbox bug from edge clipping + rounding
+- Submission EXCEEDS PyTorch baseline: 0.8689 vs 0.8616 (+0.73%)
+
 ## Next Steps
-1. Try V7 with even longer Stage 2 (200+ epochs)
-2. Apply V6-style training with label smoothing
-3. Combine V6 and V2 via TTA (different models at inference)
-4. Try V6 with different backbone (YOLO11x)
+1. Evaluate V7 when complete — if better, update submission
+2. Try V8 pipeline WITHOUT label smoothing but with 250 epochs
+3. Multi-model submission (room for 2 more models, ~300MB budget)
+4. Try different backbone (YOLO11x)
 5. Investigate class-specific confidence calibration
