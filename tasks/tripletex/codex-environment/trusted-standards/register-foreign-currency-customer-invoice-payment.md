@@ -197,6 +197,13 @@ The script pattern:
 
 ## Production Confirmation History
 
+### prod-2026-03-22-105704259Z-019858d3 (French prompt, Forêt SARL / 832101389 / 11764 EUR, rate 10.90→11.19 agio):
+- NOK fallback path: invoice `2147697319` had `amountExcludingVat=11764`, `amountOutstanding=14705`, `amount===amountCurrency` (NOK)
+- 5 calls, 0 errors: invoice lookup → paymentType → simple payment → accountLookup(8060) → manual agio voucher
+- Agio: 11764 × (11.19 − 10.90) = 11764 × 0.29 = 3411.56 NOK booked on 8060 (voucher `609408284`)
+- Payment type `39775723` ("Betalt til bank", debitAccount 1920, id=499363931)
+- 7th consecutive full-score NOK-fallback production confirmation; 6th agio confirmation; second French-language prompt
+
 ### prod-2026-03-22-104700125Z-54534b47 (Spanish prompt, Sierra SL / 925302899 / 7045 EUR, rate 11.32→11.99 agio):
 - NOK fallback path: invoice `2147696023` had `amountExcludingVat=7045`, `amountOutstanding=8806.25`, `amount===amountCurrency` (NOK)
 - 5 calls, 0 errors: invoice lookup → paymentType → simple payment → accountLookup(8060) → manual agio voucher
