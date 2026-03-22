@@ -167,6 +167,31 @@
       "updatedAt": "2026-03-22T02:43:30.000Z"
     },
     {
+      "candidateId": "17.register-payment.v1",
+      "taskId": "17",
+      "strategyId": "17.register-payment.v1",
+      "strategyPath": "src/tasks/task-17/strategies/register-payment.ts",
+      "strategyName": "Register exact invoice payment",
+      "status": "needs-review",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/research/packets/task-17/task-17-packet-2026-03-22T02-22-16-105Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": true,
+        "apiCallCount": 3,
+        "baselineCallBudget": 3,
+        "manualProof": true,
+        "manualProofDetails": "Direct sandbox verification 2026-03-22: invoice 2147552467 (org 907791616, Prosjektadministrasjon, 7000 NOK) paid in 3 calls. Automated verifier blocked by cross-task sandbox reset failure (task-06 employee leftovers). Bank account 1920 reconciled in sandbox, requiring Kontant type (1900) — sandbox-specific noise, not a production issue."
+      },
+      "notes": [
+        "Automated sandbox verifier blocked: reset fails on task-06 employee leftovers (Validering feilet / RevisionException). This is cross-task sandbox state noise, not a task-17 strategy issue.",
+        "Manual sandbox proof: invoice 2147552467 fully paid in exactly 3 API calls (GET /invoice → GET /invoice/paymentType → PUT /invoice/:payment), remaining outstanding = 0.",
+        "CRITICAL FINDING: txTaskId mapping appears incorrect. Production evidence shows contest tx_task_id 07 = 'register customer invoice payment' but our internal task 17 maps to txTaskId '17'. The packet bestKnownScore 3.5/4 is from contest task 17 (dimension/voucher), not the payment task. Actual payment task (contest task 07) scores 2.0/2.0 (max) in production with 100% correctness.",
+        "Sandbox bank account 1920 has reconciled statements blocking payments on that account. Kontant (1900) works. In production, preferred bank type (1920) always succeeds."
+      ],
+      "createdAt": "2026-03-22T02:22:26.228Z",
+      "updatedAt": "2026-03-22T02:30:00.000Z"
+    },
+    {
       "candidateId": "21.onboard-employee-offer-letter.v1",
       "taskId": "21",
       "strategyId": "21.onboard-employee-offer-letter.v1",

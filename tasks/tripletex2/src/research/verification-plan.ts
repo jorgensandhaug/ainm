@@ -96,6 +96,53 @@ export function buildTaskVerificationPlan(
     };
   }
 
+  if (taskId === "11") {
+    return {
+      schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
+      planId: "task-11.order-invoice-payment.v1",
+      taskId: "11",
+      checks: [
+        {
+          type: "object",
+          checkId: "invoice-readback",
+          description:
+            "Read the created invoice and confirm the customer, invoice date, paid state, and scored order lines.",
+          pathTemplate: "/invoice/{{result.createdEntityIds.invoiceId}}",
+          query: {
+            fields:
+              "*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))",
+          },
+          responsePath: "value",
+          assertions: [
+            {
+              actualPath: "customer.id",
+              equalsFromPath: "result.createdEntityIds.customerId",
+            },
+            {
+              actualPath: "invoiceDate",
+              equalsFromPath: "result.verification.invoiceDate",
+            },
+            {
+              actualPath: "invoiceNumber",
+              equalsFromPath: "result.verification.invoiceNumber",
+            },
+            {
+              actualPath: "orders.0.orderLines.0.description",
+              equalsFromPath: "input.lines.0.description",
+            },
+            {
+              actualPath: "orders.0.orderLines.1.description",
+              equalsFromPath: "input.lines.1.description",
+            },
+            {
+              actualPath: "amountCurrencyOutstanding",
+              equalsFromPath: "result.verification.remainingOutstanding",
+            },
+          ],
+        },
+      ],
+    };
+  }
   if (taskId === "15") {
     return {
       schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
@@ -156,44 +203,23 @@ export function buildTaskVerificationPlan(
     };
   }
 
-  if (taskId === "11") {
+  if (taskId === "17") {
     return {
       schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
-      planId: "task-11.order-invoice-payment.v1",
-      taskId: "11",
+      planId: "task-17.register-payment.v1",
+      taskId: "17",
       checks: [
         {
           type: "object",
-          checkId: "invoice-readback",
+          checkId: "invoice-payment-readback",
           description:
-            "Read the created invoice and confirm the customer, invoice date, paid state, and scored order lines.",
-          pathTemplate: "/invoice/{{result.createdEntityIds.invoiceId}}",
+            "Read the paid invoice and confirm the outstanding amount is zero.",
+          pathTemplate: "/invoice/{{result.verification.invoiceId}}",
           query: {
-            fields:
-              "*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))",
+            fields: "*,customer(*),currency(*)",
           },
           responsePath: "value",
           assertions: [
-            {
-              actualPath: "customer.id",
-              equalsFromPath: "result.createdEntityIds.customerId",
-            },
-            {
-              actualPath: "invoiceDate",
-              equalsFromPath: "result.verification.invoiceDate",
-            },
-            {
-              actualPath: "invoiceNumber",
-              equalsFromPath: "result.verification.invoiceNumber",
-            },
-            {
-              actualPath: "orders.0.orderLines.0.description",
-              equalsFromPath: "input.lines.0.description",
-            },
-            {
-              actualPath: "orders.0.orderLines.1.description",
-              equalsFromPath: "input.lines.1.description",
-            },
             {
               actualPath: "amountCurrencyOutstanding",
               equalsFromPath: "result.verification.remainingOutstanding",
@@ -203,6 +229,7 @@ export function buildTaskVerificationPlan(
       ],
     };
   }
+
 
   return undefined;
 }
