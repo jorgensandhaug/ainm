@@ -52,6 +52,7 @@ Production verification on 2026-03-20 additionally showed:
 - English production run on 2026-03-22 for `Implementation Ridgepoint` / `Ridgepoint Ltd` / `948050927` / `edward.brown@example.org` also succeeded with the same 3-call path; 19 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
 - Bokmål production run on 2026-03-22 for `Implementering Tindra` / `Tindra AS` / `886715536` / `jonas.haugen@example.org` also succeeded with the same 3-call path; 20 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
 - Bokmål production run on 2026-03-22 for `Oppgradering Fjordkraft` / `Fjordkraft AS` / `953177234` / `henrik.johansen@example.org` also succeeded with the same 3-call path plus 1 free verification GET; 21 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
+- Bokmål production run on 2026-03-22 for `Implementering Tindra` / `Tindra AS` / `886715536` / `jonas.haugen@example.org` also succeeded with the same 3-call path plus 1 free verification GET; 22 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
 
 ## Minimal Safe Flow
 
@@ -107,7 +108,8 @@ Use ISO date for `startDate`.
   - `startDate`
   - `customer.id`
   - `projectManager.id`
-- Reuse that response instead of doing `GET /project` unless the response unexpectedly omits a scored field
+- GETs are free — always do a verification `GET /project/{id}?fields=*,customer(id,name,organizationNumber),projectManager(id,firstName,lastName,email)` after the write for full logging
+- The write response can also be used for immediate field checks, but the verification GET provides expanded nested objects for complete state logging
 
 ## Avoidable Mistakes
 
