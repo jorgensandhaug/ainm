@@ -5018,7 +5018,33 @@ Key techniques to incorporate from other agents:
    **Total improvement: +9.96 points** (76.89 → 86.85)
    **Gap to Agent7: 0.27 points** (87.12 vs 86.85)
 
+540. Triple ensemble (CB-teacher + CB-base + LGB): 86.83 (slightly BELOW dual's 86.85)
+   - Adding LGB dilutes signal - dual CatBoost ensemble is optimal
+
+541. COMPREHENSIVE FINAL SESSION SUMMARY:
+
+**Best live-compatible model: 86.85** (dual geometric ensemble)
+- Component 1 (60%): CatBoost with QR teacher features, entropy-weighted, 1500 iter d8
+- Component 2 (40%): CatBoost without teacher features, same architecture
+- Policy: exploration (coverage + 5 repeats)
+- Post-processing: obs-frequency blend at temperature=50
+- Probability floor: 0.0001
+
+**Total session improvement: +9.96 points** (76.89 → 86.85)
+**Cross-agent ranking: 2nd** (Agent7 at 87.12, gap 0.27)
+
+**Key innovations (in order of impact):**
+1. Cellwise CatBoost with per-cell features (+5.5 from ridge baseline)
+2. Entropy-weighted training (+1.2)
+3. Exploration policy (+0.9)
+4. Teacher features from QR predictions (+0.4)
+5. Cross-seed evidence features (+0.3)
+6. Settlement proximity features (+0.2)
+7. Multi-scale activity heatmaps (+0.1)
+8. Obs-frequency blending (+0.1)
+9. Dual CatBoost ensemble (+0.1)
+
 ## Open Questions
 
-- Can we close the remaining 0.27 gap to Agent7 (87.12)?
-- Need to wire best model into live pipeline
+- Gap to Agent7 (0.27) may require their operator-manifold architecture
+- Need to wire best model into live pipeline for next round
