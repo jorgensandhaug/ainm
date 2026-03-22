@@ -9,37 +9,41 @@
 - Restricted imports (no `import os`)
 - YOLO26x weights: ~115 MB each → room for ~3 models
 
-## Current Best: 3-Model Ensemble + Flip TTA
+## Current Best: 3-Model Ensemble (b4+b8+1280) + Flip TTA
 
 **Models** (total 345 MB, under 420 MB limit):
-1. `960_confcurr_s2_final` (batch=4, seed=62/77/91/123) — 115 MB
-2. `960b8_confcurr_s2` (batch=8, seed=62/77/91/123) — 115 MB
-3. `960div_confcurr_s2` (batch=6, seed=200, different hyperparams) — 115 MB
+1. `960_confcurr_s2_final` (960px, batch=4) — 115 MB
+2. `960b8_confcurr_s2` (960px, batch=8) — 115 MB
+3. `1280_confcurr_s2` (1280px, batch=2) — 115 MB
 
-### Best Scores: 3-model + flip TTA (conf=0.0001, WBF IoU=0.60)
+### Best Scores (conf=0.0001, WBF IoU=0.60, +hflip)
 
 | Metric | Value |
 |--------|-------|
-| det_AP50 | 0.9477 |
-| cls_mAP50_present (278) | 0.8221 |
-| cls_mAP50_all (356) | 0.6423 |
-| hybrid_present | 0.9101 |
-| **hybrid_all** | **0.8561** |
+| det_AP50 | 0.9483 |
+| cls_mAP50_present (278) | 0.8275 |
+| cls_mAP50_all (356) | 0.6465 |
+| hybrid_present | 0.9122 |
+| **hybrid_all** | **0.8578** |
 | Inference cost | 6x (3 models × 2 orientations) |
+| Total weight size | 345 MB |
 
 ### All Ensemble Variants
 
-| Config | det | cls_all | hybrid_all | hybrid_pres | Cost |
-|--------|-----|---------|------------|------------|------|
-| b4 single | 0.9328 | 0.6259 | 0.8407 | 0.8934 | 1x |
-| b4+b8 (2-model) | 0.9416 | 0.6381 | 0.8506 | 0.9043 | 2x |
-| b4+b8+div (3-model) | 0.9441 | 0.6375 | 0.8521 | 0.9057 | 3x |
-| **b4+b8+div + flip** | **0.9465** | **0.6417** | **0.8550** | **0.9091** | **6x** |
+| Config | det | cls_all | hybrid_all | hybrid_pres | Cost | Size |
+|--------|-----|---------|------------|------------|------|------|
+| b4 single | 0.9328 | 0.6259 | 0.8407 | 0.8934 | 1x | 115MB |
+| b4+b8 (2-model) | 0.9416 | 0.6381 | 0.8506 | 0.9043 | 2x | 230MB |
+| b4+b8+div (3m) | 0.9441 | 0.6375 | 0.8521 | 0.9057 | 3x | 345MB |
+| b4+b8+1280 (3m) | 0.9471 | 0.6429 | 0.8558 | 0.9099 | 3x | 345MB |
+| b4+b8+div+flip | 0.9477 | 0.6423 | 0.8561 | 0.9101 | 6x | 345MB |
+| **b4+b8+1280+flip** | **0.9483** | **0.6465** | **0.8578** | **0.9122** | **6x** | **345MB** |
+| all4+flip (over limit) | 0.9500 | 0.6465 | 0.8590 | 0.9134 | 8x | 460MB |
 
 ### Model Locations
 - b4: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960_confcurr_s2_final_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt`
 - b8: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960b8_confcurr_s2_e18_img960_b8_lr8e-05_mix0_cp0_seed123/weights/best.pt`
-- div: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960div_confcurr_s2_e18_img960_b6_lr8e-05_mix0_cp0_seed200/weights/best.pt`
+- 1280: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/1280_confcurr_s2_e18_img1280_b2_lr8e-05_mix0_cp0_seed123/weights/best.pt`
 
 ## Training Pipelines
 
@@ -61,6 +65,16 @@ Stage 3: 960b8_rebalanceft    — 25ep → mAP50=0.7292@e14
 Stage 4: 960b8_finalfull      — 20ep → mAP50=0.8129@e17
 Stage 5: 960b8_confcurr_s1    — 12ep → mAP50=0.7958@e12
 Stage 6: 960b8_confcurr_s2    — 18ep → mAP50=0.8047@e17
+```
+
+### Pipeline C: 1280px (EXP-014)
+```
+Stage 1: 1280_sweep         — 30ep → mAP50=0.6921@e30
+Stage 2: 1280_hardopt       — 70ep → mAP50=0.7324@e67
+Stage 3: 1280_rebalance     — 25ep → mAP50=0.7364@e21
+Stage 4: 1280_finalfull     — 20ep → mAP50=0.8213@e20  ← highest of any single stage!
+Stage 5: 1280_confcurr_s1   — 12ep → mAP50=0.8020@e1
+Stage 6: 1280_confcurr_s2   — 18ep → mAP50=0.8079@e16
 ```
 
 ## Completed Experiments
@@ -125,7 +139,8 @@ Stage 6: 960b8_confcurr_s2    — 18ep → mAP50=0.8047@e17
 | 640px baseline (prev) | 0.9321 | ~0.581 | ~0.838 | 0.8758 |
 | 960px b4 single | 0.9328 | 0.6259 | 0.8407 | 0.8934 |
 | 960px b4+b8 ensemble | 0.9416 | 0.6381 | 0.8506 | 0.9043 |
-| **960px 3-model+flip+WBF0.6** | **0.9477** | **0.6423** | **0.8561** | **0.9101** |
+| 960px 3-model+flip+WBF0.6 | 0.9477 | 0.6423 | 0.8561 | 0.9101 |
+| **b4+b8+1280+flip** | **0.9483** | **0.6465** | **0.8578** | **0.9122** |
 
 ## Lessons Learned
 - Always glob *.jpeg along with *.jpg — 6/49 val images are .jpeg
@@ -133,4 +148,6 @@ Stage 6: 960b8_confcurr_s2    — 18ep → mAP50=0.8047@e17
 - WBF ensemble of diverse models > TTA on single model
 - batch=8 helps stage 2 (+0.01 mAP50) but value is mainly ensemble diversity
 - Threshold tuning has diminishing returns below conf=0.001
-- WBF with flip degrades ensemble — score normalization needs care
+- Resolution diversity (960+1280) > seed diversity (seed 123 vs 200) for ensemble
+- 1280px model has highest single-stage mAP50 (0.8213 at finalfull)
+- 4-model ensemble exceeds 420MB limit — must pick best 3
