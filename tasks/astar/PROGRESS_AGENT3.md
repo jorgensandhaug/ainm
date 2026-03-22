@@ -4943,8 +4943,21 @@ Key techniques to incorporate from other agents:
    - Agent4 query_residual_v11: 79.39
    - Agent2 GLMM latent: 78.38
 
+529. MLP stacking on CatBoost+LGB: 70.54 (CATASTROPHIC overfitting)
+
+530. AutoGluon+TabPFN running (3/8 folds: 72.13, 89.26, 89.48 = mean ~83.6 so far)
+   - Very slow (~30 min per fold with TabPFN)
+   - Fold 1 (hard round): 72.13 vs our CatBoost 73.64
+
+531. Agent7 vs Agent3 complementary per-round analysis:
+   - We're BETTER on: 36e581f1 (+0.49), 71451d74 (+4.47), 76909e29 (+0.11)
+   - They're BETTER on: 8e839974 (-2.48), ae78003a (-1.48), c5cdf100 (-2.08), f1dac9a9 (-4.63)
+   - Models are COMPLEMENTARY - ensemble could potentially beat both
+   - But no easy way to access their prediction tensors for ensembling
+
 ## Open Questions
 
-- Can AutoGluon+TabPFN beat our CatBoost?
-- How to close the 0.74 gap to Agent7 (87.12 vs 86.38)?
+- Will AutoGluon+TabPFN finish and beat our CatBoost?
+- Can we cross-ensemble with Agent7's model?
 - Need to wire best model into live pipeline for next round
+- Total session improvement: **+9.49 points** (76.89 → 86.38)
