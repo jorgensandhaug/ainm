@@ -5089,7 +5089,22 @@ Multi-episode gains scale with episodes. 10 episodes give dramatically better va
 
 Precomputing 20 episodes to test if gains continue to scale.
 
-531. Next experiments:
+531. 20-episode: 89.49 but 3eb0c25d COLLAPSED (91.57→61.67)
+   - 3eb0c25d has only 5 replays/seed → 20 eps cycle through same 5 replays 4x
+   - Variance features become artificially smooth for low-replay rounds
+   - Overfitting: model learns "low variance = specific pattern" from high-replay rounds
+   - Fix: cap at 10 episodes or add replay_count as feature
+
+   **Best model remains: 10-episode LGB d10 = 89.19**
+
+532. Hyperparameter sweep with 10 episodes:
+   - d10: 88.40 (5-ep), **89.19** (10-ep)
+   - d12: 88.44 (5-ep)
+   - d10 + 1200t: 88.40 (5-ep)
+   - All 5-ep variants within 0.04 of each other
+   - 10 episodes is the key driver of improvement, not hyperparameters
+
+533. Next experiments:
 
 ## Open Questions
 
