@@ -5282,7 +5282,18 @@ Improvement trajectory:
 
 **Total: +5.47 points from 84.94 to 90.41**
 
-543. Next experiments:
+543. Stacking + regime features: 89.89 (worse than stacking alone 90.41)
+   - Regime features (round-level build rates, settlement fractions) hurt overall
+   - 795bfb1f improved: 74.65 vs 73.85 (+0.80) - regime helps hard rounds
+   - But other rounds regressed (fd3c92ff: 88.08 vs 91.32, d0a2c894: 83.06 vs 87.09)
+   - The regime features are too coarse and cause overfitting on round-level patterns
+
+## Open Questions
+- Can we improve 795bfb1f (73.85) and 36e581f1 (83.59) without hurting other rounds?
+- Would a CNN/U-Net approach capture spatial patterns better than stacking?
+- Can we learn better features from temporal replay dynamics?
+
+544. Next experiments:
 
 ## Open Questions
 
