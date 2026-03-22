@@ -3223,3 +3223,40 @@ Seed 0 produces the best-matching synthetic transcripts.
 Live predictions use real API transcripts, not synthetic.
 
 ## CONTINUING EXPLORATION - searching for breakthroughs
+
+
+### 2026-03-22T05:30Z approx
+
+## DEFINITIVE CONVERGENCE AT 87.73
+
+After 300+ variants across 4 architectures:
+- Larger MLP (h=128): neutral (87.65 = same as h=32)
+- Different base models in ensemble: all score 87.72-87.73
+- The curve is FLAT - no further improvement possible within this framework
+
+## Final Champion Configuration
+
+**ffam_ensemble_v22**: score **87.7340** (R7=72.7)
+
+Components:
+1. **Base model**: ffam_mode_v248 (4-cluster, 3-seed MLP ensemble, q=5)
+   - Bucket prior baseline
+   - Per-round linear operator trained on analysis records
+   - SVD decomposition with 5 mode dimensions
+   - Cluster-operator hybrid decoder (4 clusters, 8% particle + 20% OOD)
+   - 3-seed MLP posterior (h=32, 500 steps)
+   - Calibration: floor=0.0003, beta=12/48, sigma=0.3
+   
+2. **Diversity source**: ffam_knn_v1 (k=100, cell-level transcript features)
+   - Per-cell kNN matching across pooled training cells
+   - 15 cell-level transcript features (observation counts, fractions, neighbors)
+   
+3. **Blending**: Adaptive confidence-weighted
+   - mode_weight=0.88, adaptive_scale=1.5
+   - High-entropy (uncertain) cells get more kNN weight
+   - Low-entropy (confident) cells stay mostly mode prediction
+
+## Total Score Improvement
+- From starting point (v44): 77.76 → 87.73 = **+9.97 (+12.8%)**
+- 300+ variants, 4 architectures, 10+ scientific findings
+- All committed and pushed to origin/agent7
