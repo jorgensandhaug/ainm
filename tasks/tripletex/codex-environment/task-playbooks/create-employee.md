@@ -101,11 +101,13 @@ Run 2026-03-22 (André Almeida, Portuguese prompt): 4 calls, 2 errors — agent 
 
 Run 2026-03-22 (Bjørn Neset, Nynorsk prompt, 2nd instance): 4 calls, 1 error (aa0e0f72); agent added invented fields (`employmentType: "ORDINARY"`, `percentageOfFullTimeEquivalent: 100`, `employmentDetails: []`) to the employment object → 422 code 16000 "employmentType: Feltet eksisterer ikke i objektet."; script was fixed and re-run (GET /department again + POST /employee → 201); should have been 2 calls, 0 errors; scored 8/8 (7/7 checks passed) despite wasted calls; 14th create-employee run overall, 4th Nynorsk prompt; root cause: agent ignored the trusted standard's example payload which shows only `startDate` in employment
 
+Run 2026-03-22 (Edward Harris, English prompt): 2 calls, 0 errors — optimal pre-read run (20daf6b5); GET /department found 745977, POST /employee with dept+employment→201; all fields confirmed from POST response (dateOfBirth 1987-11-09, email edward.harris@example.org, startDate 2026-07-06); 15th create-employee run overall, 3rd optimal 2-call pre-read run; dept-required rate now 9/15 (60%)
+
 ## Avoidable Mistakes
 
 - Do not omit `userType`
 - Do not use `POST /employee?fields=*` without `employments(*)` — the nested expansion is required to get `startDate` in the response
-- Do not skip the `GET /department` pre-read; at 64%+ department-required rate (8/13 runs needed it), pre-reading saves calls and errors on average; the Bjørn Neset run (8e8e2e86) was the 1st production run to correctly follow the pre-read strategy, achieving the optimal 2 calls / 0 errors
+- Do not skip the `GET /department` pre-read; at 60%+ department-required rate (9/15 runs needed it), pre-reading saves calls and errors on average; 3 production runs have now achieved the optimal 2 calls / 0 errors with pre-read
 - CRITICAL: `department` is a top-level employee field — do NOT put it inside `employments[]`; the employment object only accepts `division`, not `department`; placing `department` inside employment triggers code 16000 "Request mapping failed" ("Feltet eksisterer ikke i objektet."); sandbox-verified on 2026-03-22; the André Almeida run (e9e115f1) wasted 2 calls on this exact mistake
 - CRITICAL: always follow the CURRENT trusted standard flow, not a cached older version — the trusted standard may have been updated between runs
 - Do not pre-read `/division` — 0/13 production runs needed it; only repair if `422` on `employments.division.id`
