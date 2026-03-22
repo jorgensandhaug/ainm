@@ -3631,4 +3631,18 @@ Successfully submitted predictions for round #19 (597e60cf-d1a1-4627-ac4d-2a61da
 - Logit-space targets: **67.68 (ev1), 71.62 (ev15)** — MUCH worse, per-class regression is incompatible with logit parameterization
 - V2 heatmap features: slightly negative (-0.1 to -0.14)
 
-**Conclusion: The cross-seed probability-target ensemble at ev30 (88.60) represents the ceiling for this architecture.** Further gains require fundamentally different model structure, not more parameter tuning.
+**Update: Triple ensemble (LGB + CatBoost + ExtraTrees) beats the ceiling!**
+
+### Triple Ensemble Results (NEW ALL-TIME BESTS)
+
+| Model | ev | Score | vs double ensemble |
+|-------|-----|-------|--------------------|
+| **Triple (LGB+Cat+ET)** | **1** | **85.71** | **+0.60** |
+| Triple (LGB+Cat+ET) | 15 | **88.27** | +0.18 |
+| **Triple (LGB+Cat+ET)** | **30** | **88.67** | **+0.07** |
+| Double (LGB+Cat) | 1 | 85.11 | baseline |
+| Double (LGB+Cat) | 30 | 88.60 | baseline |
+
+Adding ExtraTrees as a third model provides genuine diversity.
+The improvement is largest at low evidence (+0.60 at ev1) where
+model diversity matters most.
