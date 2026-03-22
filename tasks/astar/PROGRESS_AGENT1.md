@@ -1527,3 +1527,60 @@ Round 36e581f1 still scores ~62 — it has extreme dynamics that no other traini
   - no agent1 top-level benchmark jobs remained
   - interpretation:
     - plenty of immediate headroom for the next controlled sweep after this log/push
+
+---
+
+### 2026-03-22 Session: New Champion + Radical Exploration
+
+#### Current State
+- **Previous best**: ffam_ensemble_v22 at 87.73 (ported from Agent7)
+- **New Agent7 champion**: ffam_ensemble_v50 at **88.06** (+0.33 breakthrough)
+  - Two key innovations: log-odds space blending + settlement-heavy exploration policy
+
+#### Agent7's v50 Innovations Ported
+1. **Log-odds ensemble blending**: `blend = exp(w * log(p_a) + (1-w) * log(p_b))` instead of linear `w*p_a + (1-w)*p_b`. Geometric mean is theoretically optimal for KL minimization (Jensen's inequality guarantee).
+2. **Settlement-heavy exploration policy**: settlement_weight=10.0 (vs default 8.0), forest/mountain weight=0.1 (vs 0.75). Settlements reveal round dynamics most clearly.
+3. **Per-round score breakdown** (v50):
+   - R7 (36e581f1): 73.59 ← BOTTLENECK (OOD round)
+   - R5 (fd3c92ff): 85.05
+   - R1-R8 avg excl R7: 87.27
+   - If R7 improved to 80: overall ≈ 88.86
+
+#### New Experiments Running (20+ in parallel)
+All experiments test post-processing improvements on top of ffam_ensemble_v50:
+
+1. **Observation blending temperature sweep** (spatial_v1-v4, obs_temp_8-25):
+   - FINDING: obs blending at temp=15 gives +0.95 on R7 but -0.96 on R1 (wash overall)
+   - Per-class Gaussian smoothing HURTS (-5.09 on R7 with extra smoothing)
+   - The ensemble's built-in spatial smoothing (sigma=0.3) is already optimal
+
+2. **Disagreement-aware observation blend** (disagree_v1-v4):
+   - Key idea: only apply observations when they DISAGREE with the model
+   - Uses symmetric KL between model and empirical frequency as disagreement measure
+   - Adaptive temperature: high disagreement → low temp (trust obs), low → high temp (trust model)
+
+3. **Meta-ensemble** (meta_v1-v4):
+   - Combines ffam_ensemble_v50 (88.06) + hazard_posterior_v15 (83.79)
+   - Different architectures → uncorrelated errors → potential improvement
+   - Weights: 80-90% v50, 10-20% v15, log-odds blending
+
+4. **CatBoost residual corrector** (catboost_res_v1):
+   - Train CatBoost on the RESIDUAL of ffam_ensemble predictions
+   - Rich per-cell features: terrain, observations, model predictions, entropy
+   - Nested LOO: for each fold, use other training rounds to train corrector
+
+5. **Learned per-cell blend** (learned_v1):
+   - Ridge regression to predict optimal per-cell ensemble weights
+   - Features: terrain, observations, both model predictions, agreement
+
+6. **Standard benchmark reruns** (v31, v36):
+   - Verify log-odds ensemble scores in our workspace
+
+#### Added hazard_posterior_v15 back to interactive.py
+The Agent7 version of interactive.py didn't support hazard_posterior models. Added import and dispatcher for hazard_posterior_v15_* model names.
+
+#### Key Insight: Observation Blending Trade-off
+- R7 (OOD): observations ADD information the model doesn't have → blending helps
+- R1 (well-fitted): model already accurate → observations just add noise → blending hurts
+- Need SELECTIVE blending that activates only when model is uncertain/wrong
+- Proxies for model wrongness: prediction entropy, regime posterior uncertainty, observation-model disagreement

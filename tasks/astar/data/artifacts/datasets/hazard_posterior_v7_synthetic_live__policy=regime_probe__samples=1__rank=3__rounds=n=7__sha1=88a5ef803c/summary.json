@@ -1,0 +1,11 @@
+{
+  "dataset_name": "hazard_posterior_v7_synthetic_live__policy=regime_probe__samples=1__rank=3__rounds=n=7__sha1=88a5ef803c",
+  "dataset_kind": "synthetic_live",
+  "policy_name": "regime_probe_v1",
+  "episode_count": 7,
+  "samples_per_round": 1,
+  "total_query_count": 350,
+  "round_count": 7,
+  "regime_vector_source": "external",
+  "index_path": "/home/jorge/agent1/tasks/astar/data/artifacts/datasets/hazard_posterior_v7_synthetic_live__policy=regime_probe__samples=1__rank=3__rounds=n=7__sha1=88a5ef803c/index.parquet"
+}

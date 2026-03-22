@@ -54,6 +54,10 @@ from astar.student.predictor.query_residual_config import (
     is_query_residual_model_name,
     query_residual_checkpoint_name,
 )
+from astar.student.predictor.hazard_posterior_v15 import (
+    HazardPosteriorV15Predictor,
+    hazard_posterior_v15_spec_for_model_name,
+)
 from astar.student.predictor.round import BaseRoundPredictor
 
 
@@ -377,6 +381,51 @@ def build_online_predictor(
                     samples_per_round=samples_per_round,
                 )
                 predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    # hazard_posterior_v15 family (Agent1's original coefficient particles)
+    spec = hazard_posterior_v15_spec_for_model_name(model_name)
+    if spec is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        k, rank, ridge, mean_w, obs_w = spec
+        if historical_round_ids is not None:
+            predictor = HazardPosteriorV15Predictor.fit_from_workspace(
+                workspace_paths,
+                round_ids=list(historical_round_ids),
+                policy_name=policy_name or "regime_probe",
+                samples_per_round=samples_per_round,
+                k_neighbors=k,
+                latent_rank=rank,
+                ridge_alpha=ridge,
+                predicted_particle_weight=mean_w,
+                observation_weight=obs_w,
+                model_name=model_name,
+            )
+        else:
+            ckpt_dir = workspace_paths.model_dir(
+                f"hazard_posterior_v15__{policy_name or 'regime_probe'}"
+                f"__samples={samples_per_round}"
+                f"__k{k}_r{rank}_l{int(ridge)}_m{int(mean_w*100)}_q{int(obs_w)}",
+            )
+            ckpt_path = ckpt_dir / "checkpoint.json"
+            if ckpt_path.exists():
+                predictor = HazardPosteriorV15Predictor.load_checkpoint(ckpt_path)
+            else:
+                predictor = HazardPosteriorV15Predictor.fit_from_workspace(
+                    workspace_paths,
+                    round_ids=None,
+                    policy_name=policy_name or "regime_probe",
+                    samples_per_round=samples_per_round,
+                    k_neighbors=k,
+                    latent_rank=rank,
+                    ridge_alpha=ridge,
+                    predicted_particle_weight=mean_w,
+                    observation_weight=obs_w,
+                    model_name=model_name,
+                )
+                predictor.save_checkpoint(ckpt_path)
         return RoundPredictorAdapter(
             predictor=predictor,
             name=predictor.name,

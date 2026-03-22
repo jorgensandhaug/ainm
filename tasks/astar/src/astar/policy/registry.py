@@ -228,5 +228,161 @@ def build_named_policy(name: str) -> QueryPlanPolicy:
             probe_first=True,
             motif_scorer=_entropy_bias_scorer(),
         )
+    # Smart query policies
+    # Motif scorer weight experiments (new policies, existing code untouched)
+    if normalized == "exploration_r3_settle_heavy":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_settle_heavy",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=10.0,
+                settlement_pair_weight=5.0,
+                port_weight=3.0,
+                coastal_settlement_weight=4.0,
+                coastline_weight=1.0,
+                terrain_entropy_weight=1.0,
+                edge_density_weight=1.0,
+                forest_weight=0.1,
+                mountain_weight=0.1,
+                ocean_penalty_weight=2.0,
+            ),
+        )
+    if normalized == "exploration_r3_port_heavy":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_port_heavy",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=3.0,
+                settlement_pair_weight=2.0,
+                port_weight=10.0,
+                coastal_settlement_weight=8.0,
+                coastline_weight=5.0,
+                terrain_entropy_weight=1.0,
+                edge_density_weight=1.0,
+                forest_weight=0.1,
+                mountain_weight=0.1,
+                ocean_penalty_weight=1.0,
+            ),
+        )
+    if normalized == "exploration_r3_diversity":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_diversity",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=3.0,
+                settlement_pair_weight=3.0,
+                port_weight=3.0,
+                coastal_settlement_weight=3.0,
+                coastline_weight=3.0,
+                terrain_entropy_weight=5.0,
+                edge_density_weight=5.0,
+                forest_weight=1.0,
+                mountain_weight=1.0,
+                ocean_penalty_weight=1.0,
+            ),
+        )
+    if normalized == "exploration_r3_settle_medium":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_settle_medium",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=6.0,
+                settlement_pair_weight=3.0,
+                port_weight=2.0,
+                coastal_settlement_weight=3.0,
+                coastline_weight=1.5,
+                terrain_entropy_weight=1.5,
+                edge_density_weight=1.5,
+                forest_weight=0.25,
+                mountain_weight=0.25,
+                ocean_penalty_weight=1.5,
+            ),
+        )
+    if normalized == "exploration_r3_settle_extreme":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_settle_extreme",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=20.0,
+                settlement_pair_weight=10.0,
+                port_weight=5.0,
+                coastal_settlement_weight=5.0,
+                coastline_weight=0.5,
+                terrain_entropy_weight=0.5,
+                edge_density_weight=0.5,
+                forest_weight=0.05,
+                mountain_weight=0.05,
+                ocean_penalty_weight=3.0,
+            ),
+        )
+    if normalized == "exploration_r5_settle_heavy":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r5_settle_heavy",
+            replicate_budget=5,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=10.0,
+                settlement_pair_weight=5.0,
+                port_weight=3.0,
+                coastal_settlement_weight=4.0,
+                coastline_weight=1.0,
+                terrain_entropy_weight=1.0,
+                edge_density_weight=1.0,
+                forest_weight=0.1,
+                mountain_weight=0.1,
+                ocean_penalty_weight=2.0,
+            ),
+        )
+    if normalized == "exploration_r3_r2":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_r2",
+            replicate_budget=2,
+            probe_first=True,
+        )
+    if normalized == "concentrated_r5":
+        from astar.policy.smart_query import ConcentratedRepeatPolicy
+        return ConcentratedRepeatPolicy(
+            name="concentrated_r5",
+            repeat_budget=5,
+            probe_first=True,
+        )
+    if normalized == "concentrated_r3":
+        from astar.policy.smart_query import ConcentratedRepeatPolicy
+        return ConcentratedRepeatPolicy(
+            name="concentrated_r3",
+            repeat_budget=3,
+            probe_first=True,
+        )
+    if normalized == "settlement_focused_r3":
+        from astar.policy.smart_query import SettlementFocusedPolicy
+        return SettlementFocusedPolicy(
+            name="settlement_focused_r3",
+            repeat_budget=3,
+        )
+    if normalized == "settlement_focused_r5":
+        from astar.policy.smart_query import SettlementFocusedPolicy
+        return SettlementFocusedPolicy(
+            name="settlement_focused_r5",
+            repeat_budget=5,
+        )
+    if normalized == "heavy_repeat_3s":
+        from astar.policy.smart_query import HeavyRepeatPolicy
+        return HeavyRepeatPolicy(
+            name="heavy_repeat_3s",
+            coverage_seeds=3,
+            repeat_budget=23,  # 3 seeds × 9 vp = 27 coverage + 23 repeats = 50
+        )
+    if normalized == "heavy_repeat_4s":
+        from astar.policy.smart_query import HeavyRepeatPolicy
+        return HeavyRepeatPolicy(
+            name="heavy_repeat_4s",
+            coverage_seeds=4,
+            repeat_budget=14,  # 4 seeds × 9 vp = 36 coverage + 14 repeats = 50
+        )
     msg = f"unsupported policy: {name}"
     raise ValueError(msg)

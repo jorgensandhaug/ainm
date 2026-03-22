@@ -69,13 +69,43 @@ _INTERACTION_PAIRS = [
 ]
 
 
-def _mode_feature_names(*, include_interactions: bool = False) -> list[str]:
+_SPATIAL_FEATURE_SOURCES = [
+    "coast", "coast_distance", "frontier_score", "settlement_proximity",
+    "forest_density", "mountain_density", "maritime_access",
+]
+
+
+def _mode_feature_names(*, include_interactions: bool = False, include_spatial: bool = False) -> list[str]:
     names = _static_feature_names()
     names.extend([f"prior_logit_{class_name}" for class_name in CLASS_NAMES])
     if include_interactions:
         for left, right in _INTERACTION_PAIRS:
             names.append(f"ix_{left}_x_{right}")
+    if include_spatial:
+        for src in _SPATIAL_FEATURE_SOURCES:
+            names.append(f"sp_grad_x_{src}")
+            names.append(f"sp_grad_y_{src}")
+        for cn in CLASS_NAMES:
+            names.append(f"sp_prior_grad_x_{cn}")
+            names.append(f"sp_prior_grad_y_{cn}")
     return names
+
+
+def _compute_spatial_gradients(tensor: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Compute spatial gradients (central differences) for a 2D array."""
+    h, w = tensor.shape[:2]
+    grad_x = np.zeros_like(tensor, dtype=np.float64)
+    grad_y = np.zeros_like(tensor, dtype=np.float64)
+    # Central differences with edge handling
+    if w > 2:
+        grad_x[..., 1:-1] = (tensor[..., 2:] - tensor[..., :-2]) / 2.0
+        grad_x[..., 0] = tensor[..., 1] - tensor[..., 0]
+        grad_x[..., -1] = tensor[..., -1] - tensor[..., -2]
+    if h > 2:
+        grad_y[1:-1, ...] = (tensor[2:, ...] - tensor[:-2, ...]) / 2.0
+        grad_y[0, ...] = tensor[1, ...] - tensor[0, ...]
+        grad_y[-1, ...] = tensor[-1, ...] - tensor[-2, ...]
+    return grad_x, grad_y
 
 
 def _summary_input_names(*, seed_count: int, variant: SummaryVariant) -> list[str]:
@@ -153,22 +183,35 @@ def _compose_mode_design_tensor(
     *,
     probability_floor: float,
     include_interactions: bool = False,
+    include_spatial: bool = False,
 ) -> np.ndarray:
     prior_logits = _safe_log_probs(prior, probability_floor) / LOG_FLOOR_DENOM
     base = np.concatenate([static_stack, prior_logits], axis=-1).astype(np.float64)
-    if not include_interactions:
+    parts = [base]
+    if include_interactions:
+        base_names = _static_feature_names() + [f"prior_logit_{cn}" for cn in CLASS_NAMES]
+        name_to_idx = {name: idx for idx, name in enumerate(base_names)}
+        for left, right in _INTERACTION_PAIRS:
+            if left in name_to_idx and right in name_to_idx:
+                parts.append(
+                    (base[..., name_to_idx[left]] * base[..., name_to_idx[right]])[..., None]
+                )
+    if include_spatial:
+        static_names = _static_feature_names()
+        static_name_to_idx = {name: idx for idx, name in enumerate(static_names)}
+        for src in _SPATIAL_FEATURE_SOURCES:
+            if src in static_name_to_idx:
+                src_data = static_stack[..., static_name_to_idx[src]]
+                gx, gy = _compute_spatial_gradients(src_data)
+                parts.append(gx[..., None])
+                parts.append(gy[..., None])
+        for c in range(CLASS_COUNT):
+            gx, gy = _compute_spatial_gradients(prior_logits[..., c])
+            parts.append(gx[..., None])
+            parts.append(gy[..., None])
+    if len(parts) == 1:
         return base
-    base_names = _static_feature_names() + [f"prior_logit_{cn}" for cn in CLASS_NAMES]
-    name_to_idx = {name: idx for idx, name in enumerate(base_names)}
-    interactions = []
-    for left, right in _INTERACTION_PAIRS:
-        if left in name_to_idx and right in name_to_idx:
-            interactions.append(
-                (base[..., name_to_idx[left]] * base[..., name_to_idx[right]])[..., None]
-            )
-    if interactions:
-        return np.concatenate([base, *interactions], axis=-1).astype(np.float64)
-    return base
+    return np.concatenate(parts, axis=-1).astype(np.float64)
 
 
 def _solve_mode_operator(
@@ -194,10 +237,11 @@ def _fit_mode_operator_vector(
     ridge_lambda: float,
     probability_floor: float,
     include_interactions: bool = False,
+    include_spatial: bool = False,
     operator_target: str = "logit_delta",
     entropy_weight_power: float = 1.0,
 ) -> np.ndarray:
-    feature_dim = len(_mode_feature_names(include_interactions=include_interactions))
+    feature_dim = len(_mode_feature_names(include_interactions=include_interactions, include_spatial=include_spatial))
     xtwx = np.zeros((feature_dim + 1, feature_dim + 1), dtype=np.float64)
     xtwy = np.zeros((feature_dim + 1, CLASS_COUNT), dtype=np.float64)
 
@@ -215,6 +259,7 @@ def _fit_mode_operator_vector(
                 prior,
                 probability_floor=probability_floor,
                 include_interactions=include_interactions,
+                include_spatial=include_spatial,
             )
             flat_design = design.reshape(-1, feature_dim)
             if operator_target == "prob_delta":
@@ -732,6 +777,7 @@ class FFAMModePredictor(BaseRoundPredictor):
     cluster_count: int = Field(default=1, ge=1)
     evidence_smooth_sigma: float = Field(default=0.0, ge=0.0)
     evidence_propagation_beta_scale: float = Field(default=0.0, ge=0.0)
+    include_spatial_features: bool = False
     mode_feature_names: tuple[str, ...] = ()
     posterior_input_names: tuple[str, ...] = ()
     mode_round_ids: tuple[str, ...] = ()
@@ -799,7 +845,10 @@ class FFAMModePredictor(BaseRoundPredictor):
             round_ids=list(selected_round_ids),
         )
         round_entries: list[dict[str, object]] = []
-        mode_feature_names = _mode_feature_names(include_interactions=config.include_interactions)
+        mode_feature_names = _mode_feature_names(
+            include_interactions=config.include_interactions,
+            include_spatial=config.include_spatial_features,
+        )
 
         for round_id in selected_round_ids:
             round_detail = read_round_record(paths, round_id).round
@@ -834,6 +883,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             ridge_lambda=config.operator_ridge_lambda,
             probability_floor=config.probability_floor,
             include_interactions=config.include_interactions,
+            include_spatial=config.include_spatial_features,
             operator_target=config.operator_target,
             entropy_weight_power=config.entropy_weight_power,
         )
@@ -846,6 +896,7 @@ class FFAMModePredictor(BaseRoundPredictor):
                 ridge_lambda=config.operator_ridge_lambda,
                 probability_floor=config.probability_floor,
                 include_interactions=config.include_interactions,
+                include_spatial=config.include_spatial_features,
                 operator_target=config.operator_target,
                 entropy_weight_power=config.entropy_weight_power,
             )
@@ -1132,6 +1183,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             cluster_count=effective_cluster_count,
             evidence_smooth_sigma=config.evidence_smooth_sigma,
             evidence_propagation_beta_scale=config.evidence_propagation_beta_scale,
+            include_spatial_features=config.include_spatial_features,
             mode_feature_names=tuple(mode_feature_names),
             posterior_input_names=tuple(posterior_input_names),
             mode_round_ids=tuple(mode_round_ids),
@@ -1893,11 +1945,15 @@ class FFAMModePredictor(BaseRoundPredictor):
             effective_include_interactions = self.include_interactions or any(
                 n.startswith("ix_") for n in self.mode_feature_names
             )
+            effective_include_spatial = self.include_spatial_features or any(
+                n.startswith("sp_") for n in self.mode_feature_names
+            )
             design = _compose_mode_design_tensor(
                 static_stack,
                 prior,
                 probability_floor=self.probability_floor,
                 include_interactions=effective_include_interactions,
+                include_spatial=effective_include_spatial,
             )
             flat_design = design.reshape(-1, len(self.mode_feature_names))
             delta = (intercept[None, :] + flat_design @ coefficients).reshape(prior.shape)

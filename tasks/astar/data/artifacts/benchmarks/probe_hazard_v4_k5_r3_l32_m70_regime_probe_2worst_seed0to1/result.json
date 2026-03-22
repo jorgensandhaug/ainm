@@ -1,0 +1,3002 @@
+{
+  "benchmark_name": "probe_hazard_v4_k5_r3_l32_m70_regime_probe_2worst_seed0to1",
+  "model_name": "hazard_posterior_v4_k5_r3_l32_m70",
+  "mode": "online_interactive",
+  "jobs": 2,
+  "policy_name": "regime_probe_v1",
+  "samples_per_round": 1,
+  "budget": 50,
+  "episode_seeds": [
+    0,
+    1
+  ],
+  "episode_seed": null,
+  "round_ids": [
+    "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+    "36e581f1-73f8-453f-ab98-cbe3052b701b"
+  ],
+  "aggregate": {
+    "episode_count": 2,
+    "mean_score": 16.57211309765089,
+    "mean_weighted_kl": 0.8157972339399351,
+    "min_score": 2.5049772052845585,
+    "max_score": 30.639248990017222
+  },
+  "rounds": [
+    {
+      "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+      "round_number": 3,
+      "policy_name": "regime_probe_v1",
+      "samples_per_round": 1,
+      "budget": 50,
+      "episode_seeds": [
+        0,
+        1
+      ],
+      "episode_seed": null,
+      "evaluated_episode_count": 2,
+      "executed_queries": 50,
+      "evaluated_seed_count": 10,
+      "visualized_seed_count": 0,
+      "mean_score": 30.639248990017222,
+      "mean_weighted_kl": 0.39452150722426266,
+      "evaluation_seconds": 204.57088785999804,
+      "visualization_seconds": 0.0,
+      "seed_results": [
+        {
+          "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+          "round_number": 3,
+          "seed_index": 0,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 0,
+          "executed_queries": 50,
+          "score": 30.21441166999308,
+          "weighted_kl": 0.39895038927298176,
+          "mean_prediction_entropy": 0.5866308158612311,
+          "mean_ground_truth_entropy": 0.06202963638818603,
+          "argmax_agreement_rate": 0.939375,
+          "predicted_class_mass": [
+            0.6741453277032282,
+            0.1649542218785378,
+            0.010364123033101344,
+            0.008711442281583593,
+            0.11336838510354895,
+            0.028456499999999572
+          ],
+          "ground_truth_class_mass": [
+            0.7430218750000003,
+            0.002034374999999993,
+            7.5e-05,
+            0.0005250000000000004,
+            0.2262187499999999,
+            0.028125
+          ],
+          "residual_class_mass": [
+            -0.06887654729677206,
+            0.1629198468785378,
+            0.010289123033101344,
+            0.008186442281583592,
+            -0.11285036489645096,
+            0.0003314999999995717
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 38,
+              "y": 9,
+              "kl": 3.823719159586551,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 3,
+              "kl": 3.714352058962038,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 1,
+              "y": 5,
+              "kl": 3.378156650428508,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 13,
+              "y": 38,
+              "kl": 2.697893347262828,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 24,
+              "y": 38,
+              "kl": 2.069801482073394,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 22,
+              "y": 4,
+              "kl": 2.065361469269026,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 2,
+              "y": 4,
+              "kl": 2.046354130852633,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 2,
+              "y": 2,
+              "kl": 2.029129415758179,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 23,
+              "y": 3,
+              "kl": 2.017310463935942,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 29,
+              "y": 2,
+              "kl": 1.8390849570424421,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+          "round_number": 3,
+          "seed_index": 1,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 0,
+          "executed_queries": 50,
+          "score": 29.917990375042514,
+          "weighted_kl": 0.40223673391571146,
+          "mean_prediction_entropy": 0.6206994915231906,
+          "mean_ground_truth_entropy": 0.08864379116476247,
+          "argmax_agreement_rate": 0.935625,
+          "predicted_class_mass": [
+            0.6756369725656448,
+            0.18159924781145265,
+            0.010498940042424666,
+            0.010227348109144283,
+            0.10982199147133354,
+            0.012215500000000282
+          ],
+          "ground_truth_class_mass": [
+            0.7719843750000002,
+            0.003106249999999983,
+            5e-05,
+            0.0006250000000000004,
+            0.21235937499999985,
+            0.011875
+          ],
+          "residual_class_mass": [
+            -0.09634740243435536,
+            0.17849299781145267,
+            0.010448940042424667,
+            0.009602348109144282,
+            -0.10253738352866631,
+            0.00034050000000028155
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 38,
+              "y": 34,
+              "kl": 3.3850168210559,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 37,
+              "y": 35,
+              "kl": 3.347286488502432,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 36,
+              "kl": 3.3375482431425683,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 35,
+              "y": 37,
+              "kl": 3.23844693235762,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 34,
+              "y": 37,
+              "kl": 3.2128113669790475,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 1,
+              "y": 24,
+              "kl": 3.185091117725826,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 1,
+              "y": 38,
+              "kl": 3.024923339347249,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 5,
+              "kl": 2.9808537635324406,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 2,
+              "y": 22,
+              "kl": 2.432641008417287,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 2,
+              "y": 24,
+              "kl": 2.432641008417287,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+          "round_number": 3,
+          "seed_index": 2,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 0,
+          "executed_queries": 50,
+          "score": 30.94342360139398,
+          "weighted_kl": 0.3910032313477216,
+          "mean_prediction_entropy": 0.6461279231502975,
+          "mean_ground_truth_entropy": 0.06668768998495639,
+          "argmax_agreement_rate": 0.95375,
+          "predicted_class_mass": [
+            0.6530091134744199,
+            0.18827013242190496,
+            0.016265945531755,
+            0.010043279715224946,
+            0.11457352885669446,
+            0.017837999999999833
+          ],
+          "ground_truth_class_mass": [
+            0.7647875,
+            0.0022343749999999903,
+            5.3125e-05,
+            0.0005000000000000003,
+            0.21492499999999992,
+            0.0175
+          ],
+          "residual_class_mass": [
+            -0.11177838652558003,
+            0.18603575742190498,
+            0.016212820531755,
+            0.009543279715224945,
+            -0.10035147114330546,
+            0.0003379999999998315
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 38,
+              "y": 38,
+              "kl": 3.5010215883071165,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 31,
+              "y": 38,
+              "kl": 2.697893347262828,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 15,
+              "kl": 2.697364879609593,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 14,
+              "kl": 2.6696065043996593,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 22,
+              "y": 38,
+              "kl": 2.617986801174364,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 20,
+              "y": 38,
+              "kl": 2.6106896751402577,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 16,
+              "kl": 2.2837335013078413,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 24,
+              "y": 37,
+              "kl": 2.2432778241317477,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 19,
+              "y": 38,
+              "kl": 2.1782920791786173,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 17,
+              "kl": 1.9247298543482037,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+          "round_number": 3,
+          "seed_index": 3,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 0,
+          "executed_queries": 50,
+          "score": 32.69271407999023,
+          "weighted_kl": 0.3726726479734725,
+          "mean_prediction_entropy": 0.6385771552530723,
+          "mean_ground_truth_entropy": 0.061765997890443035,
+          "argmax_agreement_rate": 0.94875,
+          "predicted_class_mass": [
+            0.6422449698476709,
+            0.18888661643530313,
+            0.01602745355588552,
+            0.009778996699696792,
+            0.12022721346144356,
+            0.022834749999999522
+          ],
+          "ground_truth_class_mass": [
+            0.7493999999999988,
+            0.0023656249999999906,
+            3.749999999999999e-05,
+            0.0005031250000000004,
+            0.22519374999999994,
+            0.0225
+          ],
+          "residual_class_mass": [
+            -0.10715503015232797,
+            0.18652099143530315,
+            0.01598995355588552,
+            0.009275871699696792,
+            -0.10496653653855638,
+            0.00033474999999952293
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 23,
+              "y": 1,
+              "kl": 4.095022308709208,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 21,
+              "y": 7,
+              "kl": 3.9777952040766715,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 37,
+              "y": 1,
+              "kl": 3.787048977624409,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 35,
+              "y": 1,
+              "kl": 3.752784638989667,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 31,
+              "y": 2,
+              "kl": 3.7441656488633024,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 33,
+              "y": 3,
+              "kl": 3.357388807905111,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 25,
+              "y": 1,
+              "kl": 3.274167150909534,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 31,
+              "y": 4,
+              "kl": 3.0804274663729223,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 30,
+              "y": 5,
+              "kl": 3.061058873699027,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 24,
+              "y": 3,
+              "kl": 3.0513800856358344,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+          "round_number": 3,
+          "seed_index": 4,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 0,
+          "executed_queries": 50,
+          "score": 29.427705223666305,
+          "weighted_kl": 0.40774453361142604,
+          "mean_prediction_entropy": 0.6487085989254915,
+          "mean_ground_truth_entropy": 0.06145382066689442,
+          "argmax_agreement_rate": 0.96125,
+          "predicted_class_mass": [
+            0.6523114509104692,
+            0.19451370911496352,
+            0.009393202016000642,
+            0.009848764820731035,
+            0.1185873731378366,
+            0.015345499999999415
+          ],
+          "ground_truth_class_mass": [
+            0.7640062500000002,
+            0.0018874999999999923,
+            3.75e-05,
+            0.0004343750000000003,
+            0.21863437499999994,
+            0.015
+          ],
+          "residual_class_mass": [
+            -0.11169479908953106,
+            0.19262620911496353,
+            0.009355702016000642,
+            0.009414389820731034,
+            -0.10004700186216334,
+            0.0003454999999994157
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 2,
+              "y": 18,
+              "kl": 2.306650666929781,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 36,
+              "y": 2,
+              "kl": 2.30550077568354,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 3,
+              "y": 18,
+              "kl": 2.297406311764728,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 1,
+              "y": 17,
+              "kl": 2.297406311764728,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 27,
+              "y": 2,
+              "kl": 2.19823457514444,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 26,
+              "y": 2,
+              "kl": 1.7305884307911394,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 15,
+              "y": 38,
+              "kl": 1.579261690469073,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 5,
+              "kl": 1.5700641832048148,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 34,
+              "y": 1,
+              "kl": 1.538057456343662,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 13,
+              "y": 36,
+              "kl": 1.3736061828699813,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+          "round_number": 3,
+          "seed_index": 0,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 1,
+          "executed_queries": 50,
+          "score": 30.21441166999308,
+          "weighted_kl": 0.39895038927298176,
+          "mean_prediction_entropy": 0.5866308158612311,
+          "mean_ground_truth_entropy": 0.06202963638818603,
+          "argmax_agreement_rate": 0.939375,
+          "predicted_class_mass": [
+            0.6741453277032282,
+            0.1649542218785378,
+            0.010364123033101344,
+            0.008711442281583593,
+            0.11336838510354895,
+            0.028456499999999572
+          ],
+          "ground_truth_class_mass": [
+            0.7430218750000003,
+            0.002034374999999993,
+            7.5e-05,
+            0.0005250000000000004,
+            0.2262187499999999,
+            0.028125
+          ],
+          "residual_class_mass": [
+            -0.06887654729677206,
+            0.1629198468785378,
+            0.010289123033101344,
+            0.008186442281583592,
+            -0.11285036489645096,
+            0.0003314999999995717
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 38,
+              "y": 9,
+              "kl": 3.823719159586551,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 3,
+              "kl": 3.714352058962038,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 1,
+              "y": 5,
+              "kl": 3.378156650428508,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 13,
+              "y": 38,
+              "kl": 2.697893347262828,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 24,
+              "y": 38,
+              "kl": 2.069801482073394,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 22,
+              "y": 4,
+              "kl": 2.065361469269026,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 2,
+              "y": 4,
+              "kl": 2.046354130852633,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 2,
+              "y": 2,
+              "kl": 2.029129415758179,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 23,
+              "y": 3,
+              "kl": 2.017310463935942,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 29,
+              "y": 2,
+              "kl": 1.8390849570424421,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+          "round_number": 3,
+          "seed_index": 1,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 1,
+          "executed_queries": 50,
+          "score": 29.917990375042514,
+          "weighted_kl": 0.40223673391571146,
+          "mean_prediction_entropy": 0.6206994915231906,
+          "mean_ground_truth_entropy": 0.08864379116476247,
+          "argmax_agreement_rate": 0.935625,
+          "predicted_class_mass": [
+            0.6756369725656448,
+            0.18159924781145265,
+            0.010498940042424666,
+            0.010227348109144283,
+            0.10982199147133354,
+            0.012215500000000282
+          ],
+          "ground_truth_class_mass": [
+            0.7719843750000002,
+            0.003106249999999983,
+            5e-05,
+            0.0006250000000000004,
+            0.21235937499999985,
+            0.011875
+          ],
+          "residual_class_mass": [
+            -0.09634740243435536,
+            0.17849299781145267,
+            0.010448940042424667,
+            0.009602348109144282,
+            -0.10253738352866631,
+            0.00034050000000028155
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 38,
+              "y": 34,
+              "kl": 3.3850168210559,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 37,
+              "y": 35,
+              "kl": 3.347286488502432,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 36,
+              "kl": 3.3375482431425683,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 35,
+              "y": 37,
+              "kl": 3.23844693235762,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 34,
+              "y": 37,
+              "kl": 3.2128113669790475,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 1,
+              "y": 24,
+              "kl": 3.185091117725826,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 1,
+              "y": 38,
+              "kl": 3.024923339347249,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 5,
+              "kl": 2.9808537635324406,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 2,
+              "y": 22,
+              "kl": 2.432641008417287,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 2,
+              "y": 24,
+              "kl": 2.432641008417287,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+          "round_number": 3,
+          "seed_index": 2,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 1,
+          "executed_queries": 50,
+          "score": 30.94342360139398,
+          "weighted_kl": 0.3910032313477216,
+          "mean_prediction_entropy": 0.6461279231502975,
+          "mean_ground_truth_entropy": 0.06668768998495639,
+          "argmax_agreement_rate": 0.95375,
+          "predicted_class_mass": [
+            0.6530091134744199,
+            0.18827013242190496,
+            0.016265945531755,
+            0.010043279715224946,
+            0.11457352885669446,
+            0.017837999999999833
+          ],
+          "ground_truth_class_mass": [
+            0.7647875,
+            0.0022343749999999903,
+            5.3125e-05,
+            0.0005000000000000003,
+            0.21492499999999992,
+            0.0175
+          ],
+          "residual_class_mass": [
+            -0.11177838652558003,
+            0.18603575742190498,
+            0.016212820531755,
+            0.009543279715224945,
+            -0.10035147114330546,
+            0.0003379999999998315
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 38,
+              "y": 38,
+              "kl": 3.5010215883071165,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 31,
+              "y": 38,
+              "kl": 2.697893347262828,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 15,
+              "kl": 2.697364879609593,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 14,
+              "kl": 2.6696065043996593,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 22,
+              "y": 38,
+              "kl": 2.617986801174364,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 20,
+              "y": 38,
+              "kl": 2.6106896751402577,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 16,
+              "kl": 2.2837335013078413,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 24,
+              "y": 37,
+              "kl": 2.2432778241317477,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 19,
+              "y": 38,
+              "kl": 2.1782920791786173,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 17,
+              "kl": 1.9247298543482037,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+          "round_number": 3,
+          "seed_index": 3,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 1,
+          "executed_queries": 50,
+          "score": 32.69271407999023,
+          "weighted_kl": 0.3726726479734725,
+          "mean_prediction_entropy": 0.6385771552530723,
+          "mean_ground_truth_entropy": 0.061765997890443035,
+          "argmax_agreement_rate": 0.94875,
+          "predicted_class_mass": [
+            0.6422449698476709,
+            0.18888661643530313,
+            0.01602745355588552,
+            0.009778996699696792,
+            0.12022721346144356,
+            0.022834749999999522
+          ],
+          "ground_truth_class_mass": [
+            0.7493999999999988,
+            0.0023656249999999906,
+            3.749999999999999e-05,
+            0.0005031250000000004,
+            0.22519374999999994,
+            0.0225
+          ],
+          "residual_class_mass": [
+            -0.10715503015232797,
+            0.18652099143530315,
+            0.01598995355588552,
+            0.009275871699696792,
+            -0.10496653653855638,
+            0.00033474999999952293
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 23,
+              "y": 1,
+              "kl": 4.095022308709208,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 21,
+              "y": 7,
+              "kl": 3.9777952040766715,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 37,
+              "y": 1,
+              "kl": 3.787048977624409,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 35,
+              "y": 1,
+              "kl": 3.752784638989667,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 31,
+              "y": 2,
+              "kl": 3.7441656488633024,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 33,
+              "y": 3,
+              "kl": 3.357388807905111,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 25,
+              "y": 1,
+              "kl": 3.274167150909534,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 31,
+              "y": 4,
+              "kl": 3.0804274663729223,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 30,
+              "y": 5,
+              "kl": 3.061058873699027,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 24,
+              "y": 3,
+              "kl": 3.0513800856358344,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+          "round_number": 3,
+          "seed_index": 4,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 1,
+          "executed_queries": 50,
+          "score": 29.427705223666305,
+          "weighted_kl": 0.40774453361142604,
+          "mean_prediction_entropy": 0.6487085989254915,
+          "mean_ground_truth_entropy": 0.06145382066689442,
+          "argmax_agreement_rate": 0.96125,
+          "predicted_class_mass": [
+            0.6523114509104692,
+            0.19451370911496352,
+            0.009393202016000642,
+            0.009848764820731035,
+            0.1185873731378366,
+            0.015345499999999415
+          ],
+          "ground_truth_class_mass": [
+            0.7640062500000002,
+            0.0018874999999999923,
+            3.75e-05,
+            0.0004343750000000003,
+            0.21863437499999994,
+            0.015
+          ],
+          "residual_class_mass": [
+            -0.11169479908953106,
+            0.19262620911496353,
+            0.009355702016000642,
+            0.009414389820731034,
+            -0.10004700186216334,
+            0.0003454999999994157
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 2,
+              "y": 18,
+              "kl": 2.306650666929781,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 36,
+              "y": 2,
+              "kl": 2.30550077568354,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 3,
+              "y": 18,
+              "kl": 2.297406311764728,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 1,
+              "y": 17,
+              "kl": 2.297406311764728,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 27,
+              "y": 2,
+              "kl": 2.19823457514444,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 26,
+              "y": 2,
+              "kl": 1.7305884307911394,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 15,
+              "y": 38,
+              "kl": 1.579261690469073,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 38,
+              "y": 5,
+              "kl": 1.5700641832048148,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 34,
+              "y": 1,
+              "kl": 1.538057456343662,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            },
+            {
+              "x": 13,
+              "y": 36,
+              "kl": 1.3736061828699813,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 4,
+              "ground_truth_class_name": "forest"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        }
+      ]
+    },
+    {
+      "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+      "round_number": 7,
+      "policy_name": "regime_probe_v1",
+      "samples_per_round": 1,
+      "budget": 50,
+      "episode_seeds": [
+        0,
+        1
+      ],
+      "episode_seed": null,
+      "evaluated_episode_count": 2,
+      "executed_queries": 50,
+      "evaluated_seed_count": 10,
+      "visualized_seed_count": 0,
+      "mean_score": 2.5049772052845585,
+      "mean_weighted_kl": 1.2370729606556075,
+      "evaluation_seconds": 100.30166270999325,
+      "visualization_seconds": 0.0,
+      "seed_results": [
+        {
+          "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+          "round_number": 7,
+          "seed_index": 0,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 0,
+          "executed_queries": 50,
+          "score": 1.6455729687834102,
+          "weighted_kl": 1.369027184375176,
+          "mean_prediction_entropy": 0.2063145533091005,
+          "mean_ground_truth_entropy": 0.35544029787751563,
+          "argmax_agreement_rate": 0.89,
+          "predicted_class_mass": [
+            0.7955566657803631,
+            0.004216891006996346,
+            0.0008097077666785269,
+            0.0010380209921633328,
+            0.17554046445379862,
+            0.02283824999999962
+          ],
+          "ground_truth_class_mass": [
+            0.6570999999999998,
+            0.1309906249999998,
+            0.008953125000000001,
+            0.008475,
+            0.17198124999999956,
+            0.0225
+          ],
+          "residual_class_mass": [
+            0.1384566657803633,
+            -0.12677373399300346,
+            -0.008143417233321473,
+            -0.007436979007836667,
+            0.003559214453799059,
+            0.0003382499999996201
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 10,
+              "y": 5,
+              "kl": 3.59006762538354,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 14,
+              "y": 36,
+              "kl": 3.5738822534929557,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 18,
+              "y": 3,
+              "kl": 3.4895752911961035,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 38,
+              "y": 23,
+              "kl": 3.4531707128821068,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 9,
+              "y": 6,
+              "kl": 3.401588276310736,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 13,
+              "y": 12,
+              "kl": 3.384070342328297,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 15,
+              "y": 35,
+              "kl": 3.3580421692154596,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 14,
+              "y": 34,
+              "kl": 3.2777155162780582,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 2,
+              "y": 3,
+              "kl": 3.2421595458671524,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 20,
+              "y": 28,
+              "kl": 3.1627634296640683,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+          "round_number": 7,
+          "seed_index": 1,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 0,
+          "executed_queries": 50,
+          "score": 2.245946442258894,
+          "weighted_kl": 1.26534772526308,
+          "mean_prediction_entropy": 0.20704096794905055,
+          "mean_ground_truth_entropy": 0.41736986747650334,
+          "argmax_agreement_rate": 0.84,
+          "predicted_class_mass": [
+            0.840082731174147,
+            0.004181520528764158,
+            0.001218664736652582,
+            0.0015067371396807908,
+            0.1332898464207538,
+            0.019720499999999502
+          ],
+          "ground_truth_class_mass": [
+            0.6626687500000003,
+            0.14093124999999967,
+            0.009040625000000002,
+            0.010731250000000025,
+            0.15725312499999972,
+            0.019375
+          ],
+          "residual_class_mass": [
+            0.17741398117414675,
+            -0.1367497294712355,
+            -0.00782196026334742,
+            -0.009224512860319235,
+            -0.023963278579245906,
+            0.00034549999999950246
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 24,
+              "y": 14,
+              "kl": 3.7338262599375223,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            },
+            {
+              "x": 4,
+              "y": 3,
+              "kl": 3.6133498651223253,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            },
+            {
+              "x": 25,
+              "y": 15,
+              "kl": 3.605327332613033,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 15,
+              "y": 19,
+              "kl": 3.5140007872053824,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 4,
+              "y": 1,
+              "kl": 3.4728516119431596,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 14,
+              "y": 18,
+              "kl": 3.467425585684789,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 36,
+              "y": 14,
+              "kl": 3.419193617524508,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 16,
+              "y": 18,
+              "kl": 3.343779912908259,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 37,
+              "y": 15,
+              "kl": 3.3099249632083407,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 36,
+              "y": 35,
+              "kl": 3.258237829808334,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+          "round_number": 7,
+          "seed_index": 2,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 0,
+          "executed_queries": 50,
+          "score": 3.0679190210589757,
+          "weighted_kl": 1.1613902325106307,
+          "mean_prediction_entropy": 0.22357566862824868,
+          "mean_ground_truth_entropy": 0.39210682214613657,
+          "argmax_agreement_rate": 0.889375,
+          "predicted_class_mass": [
+            0.7911232336078818,
+            0.004904413315105234,
+            0.0008343689067521331,
+            0.0011592090151837041,
+            0.187263525155077,
+            0.014715249999999831
+          ],
+          "ground_truth_class_mass": [
+            0.6515437500000005,
+            0.12557812499999998,
+            0.007253124999999999,
+            0.010662500000000017,
+            0.1905874999999997,
+            0.014375
+          ],
+          "residual_class_mass": [
+            0.1395794836078813,
+            -0.12067371168489475,
+            -0.006418756093247866,
+            -0.009503290984816313,
+            -0.0033239748449226947,
+            0.00034024999999983027
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 32,
+              "y": 38,
+              "kl": 3.781926165410923,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 14,
+              "y": 1,
+              "kl": 3.706551004761916,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 33,
+              "y": 37,
+              "kl": 3.4932861842137,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 9,
+              "y": 38,
+              "kl": 3.3267595922131084,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            },
+            {
+              "x": 9,
+              "y": 6,
+              "kl": 3.295751861358495,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 10,
+              "y": 7,
+              "kl": 3.2951545687915833,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 19,
+              "y": 17,
+              "kl": 3.2828239128894694,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 24,
+              "y": 21,
+              "kl": 3.242754627568643,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 10,
+              "y": 37,
+              "kl": 3.1269412830253325,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 20,
+              "y": 18,
+              "kl": 3.1047940148744635,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+          "round_number": 7,
+          "seed_index": 3,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 0,
+          "executed_queries": 50,
+          "score": 2.580043816716738,
+          "weighted_kl": 1.2191212679917456,
+          "mean_prediction_entropy": 0.21387308592044438,
+          "mean_ground_truth_entropy": 0.3873142729513437,
+          "argmax_agreement_rate": 0.8625,
+          "predicted_class_mass": [
+            0.8156209033454621,
+            0.004661697498385469,
+            0.001085706440681766,
+            0.001402085740526983,
+            0.1643843569749435,
+            0.012845250000000412
+          ],
+          "ground_truth_class_mass": [
+            0.6677937500000002,
+            0.13155312499999977,
+            0.007662500000000001,
+            0.00934375000000001,
+            0.17114687499999967,
+            0.0125
+          ],
+          "residual_class_mass": [
+            0.14782715334546193,
+            -0.1268914275016143,
+            -0.006576793559318235,
+            -0.007941664259473027,
+            -0.0067625180250561745,
+            0.0003452500000004112
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 32,
+              "y": 1,
+              "kl": 3.865779164115106,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 36,
+              "y": 35,
+              "kl": 3.725463180658978,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 19,
+              "y": 20,
+              "kl": 3.415499413809121,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 33,
+              "y": 2,
+              "kl": 3.237060722381299,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 37,
+              "y": 15,
+              "kl": 3.1148147899629763,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 32,
+              "y": 3,
+              "kl": 3.1004425237989004,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 6,
+              "y": 15,
+              "kl": 3.041884246298585,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 19,
+              "y": 5,
+              "kl": 3.030740095447963,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 5,
+              "y": 16,
+              "kl": 3.0060939726308606,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 30,
+              "y": 31,
+              "kl": 2.9742107672168636,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+          "round_number": 7,
+          "seed_index": 4,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 0,
+          "executed_queries": 50,
+          "score": 2.985403777604774,
+          "weighted_kl": 1.1704783931374048,
+          "mean_prediction_entropy": 0.2217781150757961,
+          "mean_ground_truth_entropy": 0.4061149433221536,
+          "argmax_agreement_rate": 0.866875,
+          "predicted_class_mass": [
+            0.818679527371149,
+            0.004606686074782592,
+            0.001181630244530766,
+            0.0014647639761274645,
+            0.15372964233341146,
+            0.02033774999999971
+          ],
+          "ground_truth_class_mass": [
+            0.6463875000000004,
+            0.1317218749999996,
+            0.009859374999999995,
+            0.009184375000000007,
+            0.18284687499999971,
+            0.02
+          ],
+          "residual_class_mass": [
+            0.17229202737114857,
+            -0.127115188925217,
+            -0.008677744755469228,
+            -0.007719611023872542,
+            -0.02911723266658825,
+            0.0003377499999997098
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 6,
+              "y": 23,
+              "kl": 3.670607489253752,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 6,
+              "y": 21,
+              "kl": 3.6509649070596772,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 7,
+              "y": 22,
+              "kl": 3.4652559003127674,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 27,
+              "y": 38,
+              "kl": 3.4211899877825807,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            },
+            {
+              "x": 5,
+              "y": 22,
+              "kl": 3.346860328800928,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 25,
+              "y": 23,
+              "kl": 3.202458009377171,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 2,
+              "y": 7,
+              "kl": 3.193752074819883,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 1,
+              "y": 18,
+              "kl": 3.1019145362284366,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            },
+            {
+              "x": 17,
+              "y": 21,
+              "kl": 3.0987539638807218,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 38,
+              "y": 26,
+              "kl": 3.0770989814579197,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+          "round_number": 7,
+          "seed_index": 0,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 1,
+          "executed_queries": 50,
+          "score": 1.6455729687834102,
+          "weighted_kl": 1.369027184375176,
+          "mean_prediction_entropy": 0.2063145533091005,
+          "mean_ground_truth_entropy": 0.35544029787751563,
+          "argmax_agreement_rate": 0.89,
+          "predicted_class_mass": [
+            0.7955566657803631,
+            0.004216891006996346,
+            0.0008097077666785269,
+            0.0010380209921633328,
+            0.17554046445379862,
+            0.02283824999999962
+          ],
+          "ground_truth_class_mass": [
+            0.6570999999999998,
+            0.1309906249999998,
+            0.008953125000000001,
+            0.008475,
+            0.17198124999999956,
+            0.0225
+          ],
+          "residual_class_mass": [
+            0.1384566657803633,
+            -0.12677373399300346,
+            -0.008143417233321473,
+            -0.007436979007836667,
+            0.003559214453799059,
+            0.0003382499999996201
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 10,
+              "y": 5,
+              "kl": 3.59006762538354,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 14,
+              "y": 36,
+              "kl": 3.5738822534929557,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 18,
+              "y": 3,
+              "kl": 3.4895752911961035,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 38,
+              "y": 23,
+              "kl": 3.4531707128821068,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 9,
+              "y": 6,
+              "kl": 3.401588276310736,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 13,
+              "y": 12,
+              "kl": 3.384070342328297,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 15,
+              "y": 35,
+              "kl": 3.3580421692154596,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 14,
+              "y": 34,
+              "kl": 3.2777155162780582,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 2,
+              "y": 3,
+              "kl": 3.2421595458671524,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 20,
+              "y": 28,
+              "kl": 3.1627634296640683,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+          "round_number": 7,
+          "seed_index": 1,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 1,
+          "executed_queries": 50,
+          "score": 2.245946442258894,
+          "weighted_kl": 1.26534772526308,
+          "mean_prediction_entropy": 0.20704096794905055,
+          "mean_ground_truth_entropy": 0.41736986747650334,
+          "argmax_agreement_rate": 0.84,
+          "predicted_class_mass": [
+            0.840082731174147,
+            0.004181520528764158,
+            0.001218664736652582,
+            0.0015067371396807908,
+            0.1332898464207538,
+            0.019720499999999502
+          ],
+          "ground_truth_class_mass": [
+            0.6626687500000003,
+            0.14093124999999967,
+            0.009040625000000002,
+            0.010731250000000025,
+            0.15725312499999972,
+            0.019375
+          ],
+          "residual_class_mass": [
+            0.17741398117414675,
+            -0.1367497294712355,
+            -0.00782196026334742,
+            -0.009224512860319235,
+            -0.023963278579245906,
+            0.00034549999999950246
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 24,
+              "y": 14,
+              "kl": 3.7338262599375223,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            },
+            {
+              "x": 4,
+              "y": 3,
+              "kl": 3.6133498651223253,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            },
+            {
+              "x": 25,
+              "y": 15,
+              "kl": 3.605327332613033,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 15,
+              "y": 19,
+              "kl": 3.5140007872053824,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 4,
+              "y": 1,
+              "kl": 3.4728516119431596,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 14,
+              "y": 18,
+              "kl": 3.467425585684789,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 36,
+              "y": 14,
+              "kl": 3.419193617524508,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 16,
+              "y": 18,
+              "kl": 3.343779912908259,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 37,
+              "y": 15,
+              "kl": 3.3099249632083407,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 36,
+              "y": 35,
+              "kl": 3.258237829808334,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+          "round_number": 7,
+          "seed_index": 2,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 1,
+          "executed_queries": 50,
+          "score": 3.0679190210589757,
+          "weighted_kl": 1.1613902325106307,
+          "mean_prediction_entropy": 0.22357566862824868,
+          "mean_ground_truth_entropy": 0.39210682214613657,
+          "argmax_agreement_rate": 0.889375,
+          "predicted_class_mass": [
+            0.7911232336078818,
+            0.004904413315105234,
+            0.0008343689067521331,
+            0.0011592090151837041,
+            0.187263525155077,
+            0.014715249999999831
+          ],
+          "ground_truth_class_mass": [
+            0.6515437500000005,
+            0.12557812499999998,
+            0.007253124999999999,
+            0.010662500000000017,
+            0.1905874999999997,
+            0.014375
+          ],
+          "residual_class_mass": [
+            0.1395794836078813,
+            -0.12067371168489475,
+            -0.006418756093247866,
+            -0.009503290984816313,
+            -0.0033239748449226947,
+            0.00034024999999983027
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 32,
+              "y": 38,
+              "kl": 3.781926165410923,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 14,
+              "y": 1,
+              "kl": 3.706551004761916,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 33,
+              "y": 37,
+              "kl": 3.4932861842137,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 9,
+              "y": 38,
+              "kl": 3.3267595922131084,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            },
+            {
+              "x": 9,
+              "y": 6,
+              "kl": 3.295751861358495,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 10,
+              "y": 7,
+              "kl": 3.2951545687915833,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 19,
+              "y": 17,
+              "kl": 3.2828239128894694,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 24,
+              "y": 21,
+              "kl": 3.242754627568643,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 10,
+              "y": 37,
+              "kl": 3.1269412830253325,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 20,
+              "y": 18,
+              "kl": 3.1047940148744635,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+          "round_number": 7,
+          "seed_index": 3,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 1,
+          "executed_queries": 50,
+          "score": 2.580043816716738,
+          "weighted_kl": 1.2191212679917456,
+          "mean_prediction_entropy": 0.21387308592044438,
+          "mean_ground_truth_entropy": 0.3873142729513437,
+          "argmax_agreement_rate": 0.8625,
+          "predicted_class_mass": [
+            0.8156209033454621,
+            0.004661697498385469,
+            0.001085706440681766,
+            0.001402085740526983,
+            0.1643843569749435,
+            0.012845250000000412
+          ],
+          "ground_truth_class_mass": [
+            0.6677937500000002,
+            0.13155312499999977,
+            0.007662500000000001,
+            0.00934375000000001,
+            0.17114687499999967,
+            0.0125
+          ],
+          "residual_class_mass": [
+            0.14782715334546193,
+            -0.1268914275016143,
+            -0.006576793559318235,
+            -0.007941664259473027,
+            -0.0067625180250561745,
+            0.0003452500000004112
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 32,
+              "y": 1,
+              "kl": 3.865779164115106,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 36,
+              "y": 35,
+              "kl": 3.725463180658978,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 19,
+              "y": 20,
+              "kl": 3.415499413809121,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 33,
+              "y": 2,
+              "kl": 3.237060722381299,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 37,
+              "y": 15,
+              "kl": 3.1148147899629763,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 32,
+              "y": 3,
+              "kl": 3.1004425237989004,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 6,
+              "y": 15,
+              "kl": 3.041884246298585,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 19,
+              "y": 5,
+              "kl": 3.030740095447963,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 5,
+              "y": 16,
+              "kl": 3.0060939726308606,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 30,
+              "y": 31,
+              "kl": 2.9742107672168636,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        },
+        {
+          "round_id": "36e581f1-73f8-453f-ab98-cbe3052b701b",
+          "round_number": 7,
+          "seed_index": 4,
+          "mode": "online_interactive",
+          "model_name": "hazard_posterior_v4__policy=regime_probe__samples=1__k=5__rank=3__ridge=32__mix=70",
+          "training_round_count": 1,
+          "training_analyzed_seed_count": 0,
+          "training_cell_count": 0,
+          "policy_name": "regime_probe_v1",
+          "samples_per_round": 1,
+          "budget": 50,
+          "episode_seed": 1,
+          "executed_queries": 50,
+          "score": 2.985403777604774,
+          "weighted_kl": 1.1704783931374048,
+          "mean_prediction_entropy": 0.2217781150757961,
+          "mean_ground_truth_entropy": 0.4061149433221536,
+          "argmax_agreement_rate": 0.866875,
+          "predicted_class_mass": [
+            0.818679527371149,
+            0.004606686074782592,
+            0.001181630244530766,
+            0.0014647639761274645,
+            0.15372964233341146,
+            0.02033774999999971
+          ],
+          "ground_truth_class_mass": [
+            0.6463875000000004,
+            0.1317218749999996,
+            0.009859374999999995,
+            0.009184375000000007,
+            0.18284687499999971,
+            0.02
+          ],
+          "residual_class_mass": [
+            0.17229202737114857,
+            -0.127115188925217,
+            -0.008677744755469228,
+            -0.007719611023872542,
+            -0.02911723266658825,
+            0.0003377499999997098
+          ],
+          "support_full_pct": null,
+          "support_structural_pct": null,
+          "support_terrain_pct": null,
+          "support_global_pct": null,
+          "full_bucket_count_p10": null,
+          "full_bucket_count_p50": null,
+          "full_bucket_count_p90": null,
+          "visualization_seconds": null,
+          "top_kl_cells": [
+            {
+              "x": 6,
+              "y": 23,
+              "kl": 3.670607489253752,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 6,
+              "y": 21,
+              "kl": 3.6509649070596772,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 7,
+              "y": 22,
+              "kl": 3.4652559003127674,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 27,
+              "y": 38,
+              "kl": 3.4211899877825807,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            },
+            {
+              "x": 5,
+              "y": 22,
+              "kl": 3.346860328800928,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 25,
+              "y": 23,
+              "kl": 3.202458009377171,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 2,
+              "y": 7,
+              "kl": 3.193752074819883,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 1,
+              "y": 18,
+              "kl": 3.1019145362284366,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            },
+            {
+              "x": 17,
+              "y": 21,
+              "kl": 3.0987539638807218,
+              "predicted_class_index": 0,
+              "predicted_class_name": "empty",
+              "ground_truth_class_index": 1,
+              "ground_truth_class_name": "settlement"
+            },
+            {
+              "x": 38,
+              "y": 26,
+              "kl": 3.0770989814579197,
+              "predicted_class_index": 4,
+              "predicted_class_name": "forest",
+              "ground_truth_class_index": 2,
+              "ground_truth_class_name": "port"
+            }
+          ],
+          "report_path": null,
+          "manifest_path": null
+        }
+      ]
+    }
+  ],
+  "evaluated_seed_count": 20,
+  "visualization_policy": "none",
+  "visualized_seed_count": 0,
+  "evaluation_seconds": 304.8725505699913,
+  "visualization_seconds": 0.0,
+  "artifact_write_seconds": 0.006826329001341946,
+  "total_runtime_seconds": 204.98975163699652,
+  "artifact_path": "/home/jorge/agent1/tasks/astar/data/artifacts/benchmarks/probe_hazard_v4_k5_r3_l32_m70_regime_probe_2worst_seed0to1/result.json",
+  "report_path": "/home/jorge/agent1/tasks/astar/data/artifacts/benchmarks/probe_hazard_v4_k5_r3_l32_m70_regime_probe_2worst_seed0to1/report.md",
+  "summary_jsonl_path": "/home/jorge/agent1/tasks/astar/data/artifacts/benchmarks/probe_hazard_v4_k5_r3_l32_m70_regime_probe_2worst_seed0to1/summary.jsonl",
+  "summary_csv_path": "/home/jorge/agent1/tasks/astar/data/artifacts/benchmarks/probe_hazard_v4_k5_r3_l32_m70_regime_probe_2worst_seed0to1/summary.csv"
+}

@@ -1,0 +1,11 @@
+{
+  "dataset_name": "hazard_posterior_v2_synthetic_live__policy=coverage__samples=2__rank=3__rounds=n=7__sha1=c30128f4ad",
+  "dataset_kind": "synthetic_live",
+  "policy_name": "coverage",
+  "episode_count": 14,
+  "samples_per_round": 2,
+  "total_query_count": 630,
+  "round_count": 7,
+  "regime_vector_source": "external",
+  "index_path": "/home/jorge/agent1/tasks/astar/data/artifacts/datasets/hazard_posterior_v2_synthetic_live__policy=coverage__samples=2__rank=3__rounds=n=7__sha1=c30128f4ad/index.parquet"
+}
