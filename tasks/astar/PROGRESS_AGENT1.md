@@ -371,6 +371,31 @@ GLMM adds only +0.07 at 10% weight. DT and PO are the real workhorses.
 
 **Total improvement: 78.38 → 83.33 (+4.95 points, +15.97 on worst round)**
 
+### Geometric Mean + 4-Way Blends (Phase 9)
+
+| Model | Type | Score | Worst | Best |
+|-------|------|-------|-------|------|
+| geo_v003 (20/40/40) | geometric | 83.27 | 63.90 | 93.24 |
+| geo_v004 (33/33/34) | geometric | 83.24 | 62.45 | 93.51 |
+| geo_v001 (10/45/45) | geometric | 83.17 | 64.92 | 92.82 |
+| quad_v001 (5/30/35/30 + QR) | 4-way arith | 81.70 | 65.54 | 89.30 |
+
+Geometric blending gives higher best-round scores (93.5) but slightly lower mean than arithmetic (83.27 vs 83.33). Adding QR as 4th component hurts.
+
+## Final Summary
+
+**Best model: `triple_blend_v020`** (10% GLMM + 45% DT + 45% PO, arithmetic, obs blend t=20)
+- **Score: 83.33**
+- **Worst round: 65.07** (was 49.10)
+- **Best round: 91.25** (was 92.59)
+
+Three novel model components developed:
+1. **Direct Terminal Predictor** - skips rollout, predicts P(class at year 50) directly from enriched cell features
+2. **Prior Operator Predictor** - corrects bucket prior predictions using per-round learned operators
+3. **GLMM Latent z2** - original cell-transition rollout model with low-rank regime manifold
+
+All three combined with observation blending (Agent 1/3 technique) for the best result.
+
 ## Additional Results (Phase 3)
 
 | Model | Score | Weighted KL | Delta | Status |
