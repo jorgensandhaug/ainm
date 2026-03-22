@@ -122,6 +122,11 @@ DIRECT_TERMINAL_Z2_EW_V001 = "direct_terminal_z2_ew_v001"  # entropy-weighted
 TRIPLE_EW_V001 = "triple_ew_v001"  # triple blend with entropy-weighted DT
 TRIPLE_EW_V002 = "triple_ew_v002"  # 0/50/50 with ew DT
 TRIPLE_EW_V003 = "triple_ew_v003"  # 10/45/45 with ew DT
+TRIPLE_EW_V004 = "triple_ew_v004"  # 25/37/38
+TRIPLE_EW_V005 = "triple_ew_v005"  # 35/30/35
+TRIPLE_EW_V006 = "triple_ew_v006"  # 20/40/40
+TRIPLE_EW_V007 = "triple_ew_v007"  # 15/42/43
+TRIPLE_EW_V008 = "triple_ew_v008"  # 30/40/30
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -2110,7 +2115,7 @@ def build_online_predictor(
             model_name=DIRECT_TERMINAL_Z2_EW_V001,
             fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.001, "max_epochs": 200, "entropy_weighted": True},
         )
-    if normalized in (TRIPLE_EW_V001, TRIPLE_EW_V002, TRIPLE_EW_V003):
+    if normalized in (TRIPLE_EW_V001, TRIPLE_EW_V002, TRIPLE_EW_V003, TRIPLE_EW_V004, TRIPLE_EW_V005, TRIPLE_EW_V006, TRIPLE_EW_V007, TRIPLE_EW_V008):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         glmm_adapter = _build_smh_glmm_latent_adapter(
             workspace_paths,
@@ -2144,6 +2149,11 @@ def build_online_predictor(
             TRIPLE_EW_V001: (0.30, 0.35, 0.35),
             TRIPLE_EW_V002: (0.00, 0.50, 0.50),
             TRIPLE_EW_V003: (0.10, 0.45, 0.45),
+            TRIPLE_EW_V004: (0.25, 0.37, 0.38),
+            TRIPLE_EW_V005: (0.35, 0.30, 0.35),
+            TRIPLE_EW_V006: (0.20, 0.40, 0.40),
+            TRIPLE_EW_V007: (0.15, 0.42, 0.43),
+            TRIPLE_EW_V008: (0.30, 0.40, 0.30),
         }
         wa, wb, wc = ew_weights[normalized]
         base_predictor = TripleBlendPredictor(
