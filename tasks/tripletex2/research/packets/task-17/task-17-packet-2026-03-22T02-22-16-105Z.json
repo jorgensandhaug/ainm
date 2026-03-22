@@ -1,0 +1,252 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-17-packet-2026-03-22T02-22-16-105Z",
+  "createdAt": "2026-03-22T02:22:16.105Z",
+  "taskId": "17",
+  "txTaskId": "17",
+  "taskSlug": "register-customer-invoice-payment",
+  "taskName": "Register customer invoice payment",
+  "queueEntry": {
+    "taskId": "17",
+    "txTaskId": "17",
+    "taskSlug": "register-customer-invoice-payment",
+    "taskName": "Register customer invoice payment",
+    "priority": 5,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "researchLane": "execution-lane",
+    "bestKnownScore": 3.5,
+    "maxScore": 4,
+    "baselineCallBudget": 3,
+    "proofInputPath": "research/proofs/task-17/task-17-proof-input.json",
+    "verificationPlanId": "task-17.register-payment.v1",
+    "notes": [
+      "Near-max Tier 2 cleanup target.",
+      "RESEARCH FINDING: txTaskId mapping may be incorrect — prod evidence shows contest tx_task_id 07 corresponds to payment prompts, not 17. The bestKnownScore 3.5/4 may be from the wrong contest task (dimension/voucher). Actual payment task (contest task 07) scores 2.0/2.0 (max) with 100% correctness."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "17.register-payment.v1",
+    "strategyPath": "src/tasks/task-17/strategies/register-payment.ts",
+    "strategyStatus": "active",
+    "strategyName": "Register exact invoice payment",
+    "summary": "Locates the exact unpaid customer invoice from the prompt keys, resolves a valid incoming payment type, and pays the live outstanding amount in one write.",
+    "hypothesis": "The exact-match 3-call path from the trusted standard is the reliable minimum for standalone customer-invoice payment registration.",
+    "expectedCallProfile": {
+      "targetCalls": 3,
+      "maxCalls": 3
+    },
+    "stepOutline": [
+      "API call 1: GET /invoice or /invoice/{id} to locate the exact unpaid invoice from prompt identifiers.",
+      "API call 2: GET /invoice/paymentType to resolve a valid incoming bank payment type.",
+      "API call 3: PUT /invoice/{id}/:payment using the invoice object's live outstanding amount."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "17.register-payment.v1",
+      "strategyPath": "src/tasks/task-17/strategies/register-payment.ts",
+      "strategyStatus": "active",
+      "strategyName": "Register exact invoice payment",
+      "summary": "Locates the exact unpaid customer invoice from the prompt keys, resolves a valid incoming payment type, and pays the live outstanding amount in one write.",
+      "hypothesis": "The exact-match 3-call path from the trusted standard is the reliable minimum for standalone customer-invoice payment registration.",
+      "expectedCallProfile": {
+        "targetCalls": 3,
+        "maxCalls": 3
+      },
+      "stepOutline": [
+        "API call 1: GET /invoice or /invoice/{id} to locate the exact unpaid invoice from prompt identifiers.",
+        "API call 2: GET /invoice/paymentType to resolve a valid incoming bank payment type.",
+        "API call 3: PUT /invoice/{id}/:payment using the invoice object's live outstanding amount."
+      ]
+    }
+  ],
+  "baselineCallBudget": 3,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Register customer invoice payment. Current best known score is 3.5/4, leaving a gap of 0.5. Known call frontier is 3 calls when correctness matches the current best evidence. The active pinned strategy to beat is 17.register-payment.v1 with target 3 calls.",
+    "currentBestKnownScore": 3.5,
+    "maxScore": 4,
+    "scoreGap": 0.5,
+    "bestKnownCallBudget": 3,
+    "baselineCallBudget": 3,
+    "activeStrategyToBeat": {
+      "strategyId": "17.register-payment.v1",
+      "strategyPath": "src/tasks/task-17/strategies/register-payment.ts",
+      "strategyStatus": "active",
+      "strategyName": "Register exact invoice payment",
+      "summary": "Locates the exact unpaid customer invoice from the prompt keys, resolves a valid incoming payment type, and pays the live outstanding amount in one write.",
+      "hypothesis": "The exact-match 3-call path from the trusted standard is the reliable minimum for standalone customer-invoice payment registration.",
+      "expectedCallProfile": {
+        "targetCalls": 3,
+        "maxCalls": 3
+      },
+      "stepOutline": [
+        "API call 1: GET /invoice or /invoice/{id} to locate the exact unpaid invoice from prompt identifiers.",
+        "API call 2: GET /invoice/paymentType to resolve a valid incoming bank payment type.",
+        "API call 3: PUT /invoice/{id}/:payment using the invoice object's live outstanding amount."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 3.5/4, or match the current correctness and score at 3 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 17.register-payment.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 3.5/4.",
+      "If score does not improve, match correctness at 3 API calls or fewer.",
+      "Compare against the active pinned strategy 17.register-payment.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/src/tasks/task-17",
+      "taskReadmePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/src/tasks/task-17/README.md",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/src/tasks/task-17/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/src/tasks/task-17/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/src/tasks/task-17/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/src/tasks/task-17/strategies/register-payment.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/src/tasks/task-17/strategies/register-payment.ts"
+      ]
+    },
+    "proof": {
+      "inputPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/research/proofs/task-17/task-17-proof-input.json",
+      "verificationPlanId": "task-17.register-payment.v1",
+      "verificationPlanSourcePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/src/research/verification-plan.ts",
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/research/packets/task-17/task-17-packet-2026-03-22T02-22-16-105Z.json --strategy <strategy-id> --input-file /home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/research/proofs/task-17/task-17-proof-input.json"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": []
+    },
+    "offlineEvidence": {
+      "trustedStandardPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/research/legacy/trusted-standards/register-customer-invoice-payment.md",
+      "taskPlaybookPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/research/legacy/task-playbooks/register-customer-invoice-payment.md",
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 0,
+    "recentArtifacts": []
+  },
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 3.5,
+        "totalAttempts": 22,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 3.5,
+        "totalAttempts": 22,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 3.5,
+        "totalAttempts": 22,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 3.5,
+        "totalAttempts": 22,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 3.5,
+        "totalAttempts": 22,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-231356274Z-db84be61",
+      "prod-2026-03-21-224412365Z-33209af0",
+      "prod-2026-03-21-184253285Z-d3275dcf",
+      "prod-2026-03-21-183055472Z-8b1eefdb",
+      "prod-2026-03-20-220811643Z-9a5130ef"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "readmeText": "# Register customer invoice payment\n\nTyped task surface and draft runtime stub for `register-customer-invoice-payment`.\n\nThe intended deterministic solve path should follow `codex-environment/trusted-standards/register-customer-invoice-payment.md` when this task gets a real strategy implementation.\n",
+    "trustedStandardText": "# Register Customer Invoice Payment\n\n## Trust Level\n- Trusted standard\n- Use directly for exact matches\n- Skip `./openapi.json` re-checking for exact matches\n\n## Exact Match\n- register full payment on one existing outgoing customer invoice\n- prompt identifies the invoice strongly enough to find it in one decisive read\n- no need to create the invoice first in the same task\n- same-run context does not already contain the exact invoice id\n\n## Do Not Use This Standard If\n- task includes creating the order/invoice first\n- task is supplier invoice payment\n- prompt is too ambiguous to identify one invoice safely\n\n## Standard Flow\n1. `GET /invoice?...&fields=*` to identify the exact unpaid invoice\n2. Reuse a previously resolved same-run incoming `paymentTypeId` if one is already known for the same company and currency\n3. Otherwise `GET /invoice/paymentType?fields=*` once to resolve a valid incoming payment type\n4. `PUT /invoice/{id}/:payment`\n5. verify from payment write response\n6. stop\n\n## Canonical Call Count\n- standalone exact-match payment task with no cached same-run payment type: `3` calls\n- same task shape with a cached same-run incoming `paymentTypeId`: `2` calls\n- do not treat cross-run or cross-account cached ids as reusable\n\n## Payload Rules\n- identify invoice by prompt identifiers, not by guessing\n- when paying, use actual outstanding amount from invoice object\n- do not use the prompt lookup amount if the live outstanding amount differs\n- for text matching, treat top-level `orderLines[]` and nested `orders[].orderLines[]` as one invoice-level evidence set\n- normalize payment-type account numbers before heuristic matching\n- do not require `paymentType.name`; valid incoming payment types can have `name=null`\n- acceptable incoming payment types can have `creditAccount=null`\n- `paymentTypeId` is required on `PUT /invoice/{id}/:payment`; omitting it is not a valid lower-call shortcut\n\n## Reuse From Write Response\n- invoice id from locate step\n- outstanding amount from invoice locate step\n- post-payment remaining amount from write response\n\n## Verification\n- default verification is zero extra calls after payment write if response proves `amountOutstanding=0` or equivalent final state\n\n## Known Recovery Branches\n- if a larger multi-step flow already created order/invoice but failed before payment, resume at invoice locate step, do not rebuild earlier objects\n- if the same run already resolved one valid incoming `paymentTypeId`, reuse it instead of reading `/invoice/paymentType` again\n\n## OpenAPI / Sandbox Status\n- `/invoice/{id}/:payment` verified in `./openapi.json`\n- locate-and-pay flow proven in existing payment playbook\n- persistent sandbox re-check on 2026-03-20 confirmed `PUT /invoice/{id}/:payment` fails with `422 paymentTypeId: Kan ikke være null.` when `paymentTypeId` is omitted\n- same-day persistent sandbox re-proof on invoice `2147531841` confirmed `GET /invoice?...fields=*` still did not expose a reusable incoming `paymentTypeId`, so the standalone public path is still `3` calls unless the same run already cached one\n- 2026-03-20 production run for `866440034` + `30000` + `Almacenamiento en la nube` confirmed the exact `3`-call path `GET /invoice` -> `GET /invoice/paymentType` -> `PUT /invoice/{id}/:payment` and proved again that the paid amount must come from `amountCurrencyOutstanding`/`amountOutstanding` (`37500` there), not from the prompt lookup amount\n- same-day persistent sandbox re-proof on invoice `2147551675` again settled the invoice in exactly `3` calls; the locate read exposed no reusable payment-related fields at all, and the chosen incoming bank payment type had `name=null`, `debitAccount.number=1920`, and `creditAccount=null`\n- 2026-03-20 production run for `830362894` + `32200` + `System Development` confirmed the same exact `3`-call path and again required paying the invoice object's live outstanding amount (`40250` there), not the prompt lookup amount\n- 2026-03-20 production run for `891380690` + `10100` + `Konsulenttimer` confirmed the same exact `3`-call path, located invoice `2147541069`, and again required paying the invoice object's live outstanding amount (`12625` there), not the prompt lookup amount\n- 2026-03-20 production run for `913245539` + `36450` + `Session de formation` confirmed the same exact `3`-call path on a French prompt, located invoice `2147541030`, and again required paying the live outstanding amount (`45562.5` there), not the prompt lookup amount\n- same-day persistent sandbox re-proof on invoice `2147552467` again settled the invoice in exactly `3` calls; the locate read still exposed no reusable `paymentTypeId`, and the chosen incoming bank payment type remained `32813748` on debit account `1920`\n- same-day persistent sandbox re-proof on analog invoice `2147531840` (`907791616` + `6200` + `Fakturerbart arbeid sandbox proof`) again settled the invoice in exactly `3` calls, and the locate read exposed no payment-related keys at all; the chosen incoming bank payment type was still `32813748` with `name=null`, `creditAccount=null`, `debitAccount.number=1920`, `isBankAccount=true`, and `isInvoiceAccount=true`\n- that same sandbox account also contained duplicate unpaid analogs for the same `customer.organizationNumber + exact ex-VAT amount + exact line description`; treat that as persistent-sandbox state noise, not as a reason to add a default `GET /customer` or weaken the fresh-account exact-match standard\n- when those duplicate sandbox analogs all belong to the same customer, `GET /customer?organizationNumber=...` is not a real disambiguation branch anyway; either rely on extra prompt fields or treat the ambiguity as sandbox-only proof noise rather than adding a wasted read\n",
+    "playbookText": "# Register Customer Invoice Payment\n\n## Scope\n\nUse for tasks like:\n- register full payment on an existing outgoing customer invoice\n- locate the invoice from prompt facts such as customer organization number, ex-VAT amount, and line/service description\n- mark the invoice fully paid without creating reminders, credit notes, or vouchers manually\n\nDo not use for:\n- creating the invoice itself\n- sending the invoice\n- reversing or deleting invoice/accounting entries\n\n## Key Findings\n\n- The payment write is `PUT /invoice/{id}/:payment`\n- Required query parameters are:\n  - `paymentDate`\n  - `paymentTypeId`\n  - `paidAmount`\n- `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`\n- A single decisive invoice read can often replace a separate `GET /customer` if the prompt already gives enough identifying facts\n- The payment write response returns `ResponseWrapperInvoice`, and that response can verify the remaining outstanding amount directly\n- `paymentTypeId` can be cached and reused within the same run for the same company/currency context\n- cross-run `paymentTypeId` caching is not safe; ids vary across accounts and environments\n\nVerified in sandbox on 2026-03-19:\n- `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&fields=*,customer(*),currency(*),orderLines(*),orders(*)` returned enough data to locate a unique invoice by:\n  - `customer.organizationNumber`\n  - `amountExcludingVatCurrency`\n  - `orderLines[].description`\n  - positive `amountCurrencyOutstanding`\n- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable payment types including:\n  - `32813747` `Kontant` with debit account `1900`\n  - `32813748` `Betalt til bank` with debit account `1920`\n- `PUT /invoice/{id}/:payment?...` updated the invoice and returned `remainingOutstanding = 0`\n- re-verified on 2026-03-20 in persistent sandbox:\n  - `Betalt til bank` (`id=32813748`) had `debitAccount.number=1920`, `isBankAccount=true`, `isInvoiceAccount=true`, and `creditAccount=null`\n  - despite `creditAccount=null`, `PUT /invoice/{id}/:payment?...` with that payment type still reduced `remainingOutstanding` to `0`\n  - `PUT /invoice/{id}/:payment?...` without `paymentTypeId` failed with `422` and validation message `paymentTypeId: Kan ikke være null.`\n  - ordinary `GET /invoice?...fields=*` responses did not expose a reusable incoming payment-type id, so there is no proven public 2-call standalone shortcut from invoice read alone\n  - same-day persistent sandbox re-proof on invoice `2147531841` again settled the invoice in exactly `3` calls, and the invoice read still had no reusable `paymentTypeId`\n  - same-day persistent sandbox re-proof on invoice `2147551675` again settled the invoice in exactly `3` calls; the locate read exposed no reusable payment-related fields at all, and the usable incoming bank payment type still had `name=null`\n\nVerified in production on 2026-03-20:\n- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147540787` for customer `866440034` by `amountExcludingVatCurrency=30000`, line description `Almacenamiento en la nube`, and positive `amountCurrencyOutstanding=37500`\n- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27076191`\n- `PUT /invoice/2147540787/:payment?paymentDate=2026-03-20&paymentTypeId=27076191&paidAmount=37500` reduced the remaining outstanding amount to `0`\n- this production run reconfirmed that the prompt ex-VAT amount was only the locator, not the payment amount\n- `GET /invoice?invoiceDateFrom=2024-01-01&invoiceDateTo=2027-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147540820` for customer `830362894` by `amountExcludingVatCurrency=32200`, line description `System Development`, and positive `amountCurrencyOutstanding=40250`\n- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27077955`\n- `PUT /invoice/2147540820/:payment?paymentDate=2026-03-20&paymentTypeId=27077955&paidAmount=40250` reduced the remaining outstanding amount to `0`\n- this second production run on the same exact task shape reconfirmed that the prompt ex-VAT amount was only the locator, not the payment amount\n- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147541069` for customer `891380690` by `amountExcludingVatCurrency=10100`, line description `Konsulenttimer`, and positive `amountCurrencyOutstanding=12625`\n- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27093292`\n- `PUT /invoice/2147541069/:payment?paymentDate=2026-03-20&paymentTypeId=27093292&paidAmount=12625` reduced the remaining outstanding amount to `0`\n- this third Norwegian production run on the same exact task shape reconfirmed that the prompt ex-VAT amount was only the locator, not the payment amount\n- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147541030` for customer `913245539` by `amountExcludingVatCurrency=36450`, line description `Session de formation`, and positive `amountCurrencyOutstanding=45562.5`\n- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `27087363`\n- `PUT /invoice/2147541030/:payment?paymentDate=2026-03-20&paymentTypeId=27087363&paidAmount=45562.5` reduced the remaining outstanding amount to `0`\n- this third production run on the same exact task shape reconfirmed that prompt language does not change the path and that the prompt ex-VAT amount was only the locator, not the payment amount\n- same-day persistent sandbox re-proof on analog invoice `2147531840` (`907791616` + `6200` + `Fakturerbart arbeid sandbox proof`) again settled the invoice in exactly `3` calls; the invoice read exposed no payment-related keys at all, and `GET /invoice/paymentType` still returned usable incoming bank payment type `32813748` with `name=null`, `creditAccount=null`, `debitAccount.number=1920`, `isBankAccount=true`, and `isInvoiceAccount=true`\n- that same sandbox account contained `4` unpaid analogs for the same `customer.organizationNumber + exact ex-VAT amount + exact line description`, so persistent-sandbox duplicate noise is not proof that the fresh-account production task shape needs an extra resolver read\n\nObserved production/account variance:\n- payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, production `27076191`, production `27077955`, and sandbox `32813748`\n- therefore cache resolved incoming payment types only in-memory within the same run; do not persist or trust a cross-run id cache\n\n## Minimal Flow\n\n1. Confirm these operations in `./openapi.json`\n   - `GET /invoice`\n   - `GET /invoice/paymentType`\n   - `PUT /invoice/{id}/:payment`\n2. Locate the invoice with one decisive read\n   - usually `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))`\n3. Filter locally to the single correct invoice\n   - exact customer organization number if provided\n   - exact ex-VAT amount from `amountExcludingVatCurrency` or `amountExcludingVat`\n   - positive `amountCurrencyOutstanding` or `amountOutstanding`\n   - prompt text match in `orderLines[].description`, `orderLines[].displayName`, `orders[].orderLines[].description`, `orders[].invoiceComment`, or nearby invoice text fields\n4. Reuse a previously resolved same-run incoming payment type if available\n   - only when it was resolved earlier in the same run for the same company and invoice currency\n5. Otherwise resolve one usable payment type\n   - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n   - prefer a bank-style incoming payment type when available, typically debit account `19xx`\n   - if available, prefer `isBankAccount=true` or `isInvoiceAccount=true` on that debit account\n   - do not reject the candidate just because `creditAccount` is `null`\n6. Register full payment\n   - `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<outstanding>`\n7. Verify from the write response\n   - prefer `amountCurrencyOutstanding`\n   - otherwise `amountOutstanding`\n   - stop if it is `0`\n\n## Canonical Call Count\n\n- standalone exact-match payment task with no cached same-run `paymentTypeId`: `3` calls\n- if the same run already holds a proven valid incoming `paymentTypeId`: `2` calls\n- do not claim a cross-run 2-call path unless the prompt explicitly gives the exact `paymentTypeId`\n\n## Payment Amount Rules\n\n- Do not derive the payment amount from the prompt’s ex-VAT amount\n- Use the outstanding amount returned by the located invoice:\n  - `amountCurrencyOutstanding` first\n  - otherwise `amountOutstanding`\n- exact-match production proof on 2026-03-20: prompt locator `30000` ex VAT for `Almacenamiento en la nube` still required `paidAmount=37500`\n- exact-match production proof on 2026-03-20: prompt locator `32200` ex VAT for `System Development` still required `paidAmount=40250`\n- This avoids incorrect VAT assumptions and avoids partial/over-payments when reminders, alternate currencies, or non-standard VAT setups exist\n- Only send `paidAmountCurrency` when the invoice currency differs from the payment type currency and the endpoint requires both values\n\n## Payment Type Rules\n\n- Do not guess the payment type ID\n- Read from `GET /invoice/paymentType` unless the same run already resolved a valid reusable incoming payment type for the same company/currency\n- Normalize `debitAccount.number` and `creditAccount.number` before applying string-prefix checks; they may be returned as numbers rather than strings\n- Do not require `paymentType.name`; persistent sandbox re-proof on 2026-03-20 showed a valid incoming bank payment type with `name=null`\n- Prefer an ordinary bank payment type over niche/custom types when several are available\n- Prefer a `19xx` debit account with `isBankAccount=true` or `isInvoiceAccount=true` when present\n- Do not require a `15xx` credit account; `creditAccount` may be `null` on a valid incoming payment type such as `Betalt til bank`\n- Do not persist a payment-type id cache across runs or accounts; successful ids vary materially between environments\n- Do not attempt to omit `paymentTypeId` from the payment write; sandbox re-check returned `422 paymentTypeId: Kan ikke være null.`\n\n## If You Still Need to Probe\n\n- First inspect the `GET /invoice` result before doing any write\n- If the invoice search is ambiguous, only then add one extra read such as `GET /customer?organizationNumber=...&fields=*`\n- Do not add that `GET /customer` just because a persistent sandbox account has duplicate unpaid analogs; in fresh-account production, exact `organizationNumber + ex-VAT amount + line description` has repeatedly been sufficient\n- When those duplicate sandbox analogs all share the same customer, that `GET /customer` still does not disambiguate which invoice to pay, so treat the ambiguity as sandbox-only noise unless the prompt provides another resolver field\n- Reuse the located invoice object for:\n  - payment amount\n  - currency context\n  - verification target\n- Reuse the same-run resolved `paymentTypeId` whenever later steps in the same run need another incoming customer-invoice payment\n- Do not add a follow-up `GET /invoice/{id}` if the payment write response already proves `amountOutstanding = 0`\n",
+    "knownFailureModes": [
+      "## Do Not Use This Standard If",
+      "do not treat cross-run or cross-account cached ids as reusable",
+      "do not use the prompt lookup amount if the live outstanding amount differs",
+      "do not require `paymentType.name`; valid incoming payment types can have `name=null`",
+      "if a larger multi-step flow already created order/invoice but failed before payment, resume at invoice locate step, do not rebuild earlier objects",
+      "persistent sandbox re-check on 2026-03-20 confirmed `PUT /invoice/{id}/:payment` fails with `422 paymentTypeId: Kan ikke være null.` when `paymentTypeId` is omitted",
+      "Do not use for:",
+      "`PUT /invoice/{id}/:payment?...` without `paymentTypeId` failed with `422` and validation message `paymentTypeId: Kan ikke være null.`",
+      "therefore cache resolved incoming payment types only in-memory within the same run; do not persist or trust a cross-run id cache",
+      "do not reject the candidate just because `creditAccount` is `null`",
+      "do not claim a cross-run 2-call path unless the prompt explicitly gives the exact `paymentTypeId`",
+      "Do not derive the payment amount from the prompt’s ex-VAT amount",
+      "Do not guess the payment type ID",
+      "Do not require `paymentType.name`; persistent sandbox re-proof on 2026-03-20 showed a valid incoming bank payment type with `name=null`",
+      "Do not require a `15xx` credit account; `creditAccount` may be `null` on a valid incoming payment type such as `Betalt til bank`",
+      "Do not persist a payment-type id cache across runs or accounts; successful ids vary materially between environments",
+      "Do not attempt to omit `paymentTypeId` from the payment write; sandbox re-check returned `422 paymentTypeId: Kan ikke være null.`",
+      "Do not add that `GET /customer` just because a persistent sandbox account has duplicate unpaid analogs; in fresh-account production, exact `organizationNumber + ex-VAT amount + line description` has repeatedly been sufficient",
+      "Do not add a follow-up `GET /invoice/{id}` if the payment write response already proves `amountOutstanding = 0`"
+    ]
+  },
+  "proof": {
+    "inputPath": "research/proofs/task-17/task-17-proof-input.json",
+    "verificationPlan": {
+      "schemaVersion": "tripletex2.research-verification-plan.v1",
+      "planId": "task-17.register-payment.v1",
+      "taskId": "17",
+      "checks": [
+        {
+          "type": "object",
+          "checkId": "invoice-payment-readback",
+          "description": "Read the paid invoice and confirm the outstanding amount is zero.",
+          "pathTemplate": "/invoice/{{result.verification.invoiceId}}",
+          "query": {
+            "fields": "*,customer(*),currency(*)"
+          },
+          "responsePath": "value",
+          "assertions": [
+            {
+              "actualPath": "amountCurrencyOutstanding",
+              "equalsFromPath": "result.verification.remainingOutstanding"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "operatorNotes": [
+    "Near-max Tier 2 cleanup target.",
+    "RESEARCH FINDING: txTaskId mapping may be incorrect — prod evidence shows contest tx_task_id 07 corresponds to payment prompts, not 17. The bestKnownScore 3.5/4 may be from the wrong contest task (dimension/voucher). Actual payment task (contest task 07) scores 2.0/2.0 (max) with 100% correctness.",
+    "Task packet built from checked-in repo evidence for task 17.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 17.register-payment.v1."
+  ]
+}

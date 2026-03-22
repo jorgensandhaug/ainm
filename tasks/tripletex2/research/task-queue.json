@@ -81,8 +81,12 @@
       "researchLane": "execution-lane",
       "bestKnownScore": 3.5,
       "maxScore": 4,
+      "baselineCallBudget": 3,
+      "proofInputPath": "research/proofs/task-17/task-17-proof-input.json",
+      "verificationPlanId": "task-17.register-payment.v1",
       "notes": [
-        "Near-max Tier 2 cleanup target."
+        "Near-max Tier 2 cleanup target.",
+        "RESEARCH FINDING: txTaskId mapping may be incorrect — prod evidence shows contest tx_task_id 07 corresponds to payment prompts, not 17. The bestKnownScore 3.5/4 may be from the wrong contest task (dimension/voucher). Actual payment task (contest task 07) scores 2.0/2.0 (max) with 100% correctness."
       ]
     },
     {

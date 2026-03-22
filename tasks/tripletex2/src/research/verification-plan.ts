@@ -65,6 +65,33 @@ export function buildTaskVerificationPlan(
     };
   }
 
+  if (taskId === "17") {
+    return {
+      schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
+      planId: "task-17.register-payment.v1",
+      taskId: "17",
+      checks: [
+        {
+          type: "object",
+          checkId: "invoice-payment-readback",
+          description:
+            "Read the paid invoice and confirm the outstanding amount is zero.",
+          pathTemplate: "/invoice/{{result.verification.invoiceId}}",
+          query: {
+            fields: "*,customer(*),currency(*)",
+          },
+          responsePath: "value",
+          assertions: [
+            {
+              actualPath: "amountCurrencyOutstanding",
+              equalsFromPath: "result.verification.remainingOutstanding",
+            },
+          ],
+        },
+      ],
+    };
+  }
+
   if (taskId === "11") {
     return {
       schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
