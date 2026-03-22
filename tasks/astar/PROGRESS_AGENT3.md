@@ -4918,9 +4918,73 @@ Key techniques to incorporate from other agents:
    - Includes LightGBM, CatBoost, TabPFN, neural networks, stacking
    - Results pending
 
+---
+
+## ===== NEW DATA REGIME (2026-03-22) =====
+
+**CRITICAL BREAKPOINT: All scores below this line are NOT directly comparable to scores above.**
+
+Previous dataset: 8-9 rounds with analyses. New dataset: 17 rounds with analyses (8 new rounds added).
+
+### Data Inventory
+
+| Category | Old | New |
+|----------|-----|-----|
+| Rounds with analyses | 9 | 17 |
+| Rounds with replays | 9 | 16 (b0f9d1bf has no replays) |
+| Rounds with round JSON | 9 | 17 (8 synthetic JSONs created from analyses) |
+| Total seeds with ground truth | 45 | 85 |
+
+New rounds (have analyses, generated round JSONs from initial_grid):
+- 324fde07, 3eb0c25d, 75e625c3, 795bfb1f, 7b4bda99, b0f9d1bf, cc5442dd, d0a2c894
+
+Round b0f9d1bf EXCLUDED from cellwise pipeline (no replays for SyntheticActiveOracle).
+
+### Previous Best Models to Re-Evaluate on New Data
+
+| Rank | Model | Old Score (8-round LOO) | Config |
+|------|-------|------------------------|--------|
+| 1 | CatBoost+LGB ensemble + exploration + obs-blend | 86.34 | CB(1500,d8,lr=0.01)+LGB(800,d8,lr=0.02) geomean 70/30, exploration, blend t=50 |
+| 2 | CatBoost + exploration + obs-blend | 86.32 | CB(1500,d8,lr=0.01), exploration, blend t=50 |
+| 3 | CatBoost + obs-blend (coverage) | 85.38 | CB(1500,d8,lr=0.01), coverage, blend t=50 |
+| 4 | CatBoost big (coverage) | 85.29 | CB(1500,d8,lr=0.01), coverage, no blend |
+| 5 | LGB v5_d8 | 84.94 | LGB(800,d8,lr=0.02), coverage, no blend |
+
+All use: entropy-weighted training, v5 features (map+viewport+cross-seed+settlement_proximity+activity_heatmap), geometry_prior base predictor (policy plan is independent of base predictor predictions).
+
+### Key Discovery: Base Predictor is Irrelevant for Cellwise Pipeline
+
+Verified through code analysis:
+- `CoverageThenReplicatePolicy.build_plan()` only uses `round_detail` (initial state), NOT predictor predictions
+- `QueryPlanPolicyAdapter.select()` steps through a static plan based on observation count
+- The oracle returns replay data regardless of predictor
+- Therefore `geometry_prior` (zero-cost) produces IDENTICAL features and scores as `query_residual_v19`
+- This eliminates the expensive base predictor training step for every LOO fold
+
+### Environment Setup
+
+- Python: 3.12.8 (nix-profile)
+- LD_LIBRARY_PATH: `/nix/store/ihpdbhy4rfxaixiamyb588zfc3vj19al-gcc-15.2.0-lib/lib:/nix/store/xdxxfabbd8w0dadijsd8rkgvnhpn3rkf-zlib-1.3.1/lib`
+- CatBoost: 1.2.10, LightGBM: 4.6.0
+- Hardware: 384 cores, 3TB RAM, no GPU
+
+### 2026-03-22 Work Log
+
+525. Environment setup:
+   - Installed uv
+   - Fixed numpy/libstdc++ linking issue (nix store paths)
+   - Created round JSONs for 8 new rounds from analysis initial_grid
+   - Settlements derived from grid codes (1=settlement, 2=port, verified 100% match)
+   - Created unified benchmark script: `scripts/agent3_catboost_v1.py`
+
+526. Running initial re-evaluation on expanded 16-round dataset (b0f9d1bf excluded, no replays):
+   - Testing CatBoost + coverage + obs-blend as first baseline
+   - Results pending...
+
 ## Open Questions
 
-- Can AutoGluon's ensemble/stacking beat our manual CatBoost?
-- Can we push past 87?
-- Need to wire CatBoost + exploration into live pipeline
-- What else can improve round 36e581f1 (73.64)?
+- How do scores change with 2x more training data?
+- Does the ranking of models change on the expanded dataset?
+- Can we push past 87 with more data?
+- What do the 8 new rounds look like (barren vs active)?
+- Can we exploit the new rounds' replay data for better features?
