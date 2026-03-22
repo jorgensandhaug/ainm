@@ -142,6 +142,11 @@ Do not use for:
   - `GET /customer` -> `GET /product?number=6042,5211,8022` -> `POST /invoice` (422 bank-account) -> `GET /ledger/account` -> `PUT /ledger/account/{id}` -> retry `POST /invoice` (201)
   - seventh production confirmation of comma-separated `number=X,Y,Z`; products carried `vatType.id` `3`/`31`/`6`; totals `amountExcludingVatCurrency=19800` / `amountCurrency=20860`
   - **post-run finding**: proactive bank-account check (free GET before POST /invoice) would have avoided the 422, reducing to 2 writes and 0 errors instead of 3 writes and 1 error; trusted standard and playbook updated to recommend proactive approach
+- the 2026-03-22 production run for `Ridgepoint Ltd` / `932956233` / products `Analysis Report (5566)` + `Cloud Storage (6035)` + `Training Session (5199)` / VAT `25%` + `15% food` + `0% exempt` (English prompt) succeeded with 6 API calls and **0 avoidable errors** — first production validation of proactive bank-account check:
+  - `GET /customer` -> `GET /product?number=5566,6035,5199` -> `GET /ledger/account?isBankAccount=true` -> `PUT /ledger/account/{id}` (bank repair) -> `POST /invoice?sendToCustomer=false` (201 first try) -> `GET /invoice/{id}` (verify)
+  - eighth production confirmation of comma-separated `number=X,Y,Z` product query (OR semantics)
+  - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them produced correct totals `amountExcludingVatCurrency=41350` / `amountCurrency=48015`
+  - proactive bank-account check confirmed: same call count as reactive approach but 0 errors vs 1 error; the failed POST /invoice in reactive approach counts as both a wasted write AND an error penalty
 
 ## Minimal Flow
 
@@ -339,7 +344,7 @@ If `POST /invoice` still fails with `Faktura kan ikke opprettes før selskapet h
 
 ## Avoidable Mistakes
 
-- Do not spend an unconditional `GET /ledger/account` before the first invoice write
+- DO spend a proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write (GETs are free; the 422 bank-account error costs 1 extra write + 1 error penalty); first production validation of proactive approach on 2026-03-22 confirmed 0 errors
 - Do not use the send-invoice flow when the prompt only asks to create an invoice
 - Do not assume the `POST /invoice` response fully expands each line just because `orderLines.length` matches the requested line count
 - Do not assume `GET /product?fields=*` fully expands `vatType.percentage`; it may return only `id`/`url`
