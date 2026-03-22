@@ -3784,3 +3784,54 @@ query_residual_v11 training took 60+ min and didn't complete before round closed
 - Evidence model at ev1: 86.13
 - Trajectory model bad at ev1: 83.91 (needs many replays)
 - For live: use evidence model + crossseed (pre-trained, fast serve)
+
+### 2026-03-22T07:45Z — Combined model result + sweep progress
+
+**Combined model (trajectory+spatial+crossseed+evidence+transition): 92.08**
+- Slightly WORSE than pure trajectory model (92.16)
+- More features ≠ better: feature noise from spatial/transition hurts
+- Trajectory model remains the champion at 92.16
+
+**Leaderboard update (11 models):**
+| Score | Model |
+|-------|-------|
+| 92.16 | Trajectory + crossseed (BEST) |
+| 92.08 | Combined (all features) |
+| 91.21 | Transition + crossseed |
+| 90.40 | Evidence only |
+| 90.13 | Crossseed only |
+| 90.12 | Spatial + crossseed |
+| 90.01 | Focused dynamic |
+
+**Hyperparameter sweep still running (8 configs)**
+**Stacking ensemble still running**
+**Kitchen sink still running**
+
+**Key explanation for user:**
+- ev1 = 1 FULL 40x40 year-50 replay grid (complete Monte Carlo snapshot)
+- Live round = ~9 partial 15x15 viewports from DIFFERENT Monte Carlo runs  
+- These are NOT equivalent — live gives fragmented, inconsistent spatial info
+- Expected live score: between ev1 (86-87) and ev15 (90-92) depending on model
+
+### 2026-03-22T07:30Z — Analysis of agent7's ffam_mode_v22
+
+**Architecture:** Per-round linear operator → SVD mode compression → kernel ridge posterior
+**Key insight:** Designed for live API from the start — trains on synthetic transcripts matching live query pattern
+
+**Why it beats my cellwise GBM approach:**
+1. Operator-based: structured linear model per round, not per-cell GBM
+2. Low-rank mode manifold (4D): explicit cross-round regime compression
+3. Proper posterior inference: kernel ridge with supervised metric learning
+4. NO train/serve mismatch: trains on synthetic transcripts = same as live queries
+5. Observation-aware: uses transcript features, not just static evidence
+
+**`exploration_r3` policy:**
+- Coverage first, then 3 repeat queries on informative viewports
+- Repeated viewports give multiple stochastic samples → better evidence
+
+**`samples_per_round=6`:**
+- 6 synthetic transcript episodes per round during training
+
+**The fundamental lesson:**
+My cellwise GBM with replay evidence has a train/serve gap: trains on full-map replays, serves with partial viewports.
+The ffam model trains on synthetic transcripts that EXACTLY match the live query pattern.
