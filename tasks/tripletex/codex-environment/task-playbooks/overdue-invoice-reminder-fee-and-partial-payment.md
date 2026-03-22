@@ -260,4 +260,11 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
 - the `6`-call path is now confirmed across 9 production runs with fee amounts `35`, `40`, `50`, `60`, `70` and prompts in `nb`, `en`, `es`, `pt`, `de`, `fr`; no lower-call path exists
 - production run `prod-2026-03-22-034304639Z-37825322` was blocked by expired proxy token (403 on first GET); script was correctly structured for the `6`-call path (Spanish prompt, fee `35`); scored `0/10` due to credential expiry, not logic error
 - persistent sandbox re-proof on `2026-03-22` confirmed the `6`-call path end-to-end with 0 errors; also investigated whether invoice postings contain enough data to skip `GET /ledger/account`: postings include account `1500` id but NOT `3400`, so the account GET is still required
-- the `6`-call path is confirmed across 9 clean production runs + 1 blocked run; no `5`-call standalone path exists
+- production run `prod-2026-03-22-100610606Z-01190bcc` matched the trusted `6`-call path exactly for a German prompt with fee `40`, 0 errors:
+  - overdue invoice `#1` (`id=2147692366`), customer `108576903` (Flussgold GmbH), outstanding `36875`, due `2026-02-07`
+  - voucher `#1` (`id=609387943`)
+  - fee invoice `#4` (`id=2147692474`, amount `40`)
+  - payment type `39639943`
+  - remaining outstanding `31875`
+- sandbox investigation on `2026-03-22` confirmed `isSent` is NOT a valid InvoiceDTO field; trusted standard verification template corrected
+- the `6`-call path is confirmed across 10 clean production runs + 1 blocked run; no `5`-call standalone path exists
