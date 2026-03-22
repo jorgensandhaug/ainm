@@ -358,7 +358,18 @@ All with observation blending at t=20. Triple blend of three complementary model
 | v007 | 33 | 33 | 34 | 83.08 | 63.04 |
 | v003 | 35 | 35 | 30 | 83.03 | 62.80 |
 
-**Total improvement: 78.38 → 83.14 (+4.76 points, +14.24 on worst round)**
+**After extended sweep (v013-v024):**
+
+| Variant | GLMM% | DT% | PO% | Score | Worst |
+|---------|-------|-----|-----|-------|-------|
+| **v020** | **10** | **45** | **45** | **83.33** | **65.07** |
+| v019 | 15 | 42 | 43 | 83.32 | 64.68 |
+| v015 | 20 | 40 | 40 | 83.28 | 64.26 |
+| v017 | 0 | 50 | 50 | 83.26 | 65.77 |
+
+GLMM adds only +0.07 at 10% weight. DT and PO are the real workhorses.
+
+**Total improvement: 78.38 → 83.33 (+4.95 points, +15.97 on worst round)**
 
 ## Additional Results (Phase 3)
 
