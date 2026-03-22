@@ -68,6 +68,36 @@ FFAM_KNN_CONFIGS: dict[str, FFAMKNNConfig] = {
         include_transcript_features=False,
         round_similarity_weight=0.0,
     ),
+    # v6-v10: Improved kNN variants for better ensemble performance
+    "ffam_knn_v6": FFAMKNNConfig(
+        model_name="ffam_knn_v6",
+        k_neighbors=50,
+        include_transcript_features=True,
+        round_similarity_weight=0.0,
+        distance_bandwidth=2.0,
+    ),
+    "ffam_knn_v7": FFAMKNNConfig(
+        model_name="ffam_knn_v7",
+        k_neighbors=150,
+        include_transcript_features=True,
+        round_similarity_weight=0.0,
+        distance_bandwidth=1.5,
+    ),
+    "ffam_knn_v8": FFAMKNNConfig(
+        model_name="ffam_knn_v8",
+        k_neighbors=100,
+        include_transcript_features=True,
+        round_similarity_weight=0.0,
+        distance_bandwidth=0.5,
+    ),
+    "ffam_knn_v9": FFAMKNNConfig(
+        model_name="ffam_knn_v9",
+        k_neighbors=75,
+        include_transcript_features=True,
+        round_similarity_weight=0.0,
+        distance_bandwidth=1.0,
+        cells_per_seed=1600,
+    ),
 }
 
 

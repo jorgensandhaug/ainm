@@ -240,8 +240,10 @@ def _build_prediction_bundle(
             predictor.base_predictor.cell_count,
         )
 
-    _is_ensemble = model_name.strip().lower().startswith("ffam_ensemble")
-    if is_ffam_model_name(model_name) or is_ffam_mode_model_name(model_name) or is_ffam_operator_model_name(model_name) or is_ffam_knn_model_name(model_name) or _is_ensemble:
+    _norm = model_name.strip().lower()
+    _is_ensemble = _norm.startswith("ffam_ensemble")
+    _is_pooled = _norm.startswith("ffam_pooled")
+    if is_ffam_model_name(model_name) or is_ffam_mode_model_name(model_name) or is_ffam_operator_model_name(model_name) or is_ffam_knn_model_name(model_name) or _is_ensemble or _is_pooled:
         raise ValueError("ffam retrieval requires mode=online_interactive for historical benchmark")
 
     if normalized == "latent_regime":

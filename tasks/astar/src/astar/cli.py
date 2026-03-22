@@ -68,6 +68,7 @@ from astar.splits.synthetic_benchmark import build_default_benchmark_manifests
 from astar.student.predictor.ffam_config import available_ffam_model_names
 from astar.student.predictor.ffam_ensemble import available_ffam_ensemble_model_names
 from astar.student.predictor.ffam_knn_config import available_ffam_knn_model_names
+from astar.student.predictor.ffam_pooled_config import available_ffam_pooled_model_names
 from astar.student.predictor.ffam_mode_config import available_ffam_mode_model_names
 from astar.student.predictor.ffam_operator_config import available_ffam_operator_model_names
 from astar.student.predictor.interactive import build_online_predictor
@@ -124,6 +125,7 @@ def build_parser() -> argparse.ArgumentParser:
                 *available_ffam_ensemble_model_names(),
                 *available_ffam_knn_model_names(),
                 *available_ffam_mode_model_names(),
+                *available_ffam_pooled_model_names(),
                 *available_ffam_operator_model_names(),
                 *available_query_residual_model_names(),
             ],

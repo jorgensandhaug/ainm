@@ -43,6 +43,12 @@ from astar.student.predictor.ffam_knn_config import (
     ffam_knn_checkpoint_name,
     is_ffam_knn_model_name,
 )
+from astar.student.predictor.ffam_pooled import FFAMPooledPredictor
+from astar.student.predictor.ffam_pooled_config import (
+    available_ffam_pooled_model_names,
+    ffam_pooled_checkpoint_name,
+    is_ffam_pooled_model_name,
+)
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.query_residual_config import (
     is_query_residual_model_name,
@@ -263,6 +269,40 @@ def build_online_predictor(
                 predictor = FFAMEnsemblePredictor.load_checkpoint(checkpoint_path)
             else:
                 predictor = FFAMEnsemblePredictor.fit_named_from_workspace(
+                    workspace_paths,
+                    model_name=model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                )
+                predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_ffam_pooled_model_name(model_name):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
+        if historical_round_ids is not None:
+            predictor = FFAMPooledPredictor.fit_named_from_workspace(
+                workspace_paths,
+                model_name=model_name,
+                round_ids=list(historical_round_ids),
+                policy_name=resolved_policy_name,
+                samples_per_round=samples_per_round,
+            )
+        else:
+            checkpoint_dir = workspace_paths.model_dir(
+                ffam_pooled_checkpoint_name(
+                    model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                ),
+            )
+            checkpoint_path = checkpoint_dir / "checkpoint.json"
+            if checkpoint_path.exists():
+                predictor = FFAMPooledPredictor.load_checkpoint(checkpoint_path)
+            else:
+                predictor = FFAMPooledPredictor.fit_named_from_workspace(
                     workspace_paths,
                     model_name=model_name,
                     policy_name=resolved_policy_name,
