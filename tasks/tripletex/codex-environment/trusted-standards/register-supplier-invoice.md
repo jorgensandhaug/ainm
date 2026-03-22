@@ -22,15 +22,16 @@
 
 ## Standard Flow (25% VAT -- most common)
 1. `POST /supplier` (with address + bank data if present in prompt) — response is `.value` (singular); extract `supplier.id` AND `supplier.ledgerAccount.id` (this IS account 2400's id — no extra GET needed)
-2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*` — response is `.values` (plural); extract `.values[0].id`
-3. `POST /ledger/voucher/importDocument` with a valid minimal EHF/UBL XML invoice — **response is `.values` (plural, NOT `.value`)** — extract `.values[0].id` and `.values[0].version`
-4. `GET /supplierInvoice?voucherId={voucherId}&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31&fields=*` — **verification**: confirm SI entity was created; log `id`, `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`, `invoiceDueDate`. **CRITICAL**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED — omitting them returns 422 "Kan ikke være null"
-5. `PUT /ledger/voucher/{id}?sendToLedger=false` with `version` (from step 3) + `postings` (set correct accounts, amounts, VAT) — response is `.value` (singular); extract `.value.version`
-6. `PUT /ledger/voucher/{id}?sendToLedger=true` with `version` (from step 5 response) + `voucherType: { name: "Leverandørfaktura" }` — this BOOKS the voucher — response is `.value` (singular)
-7. `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)` — **verification**: confirm `number > 0` (booked), log postings, description, voucherType. **CRITICAL**: plain `fields=*` returns posting IDs only (URL stubs) — you MUST use `postings(*)` for expanded posting data (account, amount, vatType, etc.)
-8. `GET /supplier/{supplierId}?fields=*` — **verification**: confirm `postalAddress`, `physicalAddress`, `bankAccountPresentation` all populated
+2. `GET /ledger/account?number=...&fields=id,number,vatLocked,legalVatTypes` — response is `.values` (plural); extract `.values[0].id` AND check `.values[0].vatLocked` — **do NOT use `isApplicableForSupplierInvoice=true` filter** (it excludes vatLocked accounts like 7100, returning empty results → crash)
+3. **If vatLocked** (step 2): `GET /ledger/account?number=2710&fields=id` — get input VAT account id for manual VAT split (for 12% VAT use 2711 instead)
+4. `POST /ledger/voucher/importDocument` with a valid minimal EHF/UBL XML invoice — **response is `.values` (plural, NOT `.value`)** — extract `.values[0].id` and `.values[0].version`
+5. `GET /supplierInvoice?voucherId={voucherId}&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31&fields=*` — **verification**: confirm SI entity was created; log `id`, `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`, `invoiceDueDate`. **CRITICAL**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED — omitting them returns 422 "Kan ikke være null"
+6. `PUT /ledger/voucher/{id}?sendToLedger=false` with `version` (from step 4) + `postings` — response is `.value` (singular); extract `.value.version` — **see Posting Rules for standard vs vatLocked accounts**
+7. `PUT /ledger/voucher/{id}?sendToLedger=true` with `version` (from step 6 response) + `voucherType: { name: "Leverandørfaktura" }` — this BOOKS the voucher — response is `.value` (singular)
+8. `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)` — **verification**: confirm `number > 0` (booked), log postings, description, voucherType. **CRITICAL**: plain `fields=*` returns posting IDs only (URL stubs) — you MUST use `postings(*)` for expanded posting data (account, amount, vatType, etc.)
+9. `GET /supplier/{supplierId}?fields=*` — **verification**: confirm `postalAddress`, `physicalAddress`, `bankAccountPresentation` all populated
 
-For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3.
+For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 4.
 
 **GETs do NOT lower the score.** Use them liberally for verification and logging. The verification GETs (steps 4, 7, 8) catch problems early and provide diagnostic data for debugging failed runs.
 
@@ -66,8 +67,8 @@ The correct sequence is:
 ## Call Counts
 - **Write calls**: 4 (POST supplier, POST importDocument, PUT postings, PUT book)
 - **Verification GETs**: 3 (GET supplierInvoice, GET voucher, GET supplier) — these do NOT lower score
-- **Lookup GETs**: 1 (GET account) — required for expense account id
-- **Total**: 8 calls for 25% VAT, 9 for non-25% VAT
+- **Lookup GETs**: 1 (GET account) for non-vatLocked accounts; 2 (GET expense account + GET 2710) for vatLocked accounts
+- **Total**: 8 calls standard, 9 for vatLocked accounts, +1 for non-25% VAT
 - `vatType.id=1` is the standard 25% incoming VAT type; stable across every sandbox and production instance tested
 
 ## XML Rules
@@ -86,7 +87,8 @@ The correct sequence is:
   - `cac:TaxTotal` with correct VAT amounts
   - `cac:LegalMonetaryTotal` with net, gross, and payable amounts
   - one `cac:InvoiceLine` with item name = prompt description, classified tax category, line extension amount, and price
-  - `cac:PaymentMeans` with `cbc:PaymentMeansCode=30`, `cbc:PaymentID=${invoiceNumber}` (sets `kidOrReceiverReference` on the SI entity), and `cac:PayeeFinancialAccount/cbc:ID=${bankAccount}` (if bank account is in prompt)
+  - `cac:PaymentMeans` with `cbc:PaymentMeansCode=30`, `cbc:PaymentID=${invoiceNumber}` (sets `kidOrReceiverReference` on the SI entity), and **`cac:PayeeFinancialAccount/cbc:ID`** — use the supplier bank account from the prompt, or `NO0000000000000` if no bank account is given
+- **CRITICAL BR-61**: `PaymentMeansCode=30` ALWAYS requires `cac:PayeeFinancialAccount/cbc:ID` — omitting it triggers 422 "ERROR [BR-61]-If the Payment means type code (BT-81) means SEPA credit transfer...the Payment account identifier (BT-84) shall be present." This is a PEPPOL validation rule, NOT a Tripletex-specific check. Sandbox-verified 2026-03-22.
 - **CRITICAL**: include `cac:PaymentMeans` with `PaymentID` in the XML — without it, `kidOrReceiverReference` stays empty on the SI entity. T20 runs without PaymentMeans consistently fail Check 5; the same applies to T11. Sandbox-verified 2026-03-22.
 - use the prompt description exactly in the invoice line item name
 - use net amount in the XML line and totals, not gross
@@ -94,6 +96,9 @@ The correct sequence is:
 ## Posting Rules (PUT step)
 - on the `PUT /ledger/voucher/{id}?sendToLedger=false`, send only `version` and `postings`
 - do NOT send `description` or `vendorInvoiceNumber` — these are immutable on Leverandørfaktura type
+- **check `vatLocked` from step 2** — if `true`, use the vatLocked postings below; otherwise use standard postings
+
+### Standard postings (account NOT vatLocked)
 - debit posting:
   - `row: 1`
   - `date: <invoice date>`
@@ -118,6 +123,14 @@ The correct sequence is:
   - `termOfPayment = <due date>`
 - let Tripletex auto-generate the VAT posting on row 0
 - do not send `amountVat`
+
+### VatLocked postings (account has `vatLocked=true`, e.g. 7100)
+When the expense account is locked to vatType 0, setting `vatType: { id: 1 }` returns **422** "Kontoen ... er låst til mva-kode 0: Ingen avgiftsbehandling." Use a **manual 3-posting VAT split** instead:
+- expense posting (row 1): account = expense, amount = NET, amountGross = NET (no VAT inflation)
+- VAT posting (row 2): account = 2710, amount = VAT_AMT, amountGross = VAT_AMT
+- supplier posting (row 3): account = 2400, supplier linked, amount = -GROSS, invoiceNumber, termOfPayment
+
+This produces the same accounting result as the standard 2-posting + auto-VAT approach. The SI entity amounts from importDocument are unaffected — they come from the XML, not the postings. Sandbox-verified 2026-03-22: account 7100 with manual 3-posting split books successfully (voucher 609414584, number 909).
 
 ## Booking Step (final PUT)
 - `PUT /ledger/voucher/{id}?sendToLedger=true` with body:
@@ -172,6 +185,7 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
 **Prevention**: The script MUST handle the importDocument response correctly on the first attempt. There is no safe retry path — the orphaned SI entity cannot be deleted via API.
 
 ## Known Pitfalls
+- **CRITICAL BR-61 PayeeFinancialAccount**: `PaymentMeansCode=30` ALWAYS requires `cac:PayeeFinancialAccount/cbc:ID` in the XML — omitting it triggers 422 even when a `PaymentID` is present. Use the supplier's bank account from the prompt, or dummy value `NO0000000000000` if none given. Production run 1444d516 hit this exact 422, wasting 3 calls + creating orphaned supplier. Sandbox-verified 2026-03-22.
 - **CRITICAL buyer org in XML**: the `AccountingCustomerParty` `EndpointID` MUST be a valid 9-digit Norwegian org number passing mod11 check — hard-code `987654325`. Using `000000000` triggers PEPPOL-COMMON-R041 validation → 422 on importDocument. Do NOT try `GET /company/whoAmI` — the proxy interprets "whoAmI" as a numeric company ID → 422 "Expected number". Sandbox-verified 2026-03-22.
 - **CRITICAL supplierInvoice GET date params**: `GET /supplierInvoice` REQUIRES `invoiceDateFrom` and `invoiceDateTo` query params — omitting them returns 422 "Kan ikke være null". Always include `&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31`. Sandbox-verified 2026-03-22.
 - **CRITICAL response shape**: `POST /ledger/voucher/importDocument` returns `{ values: [...] }` (plural), NOT `{ value: {...} }` — use `.values[0].id` and `.values[0].version`; all other endpoints (POST /supplier, PUT /ledger/voucher) return `{ value: {...} }` (singular). Getting this wrong crashes the script and creates orphaned state.
@@ -184,6 +198,8 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
 - do NOT use `/incomingInvoice*` — returns 403
 - do NOT omit `row` values on POST postings — causes 422 (row 0 conflict)
 - do NOT use `account: { number: N }` — only `account: { id }` works; GET is required
+- **CRITICAL vatLocked accounts**: some expense accounts (e.g. 7100 Bilgodtgjørelse oppgavepliktig) have `vatLocked=true` and only accept `vatType: { id: 0 }`. Setting `vatType: { id: 1 }` → 422. Check `vatLocked` in the GET response and use the 3-posting manual VAT split (see Posting Rules above). Sandbox-verified 2026-03-22.
+- **do NOT use `isApplicableForSupplierInvoice=true`** filter on GET /ledger/account — vatLocked accounts (like 7100) have `isApplicableForSupplierInvoice: false` and are excluded from results, returning empty `.values` → crash. Just use `?number=...&fields=id,number,vatLocked,legalVatTypes` without any applicability filter. Production run d1b91499 hit this exact bug.
 - preserve the prompt description's exact casing in posting descriptions and XML item name
 - do NOT omit supplier address or bank account from the prompt when creating the supplier — these fields are scored and cost 0 extra calls
 - do NOT omit `physicalAddress` when creating the supplier — set it to the same address as `postalAddress`
@@ -258,3 +274,24 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
 - direct `POST /ledger/voucher` creates NO supplierInvoice entity
 - auto-books and has correct description, but missing SI entity makes most checks fail
 - this approach is ABANDONED in favor of importDocument
+
+### 2026-03-22 prod-1444d516 (Norwegian prompt, importDocument + booked, 1 avoidable error) — scored 0/8 (4/4 failed)
+- `Stormberg AS` / `935090350` / `INV-2026-7530` / gross `27050` / account `6540` / `25%`
+- 11 calls total: first attempt 3 calls (POST supplier 201, GET account 200, POST importDocument **422**) + second attempt 8 calls (all 200/201)
+- **ROOT CAUSE**: PaymentMeans XML had `PaymentMeansCode=30` but omitted `PayeeFinancialAccount` — triggered BR-61 PEPPOL validation error
+- Orphaned supplier 108590789 from first attempt; second attempt created supplier 108590928 (duplicate)
+- After fix: importDocument + PUT postings + PUT book all succeeded; voucher 609413479 booked as number 1-2026
+- SI entity: amount=-27050, amountExcludingVat=-21640, kidOrReceiverReference=INV-2026-7530
+- **LESSON**: PaymentMeansCode=30 ALWAYS requires PayeeFinancialAccount/cbc:ID — use dummy `NO0000000000000` if no bank account in prompt
+- FIX: BR-61 pitfall + PayeeFinancialAccount requirement documented in this standard
+- Score likely hurt by duplicate supplier state from failed first attempt
+
+### 2026-03-22 prod-d1b91499 (English prompt, account 7100 vatLocked, 3 avoidable errors) — scored ≤1/8 (best unchanged)
+- `Brightstone Ltd` / `913701585` / `INV-2026-8735` / gross `8500` / account `7100` / `25%`
+- 15 calls across 4 script executions; 3 avoidable 422s + 1 duplicate supplier
+- **Error 1**: `isApplicableForSupplierInvoice=true` filter returned empty for vatLocked account 7100 → crash
+- **Error 2**: PaymentMeans without PayeeFinancialAccount → 422 BR-61 PEPPOL validation
+- **Error 3**: `vatType: { id: 1 }` on vatLocked account 7100 → 422 "locked to mva-kode 0"
+- **Recovery**: posted GROSS (8500) to 7100 without VAT split — NO accounting VAT separation
+- inference_status: "ambiguous" (candidate_count=3)
+- **FIX**: added vatLocked detection, manual 3-posting flow, removed isApplicableForSupplierInvoice filter, added BR-61 PayeeFinancialAccount

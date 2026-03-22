@@ -63,7 +63,7 @@ cbc:InvoiceTypeCode = 380
 cbc:DocumentCurrencyCode = NOK
 ```
 
-**CRITICAL**: Include `cac:PaymentMeans` with `cbc:PaymentMeansCode=30`, `cbc:PaymentID=${invoiceNumber}`, and `cac:PayeeFinancialAccount/cbc:ID=${bankAccount}` (if bank account is in prompt). Without this, `kidOrReceiverReference` on the SI entity stays empty — this was the root cause of persistent Check 5 failure on T20 (sandbox-verified 2026-03-22).
+**CRITICAL BR-61**: `PaymentMeansCode=30` ALWAYS requires `cac:PayeeFinancialAccount/cbc:ID` — use the supplier's bank account from the prompt, or dummy value `NO0000000000000` if no bank account is given. Omitting it triggers 422 "ERROR [BR-61]" even when `PaymentID` is present. Production run 1444d516 hit this exact 422, wasting 3 calls + creating orphaned supplier. Also include `cbc:PaymentID=${invoiceNumber}` to set `kidOrReceiverReference` on the SI entity. Sandbox-verified 2026-03-22.
 
 ## Posting Payload (PUT step 4)
 
