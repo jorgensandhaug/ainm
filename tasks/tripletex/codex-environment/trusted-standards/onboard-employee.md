@@ -77,20 +77,20 @@ Step 1 (parallel — all free GETs):
 Step 2 (conditional POST — only if Step 1 found NO exact department match):
   POST /department  { name: "<dept-name>" }
 
-Step 3 (POST):
-  POST /employee    (see unified payload below — include email, payrollTaxMunicipalityId)
+Step 3 (POST — use DEEP expansion):
+  POST /employee?fields=*,employments(*,employmentDetails(*))
+  → Deep expansion returns FULL employmentDetails inline (annualSalary, occupationCode, percentageOfFullTimeEquivalent, payrollTaxMunicipalityId, remunerationType, etc.)
+  → Standard expansion `employments(*)` only returns stubs {id, url} for employmentDetails — ALWAYS use the deep form
+  → Sandbox-verified 2026-03-22: deep expansion on POST works and returns all detail fields
 
 Step 4 (POST):
   POST /employee/standardTime  { employee: { id: <empId> }, fromDate: "<startDate>", hoursPerDay: <hours or 7.5> }
 
 Step 5 (parallel verification — all free GETs, ALWAYS do these):
-  Extract employmentId from Step 3 POST /employee response: value.employments[0].id
-  GET /employee/<empId>?fields=*,department(*),employments(*)
+  GET /employee/<empId>?fields=*,department(*),employments(*,employmentDetails(*))
   GET /employee/standardTime?employeeId=<empId>&fields=*
-  GET /employee/employment/details?employmentId=<employmentId>&fields=*
-  → All 3 GETs can run in parallel since employmentId comes from the POST response (Step 3), NOT from Step 5's GET.
-  → The employee readback does NOT expand employmentDetails (returns only {id, url} stubs).
-  → The employment/details GET returns the FULL details: occupationCode, payrollTaxMunicipalityId, annualSalary etc.
+  → Only 2 GETs needed: the deep expansion `employments(*,employmentDetails(*))` returns full details inline, eliminating the need for a separate `GET /employee/employment/details` call
+  → IMPORTANT: if you do use the separate `GET /employee/employment/details?employmentId=<id>&fields=*`, it returns a LIST response (`.values[0]`), NOT a single object (`.value`); using `.value` gives `undefined` — this caused false verification warnings in prod-a816e2a4
 ```
 
 **Department resolution logic (Step 1→2):**
@@ -99,9 +99,9 @@ Step 5 (parallel verification — all free GETs, ALWAYS do these):
 - If NOT found (0 matches or no exact match): proceed to Step 2 and POST to create it.
 
 **Verification readback (Step 5) — MUST DO, GETs are free:**
-Run all 3 verification GETs in parallel (employmentId from POST /employee response). Log all responses and check:
+Run 2 verification GETs in parallel. Log all responses and check:
 
-From GET /employee (Step 5):
+From GET /employee (with deep expansion `employments(*,employmentDetails(*))`):
 
 | Field | Path | Expected |
 |-------|------|----------|
@@ -115,25 +115,25 @@ From GET /employee (Step 5):
 | employeeNumber | .employeeNumber | "1" (NOT empty!) |
 | startDate | .employments[0].startDate | matches PDF |
 | employmentId | .employments[0].employmentId | "1" (NOT empty!) |
+| employmentType | .employments[0].employmentDetails[0].employmentType | ORDINARY |
+| employmentForm | .employments[0].employmentDetails[0].employmentForm | PERMANENT |
+| remunerationType | .employments[0].employmentDetails[0].remunerationType | MONTHLY_WAGE |
+| workingHoursScheme | .employments[0].employmentDetails[0].workingHoursScheme | NOT_SHIFT |
+| annualSalary | .employments[0].employmentDetails[0].annualSalary | matches PDF |
+| percentage | .employments[0].employmentDetails[0].percentageOfFullTimeEquivalent | matches PDF |
+| occupationCode | .employments[0].employmentDetails[0].occupationCode.id | NOT null, matches sent id |
+| payrollTaxMunicipalityId | .employments[0].employmentDetails[0].payrollTaxMunicipalityId.id | NOT null (if municipality in settings) |
 
-From GET /employee/employment/details (Step 5):
-
-| Field | Path | Expected |
-|-------|------|----------|
-| employmentType | .employmentType | ORDINARY |
-| employmentForm | .employmentForm | PERMANENT |
-| remunerationType | .remunerationType | MONTHLY_WAGE |
-| workingHoursScheme | .workingHoursScheme | NOT_SHIFT |
-| annualSalary | .annualSalary | matches PDF |
-| percentage | .percentageOfFullTimeEquivalent | matches PDF |
-| occupationCode | .occupationCode.id | NOT null, matches sent id |
-| payrollTaxMunicipalityId | .payrollTaxMunicipalityId.id | NOT null (if municipality in settings) |
-
-From GET /employee/standardTime (Step 5):
+From GET /employee/standardTime:
 
 | Field | Path | Expected |
 |-------|------|----------|
 | hoursPerDay | .values[0].hoursPerDay | 7.5 or PDF value |
+
+**IMPORTANT response shape notes:**
+- `GET /employee/standardTime` returns a LIST response (`.values[]`), use `.values[0]`
+- `GET /employee/employment/details` also returns a LIST response (`.values[]`), NOT `.value` — using `.value` gives `undefined` (bug in prod-a816e2a4's verification code)
+- When using deep expansion on GET/POST `/employee`, employmentDetails are accessed via `.employments[0].employmentDetails[0]` (inline)
 
 If ANY field is null or wrong, log `WARNING: <field> = <actual>, expected <expected>`. This makes debugging from run traces trivial and catches silent failures like `occupationCode: { code: "..." }` → null.
 
@@ -268,8 +268,10 @@ Previously eliminated hypotheses:
 - Cannot inline department by name: `department: { name: "..." }` → 422 "Feltet må fylles ut"
 - No hidden API fields: Employee object has fixed field set; title/jobTitle rejected with 422
 - All 12 hardcoded occupation code mappings verified correct in sandbox 2026-03-22
-- POSTs: 2-3 minimum (employee + standardTime + optional dept). GETs: 5-6 (all free). Total calls: 7-9 but only POSTs count.
-- **Readback field expansion**: `fields=*,department(*),employments(*)` returns department.name but employmentDetails are stubs. Use separate `GET /employee/employment/details?employmentId=<id>&fields=*` for full details.
+- POSTs: 2-3 minimum (employee + standardTime + optional dept). GETs: 5 (all free). Total calls: 7-8 but only POSTs count.
+- **Deep expansion on POST and GET**: `fields=*,employments(*,employmentDetails(*))` returns FULL employmentDetails inline (annualSalary, occupationCode, percentageOfFullTimeEquivalent, payrollTaxMunicipalityId, remunerationType, etc.). Standard expansion `employments(*)` only returns stubs {id, url}. Sandbox-verified 2026-03-22.
+- **Separate GET /employee/employment/details is no longer needed**: deep expansion on both POST and GET eliminates the need for a 3rd verification GET. Only 2 verification GETs needed: employee (with deep expansion) + standardTime.
+- **Response shape trap**: `GET /employee/employment/details` returns LIST (`.values[]`), NOT single (`.value`); using `.value` gives `undefined` — caused false verification warnings in prod-a816e2a4. Always use `.values[0]` if using this endpoint separately.
 
 ## Production Run Summary
 
@@ -281,4 +283,5 @@ Previously eliminated hypotheses:
 - Best: a2367369 and 42b9ad7f both scored 20/22 (Check 10 only failure). Tied leaderboard best at 2.7273.
 - **prod-21c3fea8**: scored 17/22; checks 6(email), 10(dept), 13(occ) failed; Check 5 PASSED (first with payrollTaxMunicipalityId)
 - **prod-42b9ad7f**: scored 20/22; ALL 4 fixes (dept GET-first + email + payrollTaxMunicipalityId + standardTime); STYRK 4110 → 2951 confirmed; 3 POSTs + 6 GETs; 0 errors; Check 10 STILL failed despite dept GET-first → **dept duplication hypothesis DISPROVEN**
+- **prod-a816e2a4**: scored ?/22; Spanish es_03 prompt; Isabel García, STYRK 3313 → 4677 REGNSKAPSMEDARBEIDER (hardcoded), dept Kundeservice (created, not pre-existing), salary 640000, 80%, start 2026-07-13; ALL fixes applied (dept GET-first + email + NIN + bank + payrollTaxMunicipalityId=262 + standardTime + employeeNumber="1" + employmentId="1"); 3 POSTs + 6 GETs; 0 errors; deep expansion `employments(*,employmentDetails(*))` NOT used on POST (used standard expansion, then separate GET for details — next run should use deep expansion); verification code had `.value` vs `.values[0]` bug on employment details response (false warnings, no data impact)
 - **Check 10 remains UNKNOWN**: no task 19 run has ever passed it. Dept GET-first, standardTime, payrollTaxMunicipalityId all tested — none fix it. Accept 20/22 as ceiling until Check 10 is solved.

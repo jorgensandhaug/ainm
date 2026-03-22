@@ -62,12 +62,11 @@ Use `"MONTHLY_WAGE"` for **both** tilbudsbrev and arbeidskontrakt. The NOT_CHOSE
 
 1. **Parallel pre-reads (free)**: `GET /division`, `GET /department?name=X`, `GET /salary/settings?fields=municipality`, (optional occ code lookup)
 2. **Resolve department**: If GET found exact match → use its id. If not → `POST /department { name: X }`.
-3. **Create employee**: `POST /employee` with `employeeNumber: "1"`, email, nested `employmentId: "1"` + `employmentDetails[]` including occupation code, remunerationType, salary, percentage, **payrollTaxMunicipalityId**
+3. **Create employee**: `POST /employee?fields=*,employments(*,employmentDetails(*))` with `employeeNumber: "1"`, email, nested `employmentId: "1"` + `employmentDetails[]` including occupation code, remunerationType, salary, percentage, **payrollTaxMunicipalityId**. Use DEEP expansion `employments(*,employmentDetails(*))` — this returns full employmentDetails inline (annualSalary, occupationCode, etc.). Standard expansion `employments(*)` only returns stubs.
 4. **Standard worktime**: `POST /employee/standardTime` with hours from PDF or default 7.5
-5. **Verification readback (free)**: `GET /employee/<id>?fields=*,department(*),employments(*)` + `GET /employee/standardTime?employeeId=<id>&fields=*`
-6. **Employment details readback (free)**: `GET /employee/employment/details?employmentId=<id>&fields=*` — verify occupationCode, payrollTaxMunicipalityId, salary, percentage all stored correctly
+5. **Verification readback (free, 2 parallel GETs)**: `GET /employee/<id>?fields=*,department(*),employments(*,employmentDetails(*))` + `GET /employee/standardTime?employeeId=<id>&fields=*` — deep expansion eliminates the need for a separate `GET /employee/employment/details` call
 
-POSTs: 2-3 (employee + standardTime + optional department). GETs: 6-7 (all free).
+POSTs: 2-3 (employee + standardTime + optional department). GETs: 5 (all free).
 
 ## Division Handling
 - Always pre-read `GET /division?count=1&fields=id`
@@ -92,7 +91,9 @@ All exhausted hypotheses: payrollTaxMunicipalityId, employmentType, workingHours
 - **payrollTaxMunicipalityId**: CONFIRMED for task 19 Check 5 (prod-21c3fea8). DISPROVEN for task 21 Check 5 (prod-cce321cd, municipality.id=262 verified in readback, still failed).
 - **Email**: prod-a2367369 included email → Check 6 passed; prod-21c3fea8 omitted → failed.
 - **STYRK 4110 → 2951 KONTORMEDARBEIDER**: PRODUCTION-CONFIRMED correct (prod-42b9ad7f, Check 13 passed).
-- Proven flow: 3 parallel GETs → [optional POST /department] → POST /employee → POST /employee/standardTime → 3 parallel verification GETs. POSTs: 2-3. GETs: 5-6 (free).
+- Proven flow: 3 parallel GETs → [optional POST /department] → POST /employee → POST /employee/standardTime → 2 parallel verification GETs. POSTs: 2-3. GETs: 5 (free).
+- **Deep expansion**: `fields=*,employments(*,employmentDetails(*))` works on BOTH POST and GET, returns full employmentDetails inline. Sandbox-verified 2026-03-22. Eliminates need for separate `GET /employee/employment/details`.
+- **Response shape trap**: `GET /employee/employment/details` returns LIST (`.values[]`), NOT single (`.value`). Using `.value` gives `undefined` — caused false verification warnings in prod-a816e2a4.
 - **Task 19 ceiling: 20/22.** Check 10 remains unsolved across ALL task 19 attempts. Accept 20/22 as current best.
 
 ## Guessed Check Mapping — Task 21 (10 checks, 14 max raw)
@@ -162,3 +163,4 @@ Selected runs showing occupation code findings:
 | 8b3f5a17 | 1211 | 8 | 0 | ? | FINANSSJEF (1577); 3 calls wasted on `code=1211` substring trap; hardcoded now |
 | 21c3fea8 | 3512 | 5 | 0 | 17/22 | Nynorsk prompt; payrollTaxMunicipalityId+standardTime; Check 5 PASSED (first!); Checks 6(email),10(dept?),13(occ?) FAILED; email omitted from payload; POST-always dept |
 | 42b9ad7f | 4110 | 9 | 0 | 20/22 | Spanish es_05; ALL 4 fixes; occ 2951 KONTORMEDARBEIDER confirmed; 3 POSTs + 6 GETs; Check 10 STILL fails despite GET-first → dept hypothesis DISPROVEN for task 19 |
+| a816e2a4 | 3313 | 9 | 0 | ?/22 | Spanish es_03; Isabel García; occ 4677 REGNSKAPSMEDARBEIDER (hardcoded); dept Kundeservice (created); salary 640000, 80%, start 2026-07-13; ALL fixes incl employeeNumber/employmentId="1"; 3 POSTs + 6 GETs; 0 errors; verification code had `.value` vs `.values[0]` bug (no data impact); 6th consecutive optimal onboard-employee run |
