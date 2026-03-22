@@ -112,6 +112,10 @@ Verified in production on 2026-03-21 (continued):
 - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `28461274` (`Betalt til bank`, debit `1920`)
 - `PUT /invoice/2147576060/:payment?paymentDate=2026-03-22&paymentTypeId=28461274&paidAmount=40250` reduced the remaining outstanding amount to `0`
 - this English-language run matched the trusted standard exactly: 3 calls, 0 errors, zero wasted calls; 16th production confirmation of this task shape; third confirmation for `830362894` + `32200` + `System Development`
+- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147677561` for customer `906739542` by `amountExcludingVatCurrency=6800`, line description `Consultoria de dados`, and positive `amountCurrencyOutstanding=8500`
+- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `38834237` (`Betalt til bank`, debit `1920`)
+- `PUT /invoice/2147677561/:payment?paymentDate=2026-03-22&paymentTypeId=38834237&paidAmount=8500` reduced the remaining outstanding amount to `0`
+- this Portuguese-language run matched the trusted standard exactly: 3 calls, 0 errors, zero wasted calls; 17th production confirmation of this task shape; third Portuguese confirmation
 
 Observed production/account variance:
 - payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, production `27076191`, production `27077955`, and sandbox `32813748`
@@ -125,6 +129,7 @@ Observed production/account variance:
 - production `28406443` added on 2026-03-21
 - production `28417664` added on 2026-03-21
 - production `28461274` added on 2026-03-21
+- production `38834237` added on 2026-03-22
 
 ## Minimal Flow
 
