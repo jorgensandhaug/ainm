@@ -229,6 +229,67 @@ def build_named_policy(name: str) -> QueryPlanPolicy:
             motif_scorer=_entropy_bias_scorer(),
         )
     # Smart query policies
+    # Motif scorer weight experiments (new policies, existing code untouched)
+    if normalized == "exploration_r3_settle_heavy":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_settle_heavy",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=10.0,
+                settlement_pair_weight=5.0,
+                port_weight=3.0,
+                coastal_settlement_weight=4.0,
+                coastline_weight=1.0,
+                terrain_entropy_weight=1.0,
+                edge_density_weight=1.0,
+                forest_weight=0.1,
+                mountain_weight=0.1,
+                ocean_penalty_weight=2.0,
+            ),
+        )
+    if normalized == "exploration_r3_port_heavy":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_port_heavy",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=3.0,
+                settlement_pair_weight=2.0,
+                port_weight=10.0,
+                coastal_settlement_weight=8.0,
+                coastline_weight=5.0,
+                terrain_entropy_weight=1.0,
+                edge_density_weight=1.0,
+                forest_weight=0.1,
+                mountain_weight=0.1,
+                ocean_penalty_weight=1.0,
+            ),
+        )
+    if normalized == "exploration_r3_diversity":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_diversity",
+            replicate_budget=3,
+            probe_first=True,
+            motif_scorer=ViewportMotifScorer(
+                settlement_weight=3.0,
+                settlement_pair_weight=3.0,
+                port_weight=3.0,
+                coastal_settlement_weight=3.0,
+                coastline_weight=3.0,
+                terrain_entropy_weight=5.0,
+                edge_density_weight=5.0,
+                forest_weight=1.0,
+                mountain_weight=1.0,
+                ocean_penalty_weight=1.0,
+            ),
+        )
+    if normalized == "exploration_r3_r2":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r3_r2",
+            replicate_budget=2,
+            probe_first=True,
+        )
     if normalized == "concentrated_r5":
         from astar.policy.smart_query import ConcentratedRepeatPolicy
         return ConcentratedRepeatPolicy(
