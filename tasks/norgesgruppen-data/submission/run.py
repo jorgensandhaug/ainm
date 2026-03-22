@@ -80,7 +80,7 @@ def main():
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--onnx", default=None)
-    parser.add_argument("--conf-thres", type=float, default=0.005)
+    parser.add_argument("--conf-thres", type=float, default=0.0003)
     parser.add_argument("--nms-iou", type=float, default=0.55)
     parser.add_argument("--max-predictions", type=int, default=49000)
     parser.add_argument("--flip-tta", action="store_true", default=True)
