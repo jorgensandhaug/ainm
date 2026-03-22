@@ -437,6 +437,15 @@ even when other postings in the same voucher generate 2710 from their own VAT li
 - Contra was account 2400 with supplier.id=108583061 — template correctly propagated supplier
 - Second consecutive 6/6 run confirming 4-layer detection robustness
 
+### Production Run 1d00ce6b (2026-03-22, 1 POST, 0 errors, 6/6)
+- Accounts: 6500→6540 (3000), dup 6540 (2600), MV 7000 (7100), WA 6540 (8350→7000)
+- German (de) prompt — first confirmed German language for this task
+- **3 of 4 errors on account 6540**: template correctly distinguished by amount (no collisions)
+- Layer 3 matched "uten MVA" in V#29 description → correct voucher despite de prompt
+- **Key insight**: voucher descriptions are always Norwegian regardless of prompt language
+- Contra was account 2400 with supplier.id — template correctly propagated supplier
+- Third consecutive 6/6 run — template proven across nb, en, de prompts
+
 ### Production Run 14 (2026-03-22, 3 calls, 0 errors)
 - Accounts: 7140→7100 (5850), dup 7300 (1200), MV 6540 (13000), WA 7100 (19050→7100)
 - Missing-VAT detection: caseA(no2710)=0, caseB(has2710)=3 — ALL vouchers on 6540 had 2710 from other lines
