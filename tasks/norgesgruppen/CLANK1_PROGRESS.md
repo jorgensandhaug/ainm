@@ -9,22 +9,22 @@
 - Restricted imports (no `import os`)
 - YOLO26x weights: ~115 MB each → room for ~3 models
 
-## Current Best: 3-Model Ensemble (b4+b8+1280) + Flip TTA
+## Current Best: 3-Model Ensemble (b8+1280+long) + Flip TTA
 
 **Models** (total 345 MB, under 420 MB limit):
-1. `960_confcurr_s2_final` (960px, batch=4) — 115 MB
-2. `960b8_confcurr_s2` (960px, batch=8) — 115 MB
-3. `1280_confcurr_s2` (1280px, batch=2) — 115 MB
+1. `960b8_confcurr_s2` (960px, batch=8) — 115 MB
+2. `1280_confcurr_s2` (1280px, batch=2) — 115 MB
+3. `960long_confcurr_s2` (960px, 120-epoch stage 2) — 115 MB
 
 ### Best Scores (conf=0.0001, WBF IoU=0.60, +hflip)
 
 | Metric | Value |
 |--------|-------|
-| det_AP50 | 0.9483 |
-| cls_mAP50_present (278) | 0.8275 |
-| cls_mAP50_all (356) | 0.6465 |
-| hybrid_present | 0.9122 |
-| **hybrid_all** | **0.8578** |
+| det_AP50 | 0.9489 |
+| cls_mAP50_present (278) | 0.8290 |
+| cls_mAP50_all (356) | 0.6473 |
+| hybrid_present | 0.9129 |
+| **hybrid_all** | **0.8584** |
 | Inference cost | 6x (3 models × 2 orientations) |
 | Total weight size | 345 MB |
 
@@ -37,13 +37,15 @@
 | b4+b8+div (3m) | 0.9441 | 0.6375 | 0.8521 | 0.9057 | 3x | 345MB |
 | b4+b8+1280 (3m) | 0.9471 | 0.6429 | 0.8558 | 0.9099 | 3x | 345MB |
 | b4+b8+div+flip | 0.9477 | 0.6423 | 0.8561 | 0.9101 | 6x | 345MB |
-| **b4+b8+1280+flip** | **0.9483** | **0.6465** | **0.8578** | **0.9122** | **6x** | **345MB** |
+| b4+b8+1280+flip | 0.9483 | 0.6465 | 0.8578 | 0.9122 | 6x | 345MB |
+| **b8+1280+long+flip** | **0.9489** | **0.6473** | **0.8584** | **0.9129** | **6x** | **345MB** |
 | all4+flip (over limit) | 0.9500 | 0.6465 | 0.8590 | 0.9134 | 8x | 460MB |
 
 ### Model Locations
-- b4: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960_confcurr_s2_final_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt`
 - b8: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960b8_confcurr_s2_e18_img960_b8_lr8e-05_mix0_cp0_seed123/weights/best.pt`
 - 1280: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/1280_confcurr_s2_e18_img1280_b2_lr8e-05_mix0_cp0_seed123/weights/best.pt`
+- long: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960long_confcurr_s2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt`
+- b4 (alt): `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960_confcurr_s2_final_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt`
 
 ## Training Pipelines
 
@@ -124,14 +126,23 @@ Stage 6: 1280_confcurr_s2   — 18ep → mAP50=0.8079@e16
 - 3-model ensemble: +0.0015 over 2-model (0.8521 vs 0.8506)
 - 3-model + flip: **0.8550** — best result overall
 
+### EXP-013: cls=1.5 loss weight
+- Fine-tuned from best model with cls=1.5 (3x default)
+- WORSE: hybrid_all=0.8340 (vs 0.8407) — hurts detection AP
+- Conclusion: default cls=0.5 is fine
+
+### EXP-015: Extended stage 2 (120 epochs)
+- Stage 2 best: mAP50=0.7474@e79 (vs 0.7315@e65 in 70-epoch run, +0.016)
+- But full pipeline ends lower individually: hybrid_all=0.8374 (vs 0.8407)
+- **Critical insight**: better stage 2 → worse later stages unless LRs adjusted
+- **However**: adds unique ensemble diversity → b8+1280+long = 0.8584 (new best)
+
 ## Experiment Queue
-- [ ] EXP-012: yolo26l backbone (lighter, might offer diversity)
-- [ ] EXP-013: Label smoothing (cls=0.01 or higher)
-- [ ] EXP-014: Higher resolution training (1280px)
-- [ ] EXP-015: Longer training (200+ total epochs)
 - [ ] EXP-016: SWA/EMA weight averaging across checkpoints
 - [ ] EXP-017: Soft-NMS or weighted NMS post-processing
 - [ ] EXP-018: Knowledge distillation from ensemble → single model
+- [ ] EXP-019: Train with end2end=True (newer YOLO feature)
+- [ ] EXP-020: Weighted ensemble (give different weights to models in WBF)
 
 ## Baseline Comparison
 | Model | det_AP50 | cls_all | hybrid_all | hybrid_present |
@@ -140,7 +151,8 @@ Stage 6: 1280_confcurr_s2   — 18ep → mAP50=0.8079@e16
 | 960px b4 single | 0.9328 | 0.6259 | 0.8407 | 0.8934 |
 | 960px b4+b8 ensemble | 0.9416 | 0.6381 | 0.8506 | 0.9043 |
 | 960px 3-model+flip+WBF0.6 | 0.9477 | 0.6423 | 0.8561 | 0.9101 |
-| **b4+b8+1280+flip** | **0.9483** | **0.6465** | **0.8578** | **0.9122** |
+| b4+b8+1280+flip | 0.9483 | 0.6465 | 0.8578 | 0.9122 |
+| **b8+1280+long+flip** | **0.9489** | **0.6473** | **0.8584** | **0.9129** |
 
 ## Lessons Learned
 - Always glob *.jpeg along with *.jpg — 6/49 val images are .jpeg
