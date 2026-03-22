@@ -1947,6 +1947,11 @@ class FFAMModePredictor(BaseRoundPredictor):
                     for col in range(channel.shape[1]):
                         channel[:, col] = np.convolve(channel[:, col], kernel_1d, mode='same')
                     smoothed[..., c] = channel
+                # Terrain-aware: preserve original predictions on ocean/mountain cells
+                # Ocean cells have prior[:,5] (mountain class) ~0 and prior[:,0] (empty) ~1
+                # Mountain cells have prior[:,5] ~1
+                terrain_fixed = (prior[..., 5] > 0.9) | (prior[..., 0] > 0.99)
+                smoothed[terrain_fixed] = prediction[terrain_fixed]
                 smoothed = np.clip(smoothed, self.probability_floor, 1.0)
                 smoothed = smoothed / np.sum(smoothed, axis=-1, keepdims=True)
                 prediction = smoothed
