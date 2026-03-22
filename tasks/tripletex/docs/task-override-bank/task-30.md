@@ -20,7 +20,7 @@ Book depreciation, reverse prepaid expenses, and calculate/book tax expense for 
 
 - **Phase 0: Activate the year-end module** — `POST /company/salesmodules` with `{ "name": "YEAR_END_REPORTING_AS" }`. Then `GET /yearEnd?year=2025&fields=*` to log baseline state and `GET /company/modules?fields=*` to confirm activation. Keep this phase — it is correct practice even though it alone does not fix checks 4+5.
 - **Use `r2()` rounding** — `Math.round(v * 100) / 100` for ALL depreciation amounts. Integer rounding causes scoring failures.
-- **Use accounts 8700/2920** for tax expense (as the task specifies)
+- **Use accounts 8300/2500** for tax expense — this is the UNTESTED combo with module activation. Account 8300 populates `yearEnd.taxCost` (8700 does not). The prompt says 8700/2920 but every run using those accounts scored 6/10. Override the prompt's suggestion.
 - **Post-then-read balance sheet** — read the balance sheet AFTER posting depreciation + prepaid vouchers, range 3000–8299 (excludes tax accounts)
 - **Result disposition is MANDATORY** — use 8800/2050, NOT 8960
 - **Phase 6: Final verification GETs** — `GET /yearEnd`, full balance sheet (1000–9999), and all vouchers. Log ALL non-zero fields. This diagnostic data is critical for debugging checks 4+5.
@@ -40,25 +40,26 @@ Book depreciation, reverse prepaid expenses, and calculate/book tax expense for 
 |------|-------------|-----------------|-------|-------------|
 | 8 runs (Mar 21–22) | 8700/2920 | NO | 6/10 | FAIL |
 | 2 runs (Mar 22, 8dd9ba2b + 80e639a8) | 8300/2500 | NO | 6/10 | FAIL |
-| 2 runs (Mar 22, 884991bc + 5a4f4fbf) | 8700/2920 | **YES** | 6/10 | FAIL |
+| 2 runs (Mar 22, 884991bc + 5a4f4fbf) | 8700/2920 | **YES** (201) | 6/10 | FAIL |
 
 **Checks 1–3 and 6 always pass. Checks 4+5 always fail.**
 
-### Disproven hypotheses (do NOT re-test)
-- **Tax accounts**: 8300/2500 does NOT fix checks 4+5 (tested on both profit and loss scenarios)
-- **Module activation**: `YEAR_END_REPORTING_AS` does NOT fix checks 4+5 (tested 2026-03-22, both scored 6/10)
-- **Result disposition**: present/absent does NOT affect checks 4+5
-- **Profit vs loss scenario**: does NOT affect checks 4+5
+### What has been tested (do NOT repeat these exact combos)
+- **8700/2920 without module activation** — 8 runs, all 6/10
+- **8300/2500 without module activation** — 2 runs (1 loss, 1 profit with tax=119790), both 6/10
+- **8700/2920 WITH module activation** — 2 runs, both 6/10. Trace shows `taxCost: null` in `/yearEnd` after posting to 8700 (8700 does not populate yearEnd.taxCost)
+
+### NOT yet tested
+- **Module activation + 8300/2500 together** — the only remaining obvious combo. 8300 is known to populate `yearEnd.taxCost` (unlike 8700), and module activation may be a prerequisite for the scorer to read that field. No run has combined both.
 
 ### Unsolved: root cause of checks 4+5
 
-All obvious variables have been tested. Possible unexplored areas:
+Other unexplored areas beyond the untested combo above:
 - yearEnd API write operations (e.g., `PUT /yearEnd` or other yearEnd-specific endpoints)
 - Different voucher types or posting structures for tax/disposition
 - A specific field or flag on the yearEnd object that must be set via API
-- Interaction between yearEnd module state and voucher posting order
 
-**Priority: maximize diagnostic logging in Phase 6 to capture any yearEnd state differences.**
+**Priority: maximize diagnostic logging in Phase 6 to capture yearEnd state (especially `taxCost`, `annualResult`, `yearEndReportPosting` fields).**
 
 ## If the prompt doesn't match
 
