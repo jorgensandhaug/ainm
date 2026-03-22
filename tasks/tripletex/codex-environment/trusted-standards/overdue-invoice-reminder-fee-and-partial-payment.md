@@ -244,4 +244,11 @@ These verification GETs catch silent failures and provide diagnostic data for de
   - `currency: { id: 1 }` on each posting: `201` (works)
   - no `currency` anywhere: `201` (works)
   - conclusion: `currency` on PostingDTO is optional; omitting it is safest and avoids the voucher-level misplacement trap
-- the `6`-call path is confirmed across 12 clean production runs + 1 currency-trap run + 1 blocked run and multiple sandbox proofs on `2026-03-21` and `2026-03-22`; no `5`-call standalone path exists
+- production proof on `2026-03-22` (`prod-2026-03-22-105909436Z-919fd827`) confirmed the `6`-call path for German prompt with fee `60`, 0 errors, 0 wasted calls:
+  - overdue invoice `#3` (`id=2147697581`), customer `108588079` (Nordlicht GmbH), outstanding `28312.5`, due `2026-01-12`
+  - voucher `#1` (`id=609409039`), accounts 1500 (id=499487669) / 3400 (id=499487865)
+  - fee invoice `#4` (`id=2147697654`, amount `60`)
+  - payment type `39787188`
+  - payment reduced outstanding from `28312.5` to `23312.5`
+  - 13th clean production confirmation of the `6`-call path
+- the `6`-call path is confirmed across 13 clean production runs + 1 currency-trap run + 1 blocked run and multiple sandbox proofs on `2026-03-21` and `2026-03-22`; no `5`-call standalone path exists
