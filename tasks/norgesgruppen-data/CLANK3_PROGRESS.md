@@ -1,16 +1,18 @@
 # Clank3 Progress — Norgesgruppen Object Detection
 
 ## Current Best Score
-- **Hybrid (all 356 classes): 0.8518** (V2 model + flip TTA + WBF max)
-- V2 standalone: 0.8464
+- **Hybrid (all 356 classes): 0.8658** (V6 model + flip NMS TTA)
+- V6 standalone: 0.8616
+- V2 + flip TTA: 0.8518
 - V1 baseline: 0.8389
 - Target: ~0.93
 
 ## Best Model
 - Architecture: YOLO26x (59.6M params, 213 GFLOPs)
-- Checkpoint: `runs/v2_confcurr2_e20_img960_b4_lr0.0001_mix0_cp0_seed601/weights/best.pt` (115MB)
-- Training: V2 6-stage 960px pipeline with different seeds and augmentation
-- Inference: flip TTA + WBF(max) fusion at conf=0.0003, NMS IoU=0.55
+- Checkpoint: `runs/v6_polish_e20_img960_b4_lr6e-05_mix0_cp0_seed1777/weights/best.pt`
+- Training: V6 5-stage pipeline (init→extended_hardopt_150ep→balanced→fulltrain→polish)
+- Key innovation: 150-epoch Stage 2 with cosine LR schedule
+- Inference: flip TTA + NMS fusion at conf=0.0003, NMS IoU=0.55
 
 ## Scoring Formula
 `hybrid = 0.7 * detection_AP@0.5 (class-agnostic) + 0.3 * classification_mAP@0.5 (all 356 classes)`
@@ -108,9 +110,18 @@
 3. Training at native resolution (960px)
 4. Low confidence threshold (conf≈0.0003)
 
+### Exp 16: V6 Extended Hardopt Pipeline (150 epochs + cosine LR)
+- **hybrid_all=0.8616 standalone, 0.8658 with flip+NMS TTA (NEW BEST!)**
+- det=0.9505 (+1.0% vs V2), cls_present=0.8377 (+3.6%), cls_all=0.6541 (+2.8%)
+- Pipeline: init(40e) → hardopt(150e,cos_lr) → balanced(30e) → fulltrain(25e) → polish(20e)
+- Seeds: 1337→1447→1553→1667→1777
+- Key: 150 epochs in Stage 2 (vs 70-80 in V1/V2) + cosine LR = massive improvement
+- Both detection AND classification improved significantly
+- Script: `yolo/train_v6_pipeline.sh`
+
 ## Next Steps
-1. Try product image retrieval for classification reranking
-2. Train a V6 pipeline from different pretrained backbone
-3. Try label smoothing for fine-grained classification
-4. Investigate class-specific confidence calibration
-5. Consider two-stage: detect-then-classify approach
+1. Try V7 with even longer Stage 2 (200+ epochs)
+2. Apply V6-style training with label smoothing
+3. Combine V6 and V2 via TTA (different models at inference)
+4. Try V6 with different backbone (YOLO11x)
+5. Investigate class-specific confidence calibration
