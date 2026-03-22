@@ -152,7 +152,22 @@ uv run astar run-historical-benchmark \
   --name h7_state_space_student_cov10_r3
 ```
 
-Then compare against a `query_residual` run on the same slice.
+```bash
+uv run astar run-historical-benchmark \
+  --model state_space_student_assimilated \
+  --mode online_interactive \
+  --policy coverage \
+  --samples-per-round 1 \
+  --budget 10 \
+  --episode-seed 0 \
+  --with-png none \
+  --round-id 36e581f1-73f8-453f-ab98-cbe3052b701b \
+  --round-id 71451d74-be9f-471f-aacd-a41f3b68a9cd \
+  --round-id 76909e29-f664-4b2f-b16b-61b7507277e9 \
+  --name h7_state_space_student_assimilated_cov10_r3
+```
+
+Then compare both against a `query_residual` run on the same slice.
 
 ## Next Implementation Slice
 

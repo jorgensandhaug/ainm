@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pytest import MonkeyPatch
+
 from astar.envs.synthetic import SyntheticActiveOracle
 from astar.history.datasets.synthetic_live import (
     build_synthetic_live_dataset,
@@ -7,9 +9,11 @@ from astar.history.datasets.synthetic_live import (
 )
 from astar.history.datasets.teacher_terminal import build_teacher_terminal_dataset
 from astar.history.datasets.teacher_transition import build_teacher_transition_dataset
+from astar.history.episodes import build as episode_build
 from astar.infra.artifacts.paths import WorkspacePaths as RepoPaths
 from astar.policy.interactive import build_interactive_policy
 from astar.student.predictor.transcript import TranscriptRecorderPredictor
+from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.workflows.online_episode import run_online_episode
 from tests.conftest import ROUND_ID
 from tests.replay_test_utils import _write_replays_for_all_seeds
@@ -104,3 +108,31 @@ def test_synthetic_live_dataset_matches_shared_online_episode_runtime(
         assert [item.model_dump(mode="json") for item in artifact_obs.settlements] == [
             item.model_dump(mode="json") for item in runtime_obs.settlements
         ]
+
+
+def test_synthetic_live_dataset_avoids_round_episode_hydration(
+    sample_paths: RepoPaths,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    teacher = HazardTeacher(name="hazard_teacher_synthetic_live_workspace_test").fit_from_workspace(
+        sample_paths,
+        [ROUND_ID],
+    )
+
+    def _unexpected_build_round_episode(*args, **kwargs):  # type: ignore[no-untyped-def]
+        raise AssertionError("synthetic live dataset should not hydrate full round episodes")
+
+    monkeypatch.setattr(episode_build, "build_round_episode", _unexpected_build_round_episode)
+
+    dataset = build_synthetic_live_dataset(
+        sample_paths,
+        round_ids=[ROUND_ID],
+        policy_name="coverage",
+        samples_per_round=1,
+        dataset_name="synthetic_live_no_round_episode_test",
+        regime_encoder=teacher,
+    )
+
+    assert dataset.row_count == 1

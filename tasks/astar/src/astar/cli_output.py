@@ -1,58 +1,57 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from astar.core.validation import SubmissionValidationReport
-from astar.eval.backtest import BacktestRoundResult
-from astar.eval.competition import PairedBenchmarkComparison
-from astar.eval.diagnostics import LocalDatasetDiagnostics, RoundEpisodeDiagnostics
-from astar.eval.reports import (
-    render_backtest_round_report,
-    render_local_dataset_diagnostics,
-    render_round_episode_diagnostics,
-)
-from astar.history.datasets.base import DatasetRef, SyntheticEpisodeDatasetRef
-from astar.history.replay.ingest import IngestReplaysResult
+from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.infra.api.dto import RoundSummary, StoredRoundRecord
 from astar.infra.serialization.json_utils import to_jsonable
-from astar.observe.results import QueryPlanRunResult, RecordedSimulationResult
-from astar.splits.synthetic_benchmark import BuildBenchmarkManifestsResult
-from astar.student.predictor.heuristic import RoundRegimePosterior
-from astar.workflows.corpus_summary import CorpusSummaryResult
-from astar.workflows.factorize_round_summaries import FactorizeRoundSummariesResult
-from astar.workflows.live_online import LiveOnlineRunResult
-from astar.workflows.replay_eda import ReplayEdaResult
-from astar.workflows.results import (
-    BuildSubmissionResult,
-    EvaluateBehavioralFingerprintSummaryResult,
-    EvaluateDynamicLawSummaryResult,
-    EvaluateRegimeModelResult,
-    EvaluateTeacherScienceResult,
-    FetchAnalysisResult,
-    FetchRoundAnalysesResult,
-    HarvestReplaysResult,
-    HistoricalBenchmarkComparison,
-    HistoricalBenchmarkResult,
-    InspectReplaysResult,
-    MaterializeEpisodeResult,
-    QueryPlanSummary,
-    RecordedReplayResult,
-    RoundReportArtifacts,
-    SubmitPredictionResult,
-    SummarizeReplaysResult,
-    SyncRoundResult,
-    SyntheticBenchmarkResult,
-    SyntheticTournamentResult,
-    TrainHazardTeacherResult,
-    TrainHistoricalBucketPriorResult,
-    TrainStateSpaceStudentResult,
-    TrainStateSpaceTeacherResult,
-    TrainSummaryStudentResult,
-    VisualizationReportResult,
-)
+
+if TYPE_CHECKING:
+    from astar.core.validation import SubmissionValidationReport
+    from astar.eval.backtest import BacktestRoundResult
+    from astar.eval.competition import PairedBenchmarkComparison
+    from astar.eval.diagnostics import LocalDatasetDiagnostics, RoundEpisodeDiagnostics
+    from astar.history.datasets.base import DatasetRef
+    from astar.history.replay.ingest import IngestReplaysResult
+    from astar.observe.results import QueryPlanRunResult, RecordedSimulationResult
+    from astar.splits.synthetic_benchmark import BuildBenchmarkManifestsResult
+    from astar.student.predictor.heuristic import RoundRegimePosterior
+    from astar.workflows.corpus_summary import CorpusSummaryResult
+    from astar.workflows.factorize_round_summaries import FactorizeRoundSummariesResult
+    from astar.workflows.live_online import LiveOnlineRunResult
+    from astar.workflows.raw_replay_status import RawReplayStatusResult
+    from astar.workflows.replay_eda import ReplayEdaResult
+    from astar.workflows.results import (
+        BuildSubmissionResult,
+        EvaluateBehavioralFingerprintSummaryResult,
+        EvaluateDynamicLawSummaryResult,
+        EvaluateRegimeModelResult,
+        EvaluateTeacherScienceResult,
+        FetchAnalysisResult,
+        FetchRoundAnalysesResult,
+        HarvestReplaysResult,
+        HistoricalBenchmarkComparison,
+        HistoricalBenchmarkResult,
+        InspectReplaysResult,
+        MaterializeEpisodeResult,
+        QueryPlanSummary,
+        RecordedReplayResult,
+        RoundReportArtifacts,
+        SubmitPredictionResult,
+        SummarizeReplaysResult,
+        SyncRoundResult,
+        SyntheticBenchmarkResult,
+        SyntheticTournamentResult,
+        TrainHazardTeacherResult,
+        TrainHistoricalBucketPriorResult,
+        TrainStateSpaceStudentResult,
+        TrainStateSpaceTeacherResult,
+        TrainSummaryStudentResult,
+        VisualizationReportResult,
+    )
 
 
 def _format_datetime(value: datetime | None) -> str:
@@ -237,6 +236,40 @@ def render_harvest_replays(result: HarvestReplaysResult) -> str:
                     f"dir={item.replay_dir}",
                 ],
             ),
+        )
+    return "\n".join(lines)
+
+
+def render_raw_replay_status(result: RawReplayStatusResult) -> str:
+    lines = [
+        (
+            "Fresh snapshot at "
+            f"{result.captured_at.astimezone(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')} "
+            "from the current astar raw data:"
+        ),
+        "",
+        f"- {result.round_count:,} round IDs",
+        f"- {result.replay_file_count:,} replay files",
+        f"- {result.seed_map_count:,} seed-level maps",
+        f"- {result.unique_grid_map_count:,} unique actual grid maps",
+    ]
+    if result.size_breakdown:
+        size_parts = [
+            f"{item.round_count} rounds / {item.seed_map_count} seed-maps are {item.map_size}"
+            for item in result.size_breakdown
+        ]
+        if len(size_parts) == 1:
+            lines.append(f"- By size: {size_parts[0]}")
+        else:
+            lines.append(f"- By size: {', and '.join(size_parts)}")
+    else:
+        lines.append("- By size: none")
+    lines.extend(["", f"{'round':<6} {'round_id':<36} {'size':<6} {'replays':>7}  per_seed"])
+    for item in result.rounds:
+        per_seed = ",".join(str(count) for count in item.per_seed_replay_counts)
+        lines.append(
+            f"{item.round_number:<6} {item.round_id:<36} {item.map_size:<6} "
+            f"{item.replay_count:>7}  {per_seed}",
         )
     return "\n".join(lines)
 
@@ -798,14 +831,20 @@ def render_fetch_round_analyses(result: FetchRoundAnalysesResult) -> str:
 
 
 def render_episode_diagnostics(diagnostics: RoundEpisodeDiagnostics) -> str:
+    from astar.eval.reports import render_round_episode_diagnostics
+
     return render_round_episode_diagnostics(diagnostics)
 
 
 def render_dataset_diagnostics(diagnostics: LocalDatasetDiagnostics) -> str:
+    from astar.eval.reports import render_local_dataset_diagnostics
+
     return render_local_dataset_diagnostics(diagnostics)
 
 
 def render_backtest_round(result: BacktestRoundResult) -> str:
+    from astar.eval.reports import render_backtest_round_report
+
     return render_backtest_round_report(result)
 
 

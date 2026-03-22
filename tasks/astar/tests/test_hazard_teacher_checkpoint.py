@@ -81,6 +81,34 @@ def test_hazard_teacher_without_replay_bank_preserves_student_side_semantics(
     np.testing.assert_allclose(pruned.terminal_tensor(episode.seeds[0], regime), prediction)
 
 
+def test_hazard_teacher_workspace_fit_matches_episode_fit(
+    sample_paths: RepoPaths,
+) -> None:
+    _write_replays_for_all_seeds(sample_paths, run_count=2)
+
+    episode = build_round_episode(sample_paths, ROUND_ID)
+    teacher_from_episode = HazardTeacher(
+        name="hazard_teacher_workspace_parity_episode_test"
+    ).fit([episode]).without_replay_bank()
+    teacher_from_workspace = HazardTeacher(
+        name="hazard_teacher_workspace_parity_workspace_test"
+    ).fit_from_workspace(sample_paths, [ROUND_ID])
+
+    episode_regime = teacher_from_episode.encode_round(episode)
+    workspace_regime = teacher_from_workspace.encode_round(episode)
+    workspace_artifact_regime = teacher_from_workspace.encode_round_from_workspace(
+        sample_paths,
+        ROUND_ID,
+    )
+
+    np.testing.assert_allclose(workspace_regime, episode_regime)
+    np.testing.assert_allclose(workspace_artifact_regime, episode_regime)
+    np.testing.assert_allclose(
+        teacher_from_workspace.terminal_tensor(episode.seeds[0], workspace_artifact_regime),
+        teacher_from_episode.terminal_tensor(episode.seeds[0], episode_regime),
+    )
+
+
 def test_train_summary_bank_student_saves_teacher_checkpoint_with_round_encoder(
     sample_paths: RepoPaths,
 ) -> None:

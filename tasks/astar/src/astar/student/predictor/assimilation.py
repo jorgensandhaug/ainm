@@ -167,6 +167,7 @@ class ObservedCellAssimilator(BaseModel):
         if not np.any(count_total > 0.0):
             return prior
         alpha = float(self.prior_pseudocount)
+        # Treat the decoder output as a Dirichlet prior over one cell's terminal law.
         assimilated = np.where(
             count_total > 0.0,
             (alpha * prior + counts) / np.maximum(alpha + count_total, 1e-6),
@@ -175,7 +176,7 @@ class ObservedCellAssimilator(BaseModel):
         return np.asarray(assimilated, dtype=np.float64)
 
 
-class AssimilatedStateSpaceStudent(BaseModel):
+class StateSpaceAssimilatedPredictor(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
     name: str = "state_space_student_assimilated_v1"
@@ -245,6 +246,6 @@ class AssimilatedStateSpaceStudent(BaseModel):
 
 
 __all__ = [
-    "AssimilatedStateSpaceStudent",
     "ObservedCellAssimilator",
+    "StateSpaceAssimilatedPredictor",
 ]

@@ -26,8 +26,8 @@ from astar.student.posterior.summary_bank import (
     SummaryBankStudentCheckpoint,
 )
 from astar.student.predictor.assimilation import (
-    AssimilatedStateSpaceStudent,
     ObservedCellAssimilator,
+    StateSpaceAssimilatedPredictor,
 )
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.teacher.dynamics.state_space_teacher import StateSpaceTeacher
@@ -182,7 +182,7 @@ def _replay_backed_episodes(
 class PosteriorStudentPredictorAdapter(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
-    student: SummaryBankStudent | StateSpaceStudent | AssimilatedStateSpaceStudent
+    student: SummaryBankStudent | StateSpaceStudent | StateSpaceAssimilatedPredictor
     name: str
     samples_per_round: int = Field(default=1, ge=1)
 
@@ -249,16 +249,19 @@ def _load_or_fit_summary_bank_student(
     if student_checkpoint_path.exists():
         student = _load_summary_bank_student_checkpoint(student_checkpoint_path)
     else:
-        replay_episodes: list[RoundEpisode] | None = None
         if teacher_checkpoint_path.exists():
             teacher = HazardTeacher.load_checkpoint(teacher_checkpoint_path)
             if not teacher.supports_offline_regime_encoding:
-                replay_episodes = _replay_backed_episodes(paths, selected_round_ids)
-                teacher = teacher.fit(replay_episodes).without_replay_bank()
+                teacher = teacher.fit_from_workspace(
+                    paths,
+                    list(selected_round_ids),
+                ).without_replay_bank()
                 teacher.save_checkpoint(teacher_checkpoint_path)
         else:
-            replay_episodes = _replay_backed_episodes(paths, selected_round_ids)
-            teacher = HazardTeacher(name=teacher_name).fit(replay_episodes).without_replay_bank()
+            teacher = HazardTeacher(name=teacher_name).fit_from_workspace(
+                paths,
+                list(selected_round_ids),
+            ).without_replay_bank()
             teacher.save_checkpoint(teacher_checkpoint_path)
         dataset = _ensure_synthetic_dataset(
             paths,
@@ -325,11 +328,10 @@ def _load_or_fit_state_space_student(
         if teacher_checkpoint_path.exists():
             teacher = StateSpaceTeacher.load_checkpoint(teacher_checkpoint_path)
         else:
-            replay_episodes = _replay_backed_episodes(paths, selected_round_ids)
             teacher = StateSpaceTeacher(
                 name=teacher_name,
                 fit_workers=_state_space_fit_workers(),
-            ).fit(replay_episodes)
+            ).fit_from_workspace(paths, list(selected_round_ids))
             teacher.save_checkpoint(teacher_checkpoint_path)
         dataset = _ensure_synthetic_dataset(
             paths,
@@ -401,7 +403,7 @@ def build_state_space_student_assimilated_predictor(
         regime_encoder=student.teacher,
     )
     assimilator = ObservedCellAssimilator.fit_from_dataset(dataset, student)
-    corrected = AssimilatedStateSpaceStudent(
+    corrected = StateSpaceAssimilatedPredictor(
         name="state_space_student_assimilated",
         student=student,
         assimilator=assimilator,

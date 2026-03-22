@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from astar.history.episodes.build import build_round_episode
 from astar.history.episodes.models import RoundEpisode
 from astar.infra.artifacts.paths import WorkspacePaths
@@ -11,6 +13,7 @@ from astar.workflows.results import (
     TrainHazardTeacherResult,
     TrainStateSpaceTeacherResult,
 )
+from astar.workflows.summarize_replays import summarize_round_replays
 
 
 def _replay_backed_episodes(
@@ -31,15 +34,25 @@ def train_hazard_teacher(
     *,
     round_ids: list[str] | None = None,
     model_name: str = "hazard_teacher_v1",
-    summary_backend: str = "behavioral_fingerprint_core",
+    summary_backend: Literal["dynamic_law", "behavioral_fingerprint_core"] = (
+        "behavioral_fingerprint_core"
+    ),
     behavioral_fingerprint_summary_profile: str = "core_v1",
 ) -> TrainHazardTeacherResult:
-    replay_episodes = _replay_backed_episodes(paths, round_ids)
+    selected_round_ids = round_ids or sorted(
+        round_dir.name
+        for round_dir in paths.raw_dir.joinpath("replays").glob("*")
+        if round_dir.is_dir()
+    )
     teacher = HazardTeacher(
         name=model_name,
         summary_backend=summary_backend,
         behavioral_fingerprint_summary_profile=behavioral_fingerprint_summary_profile,
-    ).fit(replay_episodes)
+    ).fit_from_workspace(paths, selected_round_ids)
+    replay_run_count = sum(
+        summarize_round_replays(paths, round_id, reuse_existing=True).replay_run_count
+        for round_id in teacher.round_ids
+    )
     checkpoint_path = teacher.save_checkpoint(
         paths.model_dir(model_name) / "checkpoint.json",
     )
@@ -47,8 +60,8 @@ def train_hazard_teacher(
         model_name=model_name,
         summary_backend=summary_backend,
         behavioral_fingerprint_summary_profile=behavioral_fingerprint_summary_profile,
-        replay_episode_count=len(replay_episodes),
-        replay_run_count=sum(episode.replay_run_count for episode in replay_episodes),
+        replay_episode_count=len(teacher.round_ids),
+        replay_run_count=replay_run_count,
         checkpoint_path=checkpoint_path,
         embedding_dim=int(teacher.regime_bank.shape[1]),
     )
@@ -69,7 +82,9 @@ def train_state_space_teacher(
     *,
     round_ids: list[str] | None = None,
     model_name: str = "state_space_teacher_v1",
-    summary_backend: str = "behavioral_fingerprint_core",
+    summary_backend: Literal["dynamic_law", "behavioral_fingerprint_core"] = (
+        "behavioral_fingerprint_core"
+    ),
     behavioral_fingerprint_summary_profile: str = "core_v1",
     regime_max_rank: int = 4,
     fit_workers: int = 1,
@@ -80,7 +95,11 @@ def train_state_space_teacher(
     max_initial_rows: int = 80_000,
     rollout_noise_scale: float = 0.5,
 ) -> TrainStateSpaceTeacherResult:
-    replay_episodes = _replay_backed_episodes(paths, round_ids)
+    selected_round_ids = round_ids or sorted(
+        round_dir.name
+        for round_dir in paths.raw_dir.joinpath("replays").glob("*")
+        if round_dir.is_dir()
+    )
     teacher = StateSpaceTeacher(
         name=model_name,
         summary_backend=summary_backend,
@@ -93,14 +112,19 @@ def train_state_space_teacher(
         max_ruin_rows=max_ruin_rows,
         max_initial_rows=max_initial_rows,
         rollout_noise_scale=rollout_noise_scale,
-    ).fit(replay_episodes)
+    ).fit_from_workspace(paths, selected_round_ids)
     checkpoint_path = teacher.save_checkpoint(paths.model_dir(model_name) / "checkpoint.json")
     result = TrainStateSpaceTeacherResult(
         model_name=model_name,
         summary_backend=summary_backend,
         behavioral_fingerprint_summary_profile=behavioral_fingerprint_summary_profile,
-        replay_episode_count=len(replay_episodes),
-        replay_run_count=sum(episode.replay_run_count for episode in replay_episodes),
+        replay_episode_count=len(teacher.regime_encoder.round_ids)
+        if teacher.regime_encoder is not None
+        else 0,
+        replay_run_count=sum(
+            summarize_round_replays(paths, round_id, reuse_existing=True).replay_run_count
+            for round_id in (teacher.regime_encoder.round_ids if teacher.regime_encoder else ())
+        ),
         checkpoint_path=checkpoint_path,
         regime_dim=teacher.regime_dim,
     )

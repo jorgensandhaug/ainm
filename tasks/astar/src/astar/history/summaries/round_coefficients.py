@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from astar.core.world_state import InitialWorldState
 from astar.features.geometry import compute_static_feature_dict
 from astar.history.episodes.models import RoundEpisode, SeedEpisode
+from astar.history.learning import RoundLearningEpisode
 from astar.infra.api.dto import InitialSettlement
 
 
@@ -199,6 +200,19 @@ def round_regime_summary_vector(episode: RoundEpisode) -> np.ndarray:
     return np.asarray(np.mean(np.stack(vectors, axis=0), axis=0), dtype=np.float64)
 
 
+def round_regime_summary_vector_from_learning_episode(
+    episode: RoundLearningEpisode,
+) -> np.ndarray:
+    vectors = [
+        np.asarray(seed.replay_coefficient_vector, dtype=np.float64)
+        for seed in episode.per_seed.values()
+        if seed.replay_coefficient_vector is not None
+    ]
+    if not vectors:
+        return np.zeros(12, dtype=np.float64)
+    return np.asarray(np.mean(np.stack(vectors, axis=0), axis=0), dtype=np.float64)
+
+
 class RoundSemimechanisticCoefficients(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
 
@@ -337,6 +351,7 @@ __all__ = [
     "fit_round_semimechanistic_coefficients",
     "fit_round_semimechanistic_coefficients_from_seed_targets",
     "round_regime_summary_vector",
+    "round_regime_summary_vector_from_learning_episode",
     "seed_empirical_terminal_probs",
     "seed_feature_dict",
     "seed_feature_matrix",

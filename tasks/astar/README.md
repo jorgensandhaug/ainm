@@ -341,6 +341,7 @@ Historical data:
 
 ```bash
 uv run astar harvest-replays --samples-per-seed 10 --max-new-replays 50
+uv run astar raw-replay-status
 uv run astar ingest-replays --round-id <round-id>
 uv run astar summarize-replays --round-id <round-id>
 uv run astar fetch-round-analyses --round-id <round-id>

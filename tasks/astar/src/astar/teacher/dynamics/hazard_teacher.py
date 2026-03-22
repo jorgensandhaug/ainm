@@ -2,21 +2,26 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
 from astar.core.trajectory import ReplayRun
+from astar.core.world_state import InitialSettlementState, InitialWorldState
 from astar.history.episodes.models import RoundEpisode
 from astar.history.summaries.behavioral_fingerprint_core import (
     DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE,
 )
 from astar.history.summaries.round_coefficients import (
+    RoundSemimechanisticCoefficients,
     fit_round_semimechanistic_coefficients,
+    fit_round_semimechanistic_coefficients_from_seed_targets,
     seed_feature_dict,
     seed_feature_matrix,
 )
+from astar.infra.artifacts.paths import WorkspacePaths
+from astar.infra.artifacts.store import load_named_arrays, read_round_record
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.teacher.decoder.base import SeedLike
 from astar.teacher.regime.base import RegimePosteriorState
@@ -94,6 +99,51 @@ def _project_exclusive_pair(
     projected_first[over_mask] = np.clip(projected_over_first, 0.0, None)
     projected_second[over_mask] = np.clip(projected_over_second, 0.0, None)
     return projected_first, projected_second
+
+
+def _initial_world_state_from_round_record(
+    round_record: Any,
+    *,
+    seed_index: int,
+) -> InitialWorldState:
+    initial_state = round_record.round.initial_states[seed_index]
+    return InitialWorldState(
+        grid=np.asarray(initial_state.grid, dtype=np.int64),
+        settlements=tuple(
+            InitialSettlementState(
+                x=item.x,
+                y=item.y,
+                has_port=item.has_port,
+                alive=item.alive,
+            )
+            for item in initial_state.settlements
+        ),
+    )
+
+
+def _workspace_seed_targets(
+    paths: WorkspacePaths,
+    round_id: str,
+) -> tuple[int, list[tuple[InitialWorldState, np.ndarray]]]:
+    round_record = read_round_record(paths, round_id)
+    seed_targets: list[tuple[InitialWorldState, np.ndarray]] = []
+    for seed_index in range(round_record.round.seeds_count):
+        replay_summary_path = paths.replay_summary_path(round_id, seed_index)
+        if not replay_summary_path.exists():
+            continue
+        payload = load_named_arrays(replay_summary_path)
+        if "mean_terminal_probs" not in payload:
+            continue
+        seed_targets.append(
+            (
+                _initial_world_state_from_round_record(
+                    round_record,
+                    seed_index=seed_index,
+                ),
+                np.asarray(payload["mean_terminal_probs"], dtype=np.float64),
+            )
+        )
+    return round_record.round.round_number, seed_targets
 
 
 class HazardTeacherCheckpoint(BaseModel):
@@ -197,40 +247,24 @@ class HazardTeacher(BaseModel):
             }
         )
 
-    def fit(self, episodes: list[RoundEpisode]) -> HazardTeacher:
-        replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
-        if not replay_episodes:
-            raise ValueError("no replay-backed episodes available for hazard teacher")
-
-        coefficient_rows = [
-            fit_round_semimechanistic_coefficients(episode) for episode in replay_episodes
-        ]
+    def _fit_from_coefficients_and_encoder(
+        self,
+        *,
+        coefficient_rows: list[RoundSemimechanisticCoefficients],
+        regime_encoder: ReplaySummaryRegimeEncoder,
+        replay_bank_round_ids: tuple[str, ...] = (),
+        replay_bank_seed_indexes: tuple[int, ...] = (),
+        replay_runs_bank: tuple[tuple[ReplayRun, ...], ...] = (),
+    ) -> HazardTeacher:
+        if not coefficient_rows:
+            raise ValueError("hazard teacher has no coefficient rows to fit")
         coefficient_bank = np.stack([row.combined_vector() for row in coefficient_rows], axis=0)
-        regime_encoder = ReplaySummaryRegimeEncoder(
-            name=f"{self.name}__regime_encoder",
-            summary_backend=self.summary_backend,
-            behavioral_fingerprint_summary_profile=self.behavioral_fingerprint_summary_profile,
-            regime_max_rank=self.regime_max_rank,
-            summary_bootstrap_samples=self.summary_bootstrap_samples,
-        ).fit(replay_episodes)
         regime_bank = np.asarray(regime_encoder.regime_bank, dtype=np.float64)
         regime_intercept, regime_weights = _fit_linear_map(
             regime_bank,
             coefficient_bank,
             ridge_alpha=1e-2,
         )
-
-        replay_bank_round_ids: list[str] = []
-        replay_bank_seed_indexes: list[int] = []
-        replay_runs_bank: list[tuple[ReplayRun, ...]] = []
-        for episode in replay_episodes:
-            for seed in episode.seeds:
-                if not seed.replay_runs:
-                    continue
-                replay_bank_round_ids.append(episode.metadata.round_id)
-                replay_bank_seed_indexes.append(seed.seed_index)
-                replay_runs_bank.append(seed.replay_runs)
-
         return self.model_copy(
             update={
                 "regime_encoder": regime_encoder,
@@ -290,10 +324,82 @@ class HazardTeacher(BaseModel):
                 "ruin_probe_feature_names": regime_encoder.ruin_probe_feature_names,
                 "owner_probe_feature_names": regime_encoder.owner_probe_feature_names,
                 "macro_probe_feature_names": regime_encoder.macro_probe_feature_names,
-                "replay_bank_round_ids": tuple(replay_bank_round_ids),
-                "replay_bank_seed_indexes": tuple(replay_bank_seed_indexes),
-                "replay_runs_bank": tuple(replay_runs_bank),
+                "replay_bank_round_ids": replay_bank_round_ids,
+                "replay_bank_seed_indexes": replay_bank_seed_indexes,
+                "replay_runs_bank": replay_runs_bank,
             },
+        )
+
+    def fit(self, episodes: list[RoundEpisode]) -> HazardTeacher:
+        replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
+        if not replay_episodes:
+            raise ValueError("no replay-backed episodes available for hazard teacher")
+
+        coefficient_rows = [
+            fit_round_semimechanistic_coefficients(episode) for episode in replay_episodes
+        ]
+        regime_encoder = ReplaySummaryRegimeEncoder(
+            name=f"{self.name}__regime_encoder",
+            summary_backend=self.summary_backend,
+            behavioral_fingerprint_summary_profile=self.behavioral_fingerprint_summary_profile,
+            regime_max_rank=self.regime_max_rank,
+            summary_bootstrap_samples=self.summary_bootstrap_samples,
+        ).fit(replay_episodes)
+
+        replay_bank_round_ids: list[str] = []
+        replay_bank_seed_indexes: list[int] = []
+        replay_runs_bank: list[tuple[ReplayRun, ...]] = []
+        for episode in replay_episodes:
+            for seed in episode.seeds:
+                if not seed.replay_runs:
+                    continue
+                replay_bank_round_ids.append(episode.metadata.round_id)
+                replay_bank_seed_indexes.append(seed.seed_index)
+                replay_runs_bank.append(seed.replay_runs)
+
+        return self._fit_from_coefficients_and_encoder(
+            coefficient_rows=coefficient_rows,
+            regime_encoder=regime_encoder,
+            replay_bank_round_ids=tuple(replay_bank_round_ids),
+            replay_bank_seed_indexes=tuple(replay_bank_seed_indexes),
+            replay_runs_bank=tuple(replay_runs_bank),
+        )
+
+    def fit_from_workspace(
+        self,
+        paths: WorkspacePaths,
+        round_ids: list[str],
+    ) -> HazardTeacher:
+        from astar.workflows.summarize_replays import summarize_round_replays
+
+        for round_id in round_ids:
+            summarize_round_replays(paths, round_id, reuse_existing=True)
+
+        regime_encoder = ReplaySummaryRegimeEncoder(
+            name=f"{self.name}__regime_encoder",
+            summary_backend=self.summary_backend,
+            behavioral_fingerprint_summary_profile=self.behavioral_fingerprint_summary_profile,
+            regime_max_rank=self.regime_max_rank,
+            summary_bootstrap_samples=self.summary_bootstrap_samples,
+        ).fit_from_workspace(paths, round_ids)
+
+        coefficient_rows = []
+        for round_id in regime_encoder.round_ids:
+            round_number, seed_targets = _workspace_seed_targets(paths, round_id)
+            if not seed_targets:
+                continue
+            coefficient_rows.append(
+                fit_round_semimechanistic_coefficients_from_seed_targets(
+                    round_id=round_id,
+                    round_number=round_number,
+                    seed_targets=seed_targets,
+                )
+            )
+        if len(coefficient_rows) != len(regime_encoder.round_ids):
+            raise ValueError("hazard teacher workspace coefficient rows drifted from regime rounds")
+        return self._fit_from_coefficients_and_encoder(
+            coefficient_rows=coefficient_rows,
+            regime_encoder=regime_encoder,
         )
 
     def checkpoint(self) -> HazardTeacherCheckpoint:
@@ -514,6 +620,12 @@ class HazardTeacher(BaseModel):
         if encoder is None:
             encoder = self._compat_regime_encoder()
         return np.asarray(encoder.encode_round(episode), dtype=np.float64)
+
+    def encode_round_from_workspace(self, paths: WorkspacePaths, round_id: str) -> np.ndarray:
+        encoder = self.regime_encoder
+        if encoder is None:
+            encoder = self._compat_regime_encoder()
+        return np.asarray(encoder.encode_round_from_workspace(paths, round_id), dtype=np.float64)
 
     def _coefficients_from_regime(self, regime: np.ndarray) -> np.ndarray:
         regime_array = np.asarray(regime, dtype=np.float64)

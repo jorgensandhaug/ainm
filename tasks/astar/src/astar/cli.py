@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 
@@ -31,6 +32,7 @@ from astar.cli_output import (
     render_paired_benchmark_comparison,
     render_query_plan_run,
     render_query_plan_summary,
+    render_raw_replay_status,
     render_recorded_replay,
     render_recorded_simulation,
     render_regime_model_evaluation,
@@ -54,12 +56,6 @@ from astar.cli_output import (
     render_visualization_report,
 )
 from astar.core.validation import SubmissionSpec, validate_prediction_tensor
-from astar.eval.backtest import backtest_round_from_saved_analyses
-from astar.eval.diagnostics import build_local_dataset_diagnostics, build_round_episode_diagnostics
-from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
-from astar.history.datasets.teacher_terminal import build_teacher_terminal_dataset
-from astar.history.datasets.teacher_transition import build_teacher_transition_dataset
-from astar.history.replay.ingest import ingest_replays
 from astar.history.summaries.behavioral_fingerprint_core import (
     BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILES,
 )
@@ -68,52 +64,10 @@ from astar.infra.api.client import AstarApiClient, ClientConfig
 from astar.infra.api.dto import ReplayRequest, SimulationRequest
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import load_prediction_tensor, read_round_record
-from astar.observe.executor import execute_query_plan, record_simulation
-from astar.observe.planner import build_policy_plan
 from astar.observe.query_plan import read_any_query_plan
-from astar.policy import build_interactive_policy, build_named_policy
-from astar.splits.synthetic_benchmark import build_default_benchmark_manifests
-from astar.student.predictor.interactive import build_online_predictor
-from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
-from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
-from astar.workflows.corpus_summary import summarize_learning_corpus
-from astar.workflows.evaluate_behavioral_fingerprint_summary import (
-    evaluate_behavioral_fingerprint_summary,
-)
-from astar.workflows.evaluate_dynamic_law_summary import evaluate_dynamic_law_summary
-from astar.workflows.evaluate_regime_model import evaluate_regime_model
-from astar.workflows.evaluate_teacher_science import (
-    evaluate_hazard_teacher_science,
-    evaluate_state_space_teacher_science,
-)
-from astar.workflows.factorize_round_summaries import factorize_round_summaries
-from astar.workflows.fetch_analysis import fetch_analysis
-from astar.workflows.fetch_round_analyses import fetch_round_analyses
-from astar.workflows.historical_benchmark import run_historical_benchmark
-from astar.workflows.live_online import run_live_online_round
-from astar.workflows.materialize_episode import materialize_round_episode
-from astar.workflows.replay_capture import fetch_replay, harvest_replays
-from astar.workflows.replay_eda import analyze_replay_corpus
-from astar.workflows.results import QueryPlanSummary
-from astar.workflows.round_report import build_round_report
-from astar.workflows.submissions import build_submission, submit_saved_prediction
-from astar.workflows.summarize_replays import inspect_replays, summarize_round_replays
-from astar.workflows.sync_round import sync_round
-from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
-from astar.workflows.synthetic_tournament import run_synthetic_tournament
-from astar.workflows.train_historical_bucket_prior import train_historical_bucket_prior
-from astar.workflows.train_student import (
-    train_state_space_student,
-    train_summary_bank_student,
-)
-from astar.workflows.train_teacher import (
-    train_hazard_teacher,
-    train_state_space_teacher,
-)
-from astar.workflows.visualize_model_prediction import visualize_model_prediction
-from astar.workflows.visualize_replay_events import visualize_replay_events
-from astar.workflows.visualize_replay_mismatches import visualize_replay_mismatches
-from astar.workflows.visualize_terminal_comparison import visualize_terminal_comparison
+
+if TYPE_CHECKING:
+    from astar.workflows.results import QueryPlanSummary
 
 
 def load_env_file(path: Path) -> None:
@@ -600,6 +554,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("dataset-summary")
     subparsers.add_parser("corpus-summary")
+    raw_replay_status_parser = subparsers.add_parser("raw-replay-status")
+    raw_replay_status_parser.add_argument("--round-id", action="append", default=None)
     replay_eda_parser = subparsers.add_parser("replay-eda")
     replay_eda_parser.add_argument("--round-id", action="append", default=None)
 
@@ -631,6 +587,8 @@ def _format_http_error(exc: httpx.HTTPStatusError) -> str:
 
 
 def _build_query_plan_summary(plan_path: Path, policy: str, round_id: str) -> QueryPlanSummary:
+    from astar.workflows.results import QueryPlanSummary
+
     plan = read_any_query_plan(plan_path)
     seed_query_counts: dict[int, int] = {}
     diagnostic_query_count = 0
@@ -683,16 +641,22 @@ def _main() -> int:
         return 0
 
     if args.command == "ingest-replays":
+        from astar.history.replay.ingest import ingest_replays
+
         ingest_result = ingest_replays(paths, args.round_id)
         _emit(args.json, ingest_result, render_ingest_replays(ingest_result))
         return 0
 
     if args.command == "inspect-replays":
+        from astar.workflows.summarize_replays import inspect_replays
+
         inspection_result = inspect_replays(paths, args.round_id)
         _emit(args.json, inspection_result, render_inspect_replays(inspection_result))
         return 0
 
     if args.command == "summarize-replays":
+        from astar.workflows.summarize_replays import summarize_round_replays
+
         summarize_result = summarize_round_replays(
             paths,
             args.round_id,
@@ -702,6 +666,8 @@ def _main() -> int:
         return 0
 
     if args.command == "build-submission":
+        from astar.workflows.submissions import build_submission
+
         build_result = build_submission(paths, args.round_id, args.model)
         _emit(args.json, build_result, render_build_submission(build_result))
         return 0
@@ -724,21 +690,29 @@ def _main() -> int:
         return 0
 
     if args.command == "round-report":
+        from astar.workflows.round_report import build_round_report
+
         artifacts = build_round_report(paths, args.round_id, args.seed_index)
         _emit(args.json, artifacts, render_round_report(artifacts))
         return 0
 
     if args.command == "episode-summary":
+        from astar.eval.diagnostics import build_round_episode_diagnostics
+
         episode_diagnostics = build_round_episode_diagnostics(paths, args.round_id)
         _emit(args.json, episode_diagnostics, render_episode_diagnostics(episode_diagnostics))
         return 0
 
     if args.command == "materialize-episode":
+        from astar.workflows.materialize_episode import materialize_round_episode
+
         materialized = materialize_round_episode(paths, args.round_id)
         _emit(args.json, materialized, render_materialize_episode(materialized))
         return 0
 
     if args.command == "factorize-round-summaries":
+        from astar.workflows.factorize_round_summaries import factorize_round_summaries
+
         factorized = factorize_round_summaries(
             paths,
             round_ids=args.round_id,
@@ -751,16 +725,22 @@ def _main() -> int:
         return 0
 
     if args.command == "build-teacher-transition-dataset":
+        from astar.history.datasets.teacher_transition import build_teacher_transition_dataset
+
         dataset = build_teacher_transition_dataset(paths, round_ids=args.round_id)
         _emit(args.json, dataset, render_dataset_ref(dataset))
         return 0
 
     if args.command == "build-teacher-terminal-dataset":
+        from astar.history.datasets.teacher_terminal import build_teacher_terminal_dataset
+
         dataset = build_teacher_terminal_dataset(paths, round_ids=args.round_id)
         _emit(args.json, dataset, render_dataset_ref(dataset))
         return 0
 
     if args.command == "train-historical-bucket-prior":
+        from astar.workflows.train_historical_bucket_prior import train_historical_bucket_prior
+
         bucket_result = train_historical_bucket_prior(
             paths,
             round_ids=args.round_id,
@@ -775,6 +755,8 @@ def _main() -> int:
         return 0
 
     if args.command == "build-synthetic-live-dataset":
+        from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
+
         dataset = build_synthetic_live_dataset(
             paths,
             policy_name=args.policy,
@@ -786,6 +768,8 @@ def _main() -> int:
         return 0
 
     if args.command == "train-hazard-teacher":
+        from astar.workflows.train_teacher import train_hazard_teacher
+
         teacher_result = train_hazard_teacher(
             paths,
             round_ids=args.round_id,
@@ -801,6 +785,8 @@ def _main() -> int:
         return 0
 
     if args.command == "train-state-space-teacher":
+        from astar.workflows.train_teacher import train_state_space_teacher
+
         teacher_result = train_state_space_teacher(
             paths,
             round_ids=args.round_id,
@@ -816,6 +802,8 @@ def _main() -> int:
         return 0
 
     if args.command == "train-summary-student":
+        from astar.workflows.train_student import train_summary_bank_student
+
         student_result = train_summary_bank_student(
             paths,
             round_ids=args.round_id,
@@ -836,6 +824,8 @@ def _main() -> int:
         return 0
 
     if args.command == "train-state-space-student":
+        from astar.workflows.train_student import train_state_space_student
+
         student_result = train_state_space_student(
             paths,
             round_ids=args.round_id,
@@ -857,6 +847,8 @@ def _main() -> int:
         return 0
 
     if args.command == "evaluate-teacher-science":
+        from astar.workflows.evaluate_teacher_science import evaluate_hazard_teacher_science
+
         science_result = evaluate_hazard_teacher_science(
             paths,
             eval_round_ids=args.eval_round_id,
@@ -870,6 +862,8 @@ def _main() -> int:
         return 0
 
     if args.command == "evaluate-state-space-teacher-science":
+        from astar.workflows.evaluate_teacher_science import evaluate_state_space_teacher_science
+
         science_result = evaluate_state_space_teacher_science(
             paths,
             eval_round_ids=args.eval_round_id,
@@ -883,6 +877,8 @@ def _main() -> int:
         return 0
 
     if args.command == "evaluate-dynamic-law-summary":
+        from astar.workflows.evaluate_dynamic_law_summary import evaluate_dynamic_law_summary
+
         validation_result = evaluate_dynamic_law_summary(
             paths,
             round_ids=args.round_id,
@@ -903,6 +899,10 @@ def _main() -> int:
         return 0
 
     if args.command == "evaluate-behavioral-fingerprint-summary":
+        from astar.workflows.evaluate_behavioral_fingerprint_summary import (
+            evaluate_behavioral_fingerprint_summary,
+        )
+
         validation_result = evaluate_behavioral_fingerprint_summary(
             paths,
             round_ids=args.round_id,
@@ -926,6 +926,8 @@ def _main() -> int:
         return 0
 
     if args.command == "evaluate-regime-model":
+        from astar.workflows.evaluate_regime_model import evaluate_regime_model
+
         evaluation_result = evaluate_regime_model(
             paths,
             round_ids=args.round_id,
@@ -949,6 +951,10 @@ def _main() -> int:
         return 0
 
     if args.command == "run-synthetic-tournament":
+        from astar.policy import build_interactive_policy
+        from astar.student.predictor.interactive import build_online_predictor
+        from astar.workflows.synthetic_tournament import run_synthetic_tournament
+
         tournament_result = run_synthetic_tournament(
             paths,
             round_id=args.round_id,
@@ -970,6 +976,10 @@ def _main() -> int:
         return 0
 
     if args.command == "run-synthetic-benchmark":
+        from astar.policy import build_interactive_policy
+        from astar.student.predictor.interactive import build_online_predictor
+        from astar.workflows.synthetic_benchmark import run_synthetic_benchmark
+
         benchmark_result = run_synthetic_benchmark(
             paths,
             predictor=build_online_predictor(
@@ -992,6 +1002,8 @@ def _main() -> int:
         return 0
 
     if args.command == "run-historical-benchmark":
+        from astar.workflows.historical_benchmark import run_historical_benchmark
+
         benchmark_result = run_historical_benchmark(
             paths,
             model_name=args.model,
@@ -1012,6 +1024,10 @@ def _main() -> int:
         return 0
 
     if args.command == "compare-historical-benchmarks":
+        from astar.workflows.compare_historical_benchmarks import (
+            compare_historical_benchmark_artifacts,
+        )
+
         comparison_result = compare_historical_benchmark_artifacts(
             paths,
             baseline_path=Path(args.baseline),
@@ -1026,6 +1042,8 @@ def _main() -> int:
         return 0
 
     if args.command == "build-benchmark-manifests":
+        from astar.splits.synthetic_benchmark import build_default_benchmark_manifests
+
         manifest_result = build_default_benchmark_manifests(paths)
         _emit(
             args.json,
@@ -1035,6 +1053,8 @@ def _main() -> int:
         return 0
 
     if args.command == "compare-synthetic-benchmarks":
+        from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
+
         comparison_result = compare_benchmark_artifacts(
             paths,
             baseline_path=Path(args.baseline),
@@ -1049,21 +1069,36 @@ def _main() -> int:
         return 0
 
     if args.command == "dataset-summary":
+        from astar.eval.diagnostics import build_local_dataset_diagnostics
+
         dataset_diagnostics = build_local_dataset_diagnostics(paths)
         _emit(args.json, dataset_diagnostics, render_dataset_diagnostics(dataset_diagnostics))
         return 0
 
     if args.command == "corpus-summary":
+        from astar.workflows.corpus_summary import summarize_learning_corpus
+
         corpus_summary = summarize_learning_corpus(paths)
         _emit(args.json, corpus_summary, render_corpus_summary(corpus_summary))
         return 0
 
+    if args.command == "raw-replay-status":
+        from astar.workflows.raw_replay_status import summarize_raw_replay_status
+
+        raw_replay_status = summarize_raw_replay_status(paths, round_ids=args.round_id)
+        _emit(args.json, raw_replay_status, render_raw_replay_status(raw_replay_status))
+        return 0
+
     if args.command == "replay-eda":
+        from astar.workflows.replay_eda import analyze_replay_corpus
+
         replay_eda = analyze_replay_corpus(paths, round_ids=args.round_id)
         _emit(args.json, replay_eda, render_replay_eda(replay_eda))
         return 0
 
     if args.command == "backtest-round":
+        from astar.eval.backtest import backtest_round_from_saved_analyses
+
         backtest_result = backtest_round_from_saved_analyses(paths, args.round_id)
         _emit(args.json, backtest_result, render_backtest_round(backtest_result))
         return 0
@@ -1076,6 +1111,10 @@ def _main() -> int:
     client = AstarApiClient(client_config, AuthConfig.from_env())
 
     if args.command == "run-live-online":
+        from astar.policy import build_interactive_policy
+        from astar.student.predictor.interactive import build_online_predictor
+        from astar.workflows.live_online import run_live_online_round
+
         round_id = args.round_id
         if round_id is None:
             round_id = client.get_active_round().id
@@ -1098,16 +1137,23 @@ def _main() -> int:
         return 0
 
     if args.command == "fetch-round-analyses":
+        from astar.workflows.fetch_round_analyses import fetch_round_analyses
+
         analyses_result = fetch_round_analyses(paths, client, args.round_id)
         _emit(args.json, analyses_result, render_fetch_round_analyses(analyses_result))
         return 0
 
     if args.command == "sync-round":
+        from astar.workflows.sync_round import sync_round
+
         sync_result = sync_round(paths, client, args.round_id)
         _emit(args.json, sync_result, render_sync_round(sync_result))
         return 0
 
     if args.command == "plan-queries":
+        from astar.observe.planner import build_policy_plan
+        from astar.policy import build_named_policy
+
         record = read_round_record(paths, args.round_id)
         policy = build_named_policy(args.policy)
         planned = build_policy_plan(
@@ -1124,6 +1170,8 @@ def _main() -> int:
         return 0
 
     if args.command == "simulate-once":
+        from astar.observe.executor import record_simulation
+
         simulation_result = record_simulation(
             paths,
             client,
@@ -1141,6 +1189,8 @@ def _main() -> int:
         return 0
 
     if args.command == "fetch-replay":
+        from astar.workflows.replay_capture import fetch_replay
+
         recorded_replay = fetch_replay(
             paths,
             client,
@@ -1150,6 +1200,8 @@ def _main() -> int:
         return 0
 
     if args.command == "harvest-replays":
+        from astar.workflows.replay_capture import harvest_replays
+
         statuses = None if args.status is None else set(args.status)
         progress = None
         if not args.json:
@@ -1174,22 +1226,30 @@ def _main() -> int:
         return 0
 
     if args.command == "run-queries":
+        from astar.observe.executor import execute_query_plan
+
         plan = read_any_query_plan(Path(args.plan))
         query_run_result = execute_query_plan(paths, client, plan, config_hash=args.config_hash)
         _emit(args.json, query_run_result, render_query_plan_run(query_run_result))
         return 0
 
     if args.command == "submit":
+        from astar.workflows.submissions import submit_saved_prediction
+
         submit_result = submit_saved_prediction(paths, client, args.round_id, args.seed_index)
         _emit(args.json, submit_result, render_submit_prediction(submit_result))
         return 0
 
     if args.command == "fetch-analysis":
+        from astar.workflows.fetch_analysis import fetch_analysis
+
         analysis_result = fetch_analysis(paths, client, args.round_id, args.seed_index)
         _emit(args.json, analysis_result, render_fetch_analysis(analysis_result))
         return 0
 
     if args.command == "visualize-terminal-comparison":
+        from astar.workflows.visualize_terminal_comparison import visualize_terminal_comparison
+
         artifacts = visualize_terminal_comparison(
             paths,
             args.round_id,
@@ -1200,6 +1260,8 @@ def _main() -> int:
         return 0
 
     if args.command == "visualize-replay-events":
+        from astar.workflows.visualize_replay_events import visualize_replay_events
+
         artifacts = visualize_replay_events(
             paths,
             args.round_id,
@@ -1211,6 +1273,8 @@ def _main() -> int:
         return 0
 
     if args.command == "visualize-replay-mismatches":
+        from astar.workflows.visualize_replay_mismatches import visualize_replay_mismatches
+
         artifacts = visualize_replay_mismatches(
             paths,
             args.round_id,
@@ -1222,6 +1286,8 @@ def _main() -> int:
         return 0
 
     if args.command == "visualize-model-prediction":
+        from astar.workflows.visualize_model_prediction import visualize_model_prediction
+
         artifacts = visualize_model_prediction(
             paths,
             args.round_id,

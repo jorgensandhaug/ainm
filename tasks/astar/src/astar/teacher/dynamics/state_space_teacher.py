@@ -22,6 +22,10 @@ from astar.history.summaries.behavioral_fingerprint_core import (
     DEFAULT_BEHAVIORAL_FINGERPRINT_SUMMARY_PROFILE,
 )
 from astar.history.summaries.dynamic_law import (
+    PAIRWISE_REQUIRED_COLUMNS,
+    RUIN_REQUIRED_COLUMNS,
+    SETTLEMENT_REQUIRED_COLUMNS,
+    SITE_REQUIRED_COLUMNS,
     pairwise_feature_matrix,
     ruin_feature_matrix,
     settlement_feature_matrix,
@@ -30,8 +34,12 @@ from astar.history.summaries.dynamic_law import (
 from astar.history.summaries.measurements import (
     ReplayMeasurementBundle,
     build_replay_measurement_bundle,
+    load_replay_measurement_bundle_projected,
+    materialize_round_replay_measurements,
 )
 from astar.infra.api.dto import InitialSettlement
+from astar.infra.artifacts.paths import WorkspacePaths
+from astar.infra.artifacts.store import read_round_record
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.teacher.decoder.base import SeedLike
 from astar.teacher.regime.base import RegimePosteriorState
@@ -84,6 +92,57 @@ INITIAL_MARK_TARGETS: tuple[tuple[str, str], ...] = (
     ("food", "prev_food"),
     ("wealth", "prev_wealth"),
     ("defense", "prev_defense"),
+)
+_UNUSED_WORKSPACE_COLUMNS: tuple[str, ...] = ("round_id",)
+_WORKSPACE_SITE_COLUMNS: tuple[str, ...] = tuple(
+    dict.fromkeys(
+        (
+            "round_id",
+            "step",
+            *SITE_REQUIRED_COLUMNS,
+            *(column_name for _name, column_name in SITE_HEAD_TARGETS),
+        )
+    )
+)
+_WORKSPACE_LIVE_COLUMNS: tuple[str, ...] = tuple(
+    dict.fromkeys(("round_id", "step", *SETTLEMENT_REQUIRED_COLUMNS))
+)
+_WORKSPACE_PAIRWISE_COLUMNS: tuple[str, ...] = tuple(
+    dict.fromkeys(("round_id", "step", *PAIRWISE_REQUIRED_COLUMNS))
+)
+_WORKSPACE_RUIN_COLUMNS: tuple[str, ...] = tuple(
+    dict.fromkeys(("round_id", "step", *RUIN_REQUIRED_COLUMNS))
+)
+_WORKSPACE_INITIAL_SETTLEMENT_COLUMNS: tuple[str, ...] = (
+    "round_id",
+    "step",
+    "prev_alive",
+    "prev_has_port",
+    "prev_grid_code",
+    "buildable",
+    "coast",
+    "coast_distance_steps",
+    "coast_distance_unreachable",
+    "land_distance_to_settlement_steps",
+    "land_distance_to_settlement_unreachable",
+    "sea_distance_to_port_steps",
+    "sea_distance_to_port_unreachable",
+    "settlement_basin_gap_steps",
+    "settlement_basin_gap_unreachable",
+    "forest_density",
+    "mountain_density",
+    "settlement_proximity",
+    "maritime_access",
+    "frontier_score",
+    "nearby_live_count",
+    "nearby_same_owner_count",
+    "nearby_other_owner_count",
+    "nearby_port_count",
+    "nearby_ruin_count",
+    "prev_population",
+    "prev_food",
+    "prev_wealth",
+    "prev_defense",
 )
 
 
@@ -569,6 +628,99 @@ def _episode_measurement_bundles(episode: RoundEpisode) -> list[ReplayMeasuremen
             ),
         )
     return bundles
+
+
+@dataclass(frozen=True, slots=True)
+class _MeasurementRound:
+    round_id: str
+    round_number: int
+    bundles: tuple[ReplayMeasurementBundle, ...]
+
+
+def _workspace_replay_seed_indexes(
+    paths: WorkspacePaths,
+    round_id: str,
+    *,
+    seed_count: int,
+) -> list[int]:
+    replay_seed_indexes: list[int] = []
+    for seed_index in range(seed_count):
+        if paths.replay_site_transition_path(round_id, seed_index).exists():
+            replay_seed_indexes.append(seed_index)
+            continue
+        if paths.replay_summary_path(round_id, seed_index).exists():
+            replay_seed_indexes.append(seed_index)
+            continue
+        replay_dir = paths.raw_replay_dir(round_id, seed_index)
+        if replay_dir.exists() and any(replay_dir.glob("*.json")):
+            replay_seed_indexes.append(seed_index)
+    return replay_seed_indexes
+
+
+def _load_projected_state_space_bundle(
+    paths: WorkspacePaths,
+    round_id: str,
+    seed_index: int,
+) -> ReplayMeasurementBundle | None:
+    return load_replay_measurement_bundle_projected(
+        paths,
+        round_id,
+        seed_index,
+        site_opportunity_columns=_WORKSPACE_SITE_COLUMNS,
+        settlement_measurement_columns=_WORKSPACE_INITIAL_SETTLEMENT_COLUMNS,
+        live_settlement_transition_columns=_WORKSPACE_LIVE_COLUMNS,
+        pairwise_candidate_columns=_WORKSPACE_PAIRWISE_COLUMNS,
+        ruin_transition_columns=_WORKSPACE_RUIN_COLUMNS,
+        owner_year_columns=_UNUSED_WORKSPACE_COLUMNS,
+        year_shock_columns=_UNUSED_WORKSPACE_COLUMNS,
+        macro_trajectory_columns=_UNUSED_WORKSPACE_COLUMNS,
+        owner_year_max_rows=1,
+        year_shock_max_rows=1,
+        macro_trajectory_max_rows=1,
+    )
+
+
+def _load_or_build_round_state_space_measurement_bundles(
+    paths: WorkspacePaths,
+    round_id: str,
+) -> tuple[int, list[ReplayMeasurementBundle]]:
+    round_record = read_round_record(paths, round_id)
+    replay_seed_indexes = _workspace_replay_seed_indexes(
+        paths,
+        round_id,
+        seed_count=round_record.round.seeds_count,
+    )
+    if not replay_seed_indexes:
+        return round_record.round.round_number, []
+
+    bundles = [
+        bundle
+        for seed_index in replay_seed_indexes
+        if (bundle := _load_projected_state_space_bundle(paths, round_id, seed_index)) is not None
+    ]
+    if len(bundles) == len(replay_seed_indexes):
+        return round_record.round.round_number, sorted(bundles, key=lambda item: item.seed_index)
+
+    materialize_round_replay_measurements(paths, round_id)
+    bundles = [
+        bundle
+        for seed_index in replay_seed_indexes
+        if (bundle := _load_projected_state_space_bundle(paths, round_id, seed_index)) is not None
+    ]
+    return round_record.round.round_number, sorted(bundles, key=lambda item: item.seed_index)
+
+
+def _seed_rollout_horizon_by_seed_index(
+    measurement_rounds: list[_MeasurementRound],
+) -> dict[int, int]:
+    seed_rollout_horizon_by_seed_index: dict[int, int] = {}
+    for measurement_round in measurement_rounds:
+        for bundle in measurement_round.bundles:
+            horizon = int(bundle.site_transition_counts_by_step.shape[0]) + 1
+            existing_horizon = seed_rollout_horizon_by_seed_index.get(bundle.seed_index)
+            if existing_horizon is None or horizon > existing_horizon:
+                seed_rollout_horizon_by_seed_index[bundle.seed_index] = horizon
+    return seed_rollout_horizon_by_seed_index
 
 
 def _build_local_context_maps_for_rollout(
@@ -1073,17 +1225,14 @@ class StateSpaceTeacher(BaseModel):
     ruin_heads: tuple[LatentModulatedBinaryHead, ...] = ()
     initial_mark_heads: tuple[LatentModulatedLinearHead, ...] = ()
 
-    def fit(self, episodes: list[RoundEpisode]) -> StateSpaceTeacher:
-        replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
-        if not replay_episodes:
-            raise ValueError("no replay-backed episodes available for state-space teacher")
-
-        regime_encoder = ReplaySummaryRegimeEncoder(
-            name=f"{self.name}__regime_encoder",
-            summary_backend=self.summary_backend,
-            behavioral_fingerprint_summary_profile=self.behavioral_fingerprint_summary_profile,
-            regime_max_rank=self.regime_max_rank,
-        ).fit(replay_episodes)
+    def _fit_from_measurement_rounds(
+        self,
+        measurement_rounds: list[_MeasurementRound],
+        *,
+        regime_encoder: ReplaySummaryRegimeEncoder,
+    ) -> StateSpaceTeacher:
+        if not measurement_rounds:
+            raise ValueError("no replay-backed rounds available for state-space teacher")
         regimes_by_round = {
             round_id: np.asarray(regime, dtype=np.float64)
             for round_id, regime in zip(
@@ -1093,16 +1242,8 @@ class StateSpaceTeacher(BaseModel):
             )
         }
         regime_dim = int(regime_encoder.regime_dim)
-        seed_rollout_horizon_by_seed_index: dict[int, int] = {}
-        for episode in replay_episodes:
-            for seed in episode.seeds:
-                if not seed.replay_runs:
-                    continue
-                horizon = max(len(run.frames) for run in seed.replay_runs)
-                existing_horizon = seed_rollout_horizon_by_seed_index.get(seed.seed_index)
-                if existing_horizon is None or horizon > existing_horizon:
-                    seed_rollout_horizon_by_seed_index[seed.seed_index] = horizon
-        bundles_by_episode = [_episode_measurement_bundles(episode) for episode in replay_episodes]
+        seed_rollout_horizon_by_seed_index = _seed_rollout_horizon_by_seed_index(measurement_rounds)
+        bundles_by_episode = [list(item.bundles) for item in measurement_rounds]
 
         site_frames = [
             bundle.site_opportunities for bundles in bundles_by_episode for bundle in bundles
@@ -1298,6 +1439,66 @@ class StateSpaceTeacher(BaseModel):
             },
         )
 
+    def fit(self, episodes: list[RoundEpisode]) -> StateSpaceTeacher:
+        replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
+        if not replay_episodes:
+            raise ValueError("no replay-backed episodes available for state-space teacher")
+
+        regime_encoder = ReplaySummaryRegimeEncoder(
+            name=f"{self.name}__regime_encoder",
+            summary_backend=self.summary_backend,
+            behavioral_fingerprint_summary_profile=self.behavioral_fingerprint_summary_profile,
+            regime_max_rank=self.regime_max_rank,
+        ).fit(replay_episodes)
+        measurement_rounds = [
+            _MeasurementRound(
+                round_id=episode.metadata.round_id,
+                round_number=int(episode.metadata.round_number or -1),
+                bundles=tuple(_episode_measurement_bundles(episode)),
+            )
+            for episode in replay_episodes
+        ]
+        return self._fit_from_measurement_rounds(
+            measurement_rounds,
+            regime_encoder=regime_encoder,
+        )
+
+    def fit_from_workspace(
+        self,
+        paths: WorkspacePaths,
+        round_ids: list[str],
+    ) -> StateSpaceTeacher:
+        regime_encoder = ReplaySummaryRegimeEncoder(
+            name=f"{self.name}__regime_encoder",
+            summary_backend=self.summary_backend,
+            behavioral_fingerprint_summary_profile=self.behavioral_fingerprint_summary_profile,
+            regime_max_rank=self.regime_max_rank,
+        ).fit_from_workspace(paths, round_ids)
+
+        measurement_rounds: list[_MeasurementRound] = []
+        for round_id in regime_encoder.round_ids:
+            round_number, bundles = _load_or_build_round_state_space_measurement_bundles(
+                paths,
+                round_id,
+            )
+            if not bundles:
+                continue
+            measurement_rounds.append(
+                _MeasurementRound(
+                    round_id=round_id,
+                    round_number=round_number,
+                    bundles=tuple(bundles),
+                )
+            )
+        if len(measurement_rounds) != len(regime_encoder.round_ids):
+            raise ValueError(
+                "state-space teacher workspace measurements drifted from regime rounds"
+            )
+        return self._fit_from_measurement_rounds(
+            measurement_rounds,
+            regime_encoder=regime_encoder,
+        )
+
     def checkpoint(self) -> StateSpaceTeacherCheckpoint:
         return StateSpaceTeacherCheckpoint(
             name=self.name,
@@ -1397,6 +1598,14 @@ class StateSpaceTeacher(BaseModel):
         if self.regime_encoder is None:
             raise ValueError("state-space teacher is not fit")
         return np.asarray(self.regime_encoder.encode_round(episode), dtype=np.float64)
+
+    def encode_round_from_workspace(self, paths: WorkspacePaths, round_id: str) -> np.ndarray:
+        if self.regime_encoder is None:
+            raise ValueError("state-space teacher is not fit")
+        return np.asarray(
+            self.regime_encoder.encode_round_from_workspace(paths, round_id),
+            dtype=np.float64,
+        )
 
     def _static_geometry(
         self,

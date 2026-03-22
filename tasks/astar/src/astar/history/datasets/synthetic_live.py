@@ -10,9 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field
 from astar.core.trajectory import LiveQueryObs
 from astar.envs.synthetic import SyntheticActiveOracle
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
-from astar.history.episodes.build import build_round_episode
 from astar.history.learning import RoundLearningEpisode, load_round_learning_episode
-from astar.history.summaries.round_coefficients import round_regime_summary_vector
+from astar.history.summaries.round_coefficients import (
+    round_regime_summary_vector_from_learning_episode,
+)
 from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
@@ -118,12 +119,30 @@ def build_synthetic_live_dataset(
     recorder = TranscriptRecorderPredictor()
 
     for round_id in selected_round_ids:
-        round_episode = build_round_episode(paths, round_id)
-        if round_episode.replay_run_count == 0:
-            continue
         materialize_round_episode(paths, round_id)
-        budget = _plan_budget(policy, round_id, oracle)
         learning_episode = load_round_learning_episode(paths, round_id)
+        if learning_episode.replay_run_count == 0:
+            continue
+        budget = _plan_budget(policy, round_id, oracle)
+        regime_vector = (
+            regime_encoder.encode_round_from_workspace(paths, round_id)
+            if regime_encoder is not None
+            else round_regime_summary_vector_from_learning_episode(learning_episode)
+        )
+        target_sources: dict[int, str] = {}
+        target_paths: dict[int, Path] = {}
+        for seed_index in sorted(learning_episode.per_seed):
+            try:
+                target_source, target_path = _target_info(
+                    paths,
+                    round_id,
+                    seed_index,
+                    learning_episode,
+                )
+            except ValueError:
+                continue
+            target_sources[seed_index] = target_source
+            target_paths[seed_index] = target_path
 
         for sample_index in range(samples_per_round):
             episode_run = run_online_episode(
@@ -136,35 +155,16 @@ def build_synthetic_live_dataset(
             )
             observations = episode_run.belief.observations
 
-            target_sources = {}
-            target_paths = {}
-            for seed_index in range(round_episode.metadata.seeds_count):
-                try:
-                    target_source, target_path = _target_info(
-                        paths,
-                        round_id,
-                        seed_index,
-                        learning_episode,
-                    )
-                except ValueError:
-                    continue
-                target_sources[seed_index] = target_source
-                target_paths[seed_index] = target_path
-
             artifact = SyntheticEpisodeArtifact(
                 round_id=round_id,
                 round_number=int(episode_run.round_context.round_number or -1),
                 round_detail_path=_ROUND_DETAIL_RELPATH_PREFIX / f"{round_id}.json",
                 sample_index=sample_index,
                 policy_name=policy.name,
-                regime_vector=(
-                    regime_encoder.encode_round(round_episode)
-                    if regime_encoder is not None
-                    else round_regime_summary_vector(round_episode)
-                ),
+                regime_vector=regime_vector,
                 observations=observations,
-                target_sources=target_sources,
-                target_paths=target_paths,
+                target_sources=dict(target_sources),
+                target_paths=dict(target_paths),
             )
             episode_path = episodes_dir / f"{round_id}__sample_index={sample_index}.json"
             episode_path.write_text(

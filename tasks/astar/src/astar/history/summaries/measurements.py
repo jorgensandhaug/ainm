@@ -1923,6 +1923,54 @@ def write_replay_measurement_bundle(
     }
 
 
+def _round_replay_seed_indexes(
+    paths: WorkspacePaths,
+    round_id: str,
+    *,
+    seed_count: int,
+) -> list[int]:
+    replay_seed_indexes: list[int] = []
+    for seed_index in range(seed_count):
+        if paths.replay_site_transition_path(round_id, seed_index).exists():
+            replay_seed_indexes.append(seed_index)
+            continue
+        if paths.replay_summary_path(round_id, seed_index).exists():
+            replay_seed_indexes.append(seed_index)
+            continue
+        replay_dir = paths.raw_replay_dir(round_id, seed_index)
+        if replay_dir.exists() and any(replay_dir.glob("*.json")):
+            replay_seed_indexes.append(seed_index)
+    return replay_seed_indexes
+
+
+def load_or_build_round_replay_measurement_bundles(
+    paths: WorkspacePaths,
+    round_id: str,
+) -> tuple[int, list[ReplayMeasurementBundle]]:
+    round_record = read_round_record(paths, round_id)
+    replay_seed_indexes = _round_replay_seed_indexes(
+        paths,
+        round_id,
+        seed_count=round_record.round.seeds_count,
+    )
+    bundles = [
+        bundle
+        for seed_index in replay_seed_indexes
+        if (bundle := load_replay_measurement_bundle(paths, round_id, seed_index)) is not None
+    ]
+    if len(bundles) == len(replay_seed_indexes):
+        return round_record.round.round_number, sorted(bundles, key=lambda item: item.seed_index)
+
+    if replay_seed_indexes:
+        materialize_round_replay_measurements(paths, round_id)
+        bundles = [
+            bundle
+            for seed_index in replay_seed_indexes
+            if (bundle := load_replay_measurement_bundle(paths, round_id, seed_index)) is not None
+        ]
+    return round_record.round.round_number, sorted(bundles, key=lambda item: item.seed_index)
+
+
 def materialize_round_replay_measurements(
     paths: WorkspacePaths,
     round_id: str,
@@ -1950,6 +1998,7 @@ __all__ = [
     "ReplayMeasurementSeedSummary",
     "build_replay_measurement_bundle",
     "build_round_measurement_summary",
+    "load_or_build_round_replay_measurement_bundles",
     "load_replay_measurement_bundle",
     "load_replay_measurement_bundle_projected",
     "materialize_round_replay_measurements",

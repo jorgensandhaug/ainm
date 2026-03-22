@@ -6,6 +6,7 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict
 
 from astar.history.episodes.models import RoundEpisode
+from astar.infra.artifacts.paths import WorkspacePaths
 
 
 class RegimePosteriorState(BaseModel):
@@ -21,3 +22,4 @@ class RegimeEncoder(Protocol):
     name: str
 
     def encode_round(self, episode: RoundEpisode) -> np.ndarray: ...
+    def encode_round_from_workspace(self, paths: WorkspacePaths, round_id: str) -> np.ndarray: ...

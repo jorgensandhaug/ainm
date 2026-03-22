@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
@@ -26,8 +27,10 @@ from astar.history.summaries.factorization import factorize_summary_matrix
 from astar.history.summaries.measurements import (
     ReplayMeasurementBundle,
     build_replay_measurement_bundle,
+    load_or_build_round_replay_measurement_bundles,
 )
 from astar.infra.api.dto import InitialSettlement
+from astar.infra.artifacts.paths import WorkspacePaths
 
 
 def _seed_feature_bundle(episode: RoundEpisode, seed_index: int) -> SeedFeatureBundle:
@@ -68,6 +71,13 @@ def _episode_measurement_bundles(episode: RoundEpisode) -> list[ReplayMeasuremen
 
 def _regime_coordinate_names(prefix: str, dim: int) -> tuple[str, ...]:
     return tuple(f"{prefix}_{index:03d}" for index in range(max(1, dim)))
+
+
+@dataclass(frozen=True, slots=True)
+class ReplayMeasurementRound:
+    round_id: str
+    round_number: int
+    bundles: tuple[ReplayMeasurementBundle, ...]
 
 
 class ReplaySummaryRegimeEncoderCheckpoint(BaseModel):
@@ -169,44 +179,44 @@ class ReplaySummaryRegimeEncoder(BaseModel):
             return 0
         return int(self.regime_bank.shape[1])
 
-    def fit(self, episodes: list[RoundEpisode]) -> ReplaySummaryRegimeEncoder:
-        replay_episodes = [episode for episode in episodes if episode.replay_run_count > 0]
-        if not replay_episodes:
-            raise ValueError("no replay-backed episodes available for regime encoder")
+    def _fit_from_measurement_rounds(
+        self,
+        replay_rounds: list[ReplayMeasurementRound],
+    ) -> ReplaySummaryRegimeEncoder:
+        if not replay_rounds:
+            raise ValueError("no replay-backed rounds available for regime encoder")
 
-        measurement_bundles_by_episode = [
-            _episode_measurement_bundles(episode) for episode in replay_episodes
-        ]
+        measurement_bundles_by_round = [list(item.bundles) for item in replay_rounds]
         update: dict[str, object]
         if self.summary_backend == "dynamic_law":
             site_frames = [
                 bundle.site_opportunities
-                for bundles in measurement_bundles_by_episode
+                for bundles in measurement_bundles_by_round
                 for bundle in bundles
             ]
             settlement_frames = [
                 bundle.settlement_measurements
-                for bundles in measurement_bundles_by_episode
+                for bundles in measurement_bundles_by_round
                 for bundle in bundles
             ]
             pairwise_frames = [
                 bundle.pairwise_candidates
-                for bundles in measurement_bundles_by_episode
+                for bundles in measurement_bundles_by_round
                 for bundle in bundles
             ]
             ruin_frames = [
                 bundle.ruin_transitions
-                for bundles in measurement_bundles_by_episode
+                for bundles in measurement_bundles_by_round
                 for bundle in bundles
             ]
             owner_frames = [
                 bundle.owner_years
-                for bundles in measurement_bundles_by_episode
+                for bundles in measurement_bundles_by_round
                 for bundle in bundles
             ]
             macro_frames = [
                 bundle.macro_trajectories
-                for bundles in measurement_bundles_by_episode
+                for bundles in measurement_bundles_by_round
                 for bundle in bundles
             ]
             dynamic_probe_library = build_dynamic_law_probe_library(
@@ -219,14 +229,14 @@ class ReplaySummaryRegimeEncoder(BaseModel):
             )
             regime_summary_names: list[str] | None = None
             regime_bank_rows: list[np.ndarray] = []
-            for episode, bundles in zip(
-                replay_episodes,
-                measurement_bundles_by_episode,
+            for measurement_round, bundles in zip(
+                replay_rounds,
+                measurement_bundles_by_round,
                 strict=True,
             ):
                 law = fit_round_dynamic_law_summary(
-                    round_id=episode.metadata.round_id,
-                    round_number=int(episode.metadata.round_number or -1),
+                    round_id=measurement_round.round_id,
+                    round_number=measurement_round.round_number,
                     bundles=bundles,
                 )
                 names, vector = law.probe_summary(dynamic_probe_library)
@@ -278,14 +288,14 @@ class ReplaySummaryRegimeEncoder(BaseModel):
             source_summary_names: list[str] | None = None
             source_summary_rows: list[np.ndarray] = []
             source_std_rows: list[np.ndarray] = []
-            for episode, bundles in zip(
-                replay_episodes,
-                measurement_bundles_by_episode,
+            for measurement_round, bundles in zip(
+                replay_rounds,
+                measurement_bundles_by_round,
                 strict=True,
             ):
                 estimate = estimate_round_behavioral_fingerprint(
-                    round_id=episode.metadata.round_id,
-                    round_number=int(episode.metadata.round_number or -1),
+                    round_id=measurement_round.round_id,
+                    round_number=measurement_round.round_number,
                     bundles=bundles,
                     probe_library=behavioral_probe_library,
                     bootstrap_samples=self.summary_bootstrap_samples,
@@ -319,11 +329,12 @@ class ReplaySummaryRegimeEncoder(BaseModel):
             factorization = factorize_summary_matrix(
                 summary_kind="behavioral_fingerprint_core",
                 summary_names=list(source_summary_names or ()),
-                round_ids=[episode.metadata.round_id for episode in replay_episodes],
-                round_numbers=[
-                    int(episode.metadata.round_number or -1) for episode in replay_episodes
+                round_ids=[item.round_id for item in replay_rounds],
+                round_numbers=[item.round_number for item in replay_rounds],
+                sample_counts=[
+                    max(1, sum(bundle.replay_run_count for bundle in item.bundles))
+                    for item in replay_rounds
                 ],
-                sample_counts=[max(1, episode.replay_run_count) for episode in replay_episodes],
                 summary_matrix=source_summary_matrix,
                 max_rank=self.regime_max_rank,
                 column_scale=source_scale,
@@ -364,13 +375,42 @@ class ReplaySummaryRegimeEncoder(BaseModel):
 
         return self.model_copy(
             update={
-                "round_ids": tuple(episode.metadata.round_id for episode in replay_episodes),
-                "round_numbers": tuple(
-                    int(episode.metadata.round_number or -1) for episode in replay_episodes
-                ),
+                "round_ids": tuple(item.round_id for item in replay_rounds),
+                "round_numbers": tuple(item.round_number for item in replay_rounds),
                 **update,
             }
         )
+
+    def fit(self, episodes: list[RoundEpisode]) -> ReplaySummaryRegimeEncoder:
+        replay_rounds = [
+            ReplayMeasurementRound(
+                round_id=episode.metadata.round_id,
+                round_number=int(episode.metadata.round_number or -1),
+                bundles=tuple(_episode_measurement_bundles(episode)),
+            )
+            for episode in episodes
+            if episode.replay_run_count > 0
+        ]
+        return self._fit_from_measurement_rounds(replay_rounds)
+
+    def fit_from_workspace(
+        self,
+        paths: WorkspacePaths,
+        round_ids: list[str],
+    ) -> ReplaySummaryRegimeEncoder:
+        replay_rounds: list[ReplayMeasurementRound] = []
+        for round_id in round_ids:
+            round_number, bundles = load_or_build_round_replay_measurement_bundles(paths, round_id)
+            if not bundles:
+                continue
+            replay_rounds.append(
+                ReplayMeasurementRound(
+                    round_id=round_id,
+                    round_number=round_number,
+                    bundles=tuple(bundles),
+                )
+            )
+        return self._fit_from_measurement_rounds(replay_rounds)
 
     def checkpoint(self) -> ReplaySummaryRegimeEncoderCheckpoint:
         return ReplaySummaryRegimeEncoderCheckpoint(
@@ -458,11 +498,14 @@ class ReplaySummaryRegimeEncoder(BaseModel):
     def encode(self, episode: RoundEpisode) -> np.ndarray:
         return self.encode_round(episode)
 
-    def encode_round(self, episode: RoundEpisode) -> np.ndarray:
-        bundles = _episode_measurement_bundles(episode)
+    def _encode_measurement_round(
+        self,
+        measurement_round: ReplayMeasurementRound,
+    ) -> np.ndarray:
+        bundles = list(measurement_round.bundles)
         if not bundles:
             raise ValueError(
-                f"round {episode.metadata.round_id} has no replay measurements to encode"
+                f"round {measurement_round.round_id} has no replay measurements to encode"
             )
         if self.summary_backend == "dynamic_law":
             if (
@@ -472,8 +515,8 @@ class ReplaySummaryRegimeEncoder(BaseModel):
             ):
                 raise ValueError("regime encoder has no dynamic-law probe library")
             law = fit_round_dynamic_law_summary(
-                round_id=episode.metadata.round_id,
-                round_number=int(episode.metadata.round_number or -1),
+                round_id=measurement_round.round_id,
+                round_number=measurement_round.round_number,
                 bundles=bundles,
             )
             _, vector = law.probe_summary(
@@ -513,8 +556,8 @@ class ReplaySummaryRegimeEncoder(BaseModel):
         ):
             raise ValueError("behavioral fingerprint probe library version mismatch")
         estimate = estimate_round_behavioral_fingerprint(
-            round_id=episode.metadata.round_id,
-            round_number=int(episode.metadata.round_number or -1),
+            round_id=measurement_round.round_id,
+            round_number=measurement_round.round_number,
             bundles=bundles,
             probe_library=probe_library,
             bootstrap_samples=0,
@@ -535,6 +578,25 @@ class ReplaySummaryRegimeEncoder(BaseModel):
         )
         scaled = centered / np.asarray(self.source_summary_scale, dtype=np.float64)
         return np.asarray(scaled @ self.source_summary_basis.T, dtype=np.float64)
+
+    def encode_round(self, episode: RoundEpisode) -> np.ndarray:
+        return self._encode_measurement_round(
+            ReplayMeasurementRound(
+                round_id=episode.metadata.round_id,
+                round_number=int(episode.metadata.round_number or -1),
+                bundles=tuple(_episode_measurement_bundles(episode)),
+            )
+        )
+
+    def encode_round_from_workspace(self, paths: WorkspacePaths, round_id: str) -> np.ndarray:
+        round_number, bundles = load_or_build_round_replay_measurement_bundles(paths, round_id)
+        return self._encode_measurement_round(
+            ReplayMeasurementRound(
+                round_id=round_id,
+                round_number=round_number,
+                bundles=tuple(bundles),
+            )
+        )
 
 
 __all__ = [

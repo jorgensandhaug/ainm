@@ -6,7 +6,7 @@ queries: 50
 repeated_window_groups: 5
 submissions: 5
 analyses: 5
-replay_runs: 1080
+replay_runs: 1114
 replay_seeds: 5
 replay_summaries: 5
 mean_ground_truth_entropy: 0.3917
