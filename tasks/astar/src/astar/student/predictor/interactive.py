@@ -118,6 +118,10 @@ GEO_TRIPLE_V002 = "geo_triple_v002"  # geometric mean 0/50/50
 GEO_TRIPLE_V003 = "geo_triple_v003"  # geometric mean 20/40/40
 GEO_TRIPLE_V004 = "geo_triple_v004"  # geometric mean 33/33/34
 QUAD_BLEND_V001 = "quad_blend_v001"  # GLMM+DT+PO+QR
+DIRECT_TERMINAL_Z2_EW_V001 = "direct_terminal_z2_ew_v001"  # entropy-weighted
+TRIPLE_EW_V001 = "triple_ew_v001"  # triple blend with entropy-weighted DT
+TRIPLE_EW_V002 = "triple_ew_v002"  # 0/50/50 with ew DT
+TRIPLE_EW_V003 = "triple_ew_v003"  # 10/45/45 with ew DT
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -2097,6 +2101,68 @@ def build_online_predictor(
             ),
             name=normalized,
         )
+    if normalized == DIRECT_TERMINAL_Z2_EW_V001:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        return _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_EW_V001,
+            model_name=DIRECT_TERMINAL_Z2_EW_V001,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.001, "max_epochs": 200, "entropy_weighted": True},
+        )
+    if normalized in (TRIPLE_EW_V001, TRIPLE_EW_V002, TRIPLE_EW_V003):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        glmm_adapter = _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2},
+        )
+        dt_ew_adapter = _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_EW_V001,
+            model_name=DIRECT_TERMINAL_Z2_EW_V001,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.001, "max_epochs": 200, "entropy_weighted": True},
+        )
+        bucket_predictor = _load_or_fit_historical_bucket_predictor(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem="historical_bucket_prior_v1",
+            model_name="historical_bucket_prior_v1",
+        )
+        prior_op = PriorOperatorPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=list(historical_round_ids) if historical_round_ids else None,
+            bucket_prior=bucket_predictor,
+            model_name="prior_operator_internal",
+            ridge_lambda=0.1,
+            latent_dim=2,
+        )
+        ew_weights = {
+            TRIPLE_EW_V001: (0.30, 0.35, 0.35),
+            TRIPLE_EW_V002: (0.00, 0.50, 0.50),
+            TRIPLE_EW_V003: (0.10, 0.45, 0.45),
+        }
+        wa, wb, wc = ew_weights[normalized]
+        base_predictor = TripleBlendPredictor(
+            predictor_a=glmm_adapter.predictor,
+            predictor_b=dt_ew_adapter.predictor,
+            predictor_c=prior_op,
+            weight_a=wa,
+            weight_b=wb,
+            weight_c=wc,
+            name=f"{normalized}_base",
+        )
+        obs_predictor = ExactObservationBlendPredictor(
+            base_predictor=base_predictor,
+            beta_min=20.0,
+            beta_scale=0.0,
+            probability_floor=3e-4,
+            name=normalized,
+        )
+        return RoundPredictorAdapter(predictor=obs_predictor, name=normalized)
     if normalized in (GEO_TRIPLE_V001, GEO_TRIPLE_V002, GEO_TRIPLE_V003, GEO_TRIPLE_V004):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         glmm_adapter = _build_smh_glmm_latent_adapter(

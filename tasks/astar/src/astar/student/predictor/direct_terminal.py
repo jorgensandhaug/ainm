@@ -205,6 +205,7 @@ def _fit_direct_terminal_model(
     learning_rate: float = 0.05,
     max_epochs: int = 100,
     latent_dim: int = 2,
+    entropy_weighted: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Fit a direct terminal predictor with round mixed effects.
 
@@ -218,6 +219,14 @@ def _fit_direct_terminal_model(
         round_latents: shape (n_rounds, latent_dim) - latent codes for regime inference
     """
     n_samples, n_features = X.shape
+
+    # Compute entropy weights (matching scoring metric)
+    if entropy_weighted:
+        safe_Y = np.clip(Y, 1e-10, 1.0)
+        cell_entropy = -np.sum(Y * np.log(safe_Y), axis=-1)
+        sample_weights = cell_entropy / np.maximum(np.mean(cell_entropy), 1e-8)
+    else:
+        sample_weights = np.ones(n_samples, dtype=np.float64)
 
     # Add intercept
     X_aug = np.concatenate([np.ones((n_samples, 1), dtype=np.float64), X], axis=1)
@@ -246,17 +255,18 @@ def _fit_direct_terminal_model(
         logits = X_aug @ theta + round_biases[R]
         probs = _softmax(logits)
 
-        # Weighted cross-entropy loss (weight by target entropy)
+        # Weighted cross-entropy loss
         log_probs = np.log(np.clip(probs, 1e-12, 1.0))
-        loss = -float(np.sum(Y * log_probs)) / n_samples
+        loss = -float(np.sum(sample_weights[:, None] * Y * log_probs)) / float(np.sum(sample_weights))
 
         # Ridge penalty
         loss += 0.5 * ridge_lambda * float(np.sum(np.square(theta[1:])))
         loss += 0.5 * ridge_lambda * 2.0 * float(np.sum(np.square(round_biases)))
 
-        # Gradient
-        error = probs - Y  # (N, 6)
-        grad_theta = (X_aug.T @ error) / n_samples + ridge_lambda * np.vstack([
+        # Gradient (weighted)
+        weighted_error = sample_weights[:, None] * (probs - Y)  # (N, 6)
+        w_sum = float(np.sum(sample_weights))
+        grad_theta = (X_aug.T @ weighted_error) / w_sum + ridge_lambda * np.vstack([
             np.zeros((1, CLASS_COUNT), dtype=np.float64),
             theta[1:],
         ])
@@ -265,7 +275,9 @@ def _fit_direct_terminal_model(
         for r in range(n_rounds):
             mask = R == r
             if np.any(mask):
-                grad_bias[r] = np.mean(error[mask], axis=0) + ridge_lambda * 2.0 * round_biases[r]
+                r_w = sample_weights[mask]
+                r_err = weighted_error[mask]
+                grad_bias[r] = np.sum(r_err, axis=0) / np.maximum(np.sum(r_w), 1e-8) + ridge_lambda * 2.0 * round_biases[r]
 
         # Adam update
         beta1, beta2 = 0.9, 0.999
@@ -341,6 +353,7 @@ class DirectTerminalPredictor(BaseRoundPredictor):
         max_epochs: int = 100,
         latent_dim: int = 2,
         prediction_floor: float = 5e-4,
+        entropy_weighted: bool = False,
     ) -> DirectTerminalPredictor:
         selected_round_ids = round_ids or sorted(
             path.stem for path in paths.raw_dir.joinpath("rounds").glob("*.json")
@@ -358,6 +371,7 @@ class DirectTerminalPredictor(BaseRoundPredictor):
             learning_rate=learning_rate,
             max_epochs=max_epochs,
             latent_dim=latent_dim,
+            entropy_weighted=entropy_weighted,
         )
 
         return cls(
