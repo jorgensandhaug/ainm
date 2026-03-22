@@ -176,3 +176,8 @@ Log: invoiceNumber, amountExcludingVatCurrency, amountCurrency, customer, each o
   - **first production validation of proactive bank-account check**: GET bank (free) detected missing `bankAccountNumber`, PUT fixed it, then POST /invoice succeeded on first attempt with 0 errors — previous reactive approach had same 6 calls but 1 avoidable 422
   - proactive approach is strictly better: same call count, 0 errors vs 1 error; the failed POST /invoice in reactive approach counts as both a wasted write AND an error penalty
   - sandbox re-proof on 2026-03-22 confirmed: when bank account already has `bankAccountNumber`, the proactive GET returns it and no PUT is needed (5 calls total: 3 core + 1 bank GET + 1 verify)
+- the 2026-03-22 production run for `Étoile SARL` / `935438500` / products `Stockage cloud (8679)` + `Développement système (5934)` + `Session de formation (8942)` / VAT `25%` + `15% alimentaire` + `0% exonéré` (French prompt) succeeded with 6 API calls and **0 avoidable errors** — second production validation of proactive bank-account check:
+  - `GET /customer` -> `GET /product?number=8679,5934,8942` -> `GET /ledger/account?isBankAccount=true` -> `PUT /ledger/account/{id}` (bank repair) -> `POST /invoice?sendToCustomer=false` (201 first try) -> `GET /invoice/{id}` (verify)
+  - ninth production confirmation of comma-separated `number=X,Y,Z` product query (OR semantics)
+  - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); totals `amountExcludingVatCurrency=29900` / `amountCurrency=33485`
+  - second proactive bank-account check; both runs achieved 0 avoidable errors

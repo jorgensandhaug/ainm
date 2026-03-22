@@ -147,6 +147,12 @@ Do not use for:
   - eighth production confirmation of comma-separated `number=X,Y,Z` product query (OR semantics)
   - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them produced correct totals `amountExcludingVatCurrency=41350` / `amountCurrency=48015`
   - proactive bank-account check confirmed: same call count as reactive approach but 0 errors vs 1 error; the failed POST /invoice in reactive approach counts as both a wasted write AND an error penalty
+- the 2026-03-22 production run for `Étoile SARL` / `935438500` / products `Stockage cloud (8679)` + `Développement système (5934)` + `Session de formation (8942)` / VAT `25%` + `15% alimentaire` + `0% exonéré` (French prompt) succeeded with 6 API calls and **0 avoidable errors** — second production validation of proactive bank-account check:
+  - `GET /customer` -> `GET /product?number=8679,5934,8942` -> `GET /ledger/account?isBankAccount=true` -> `PUT /ledger/account/{id}` (bank repair) -> `POST /invoice?sendToCustomer=false` (201 first try) -> `GET /invoice/{id}` (verify)
+  - ninth production confirmation of comma-separated `number=X,Y,Z` product query (OR semantics); returned all 3 products in one call
+  - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them with explicit `vatType: { id: product.vatType.id }` produced correct totals `amountExcludingVatCurrency=29900` / `amountCurrency=33485`
+  - no `/ledger/vatType` call was needed since the products already carried the intended VAT
+  - second French-language confirmation; second proactive bank-account check — both runs achieved 0 avoidable errors
 
 ## Minimal Flow
 
