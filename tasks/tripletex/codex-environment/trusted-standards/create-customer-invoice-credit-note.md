@@ -46,6 +46,7 @@
 - for the exact prompt shape `organizationNumber=866100829`, `description="Webdesign"`, `amountExcludingVatCurrency=9900`, that two-call path was the successful production path on 2026-03-22 (Norwegian prompt); sandbox-verified on 2026-03-22
 - for the exact prompt shape `organizationNumber=901668566`, `description="Webdesign"`, `amountExcludingVatCurrency=38800`, that two-call path was the successful production path on 2026-03-22 (German prompt); sandbox-verified on 2026-03-22
 - for the exact prompt shape `organizationNumber=949502619`, `description="Programvarelisens"`, `amountExcludingVatCurrency=11250`, that two-call path was the successful production path on 2026-03-22 (Norwegian prompt); this run had TWO identical invoices matching all criteria — the correct behavior is to pick the highest `id` (most recent) and credit it; the original agent wasted 1 extra GET by failing on the duplicate instead of handling it client-side; sandbox-verified on 2026-03-22 with duplicate-invoice setup confirming 2-call path works
+- for the exact prompt shape `organizationNumber=902392165`, `description="Programvarelisens"`, `amountExcludingVatCurrency=47350`, that two-call path was the successful production path on 2026-03-22 (Norwegian nynorsk prompt); sandbox-verified on 2026-03-22
 - **CRITICAL**: when multiple invoices match all criteria identically, the script MUST pick the highest `id` instead of exiting with an error; failing on duplicates and re-querying is the #1 source of wasted calls for this task shape
 
 ## Payload Rules
@@ -173,3 +174,9 @@
   - the run used 3 API calls (1 wasted GET) because the script failed when 2 identical invoices matched; the correct behavior is to pick the highest `id` and proceed in 2 calls
   - re-verified in persistent sandbox on 2026-03-22 with TWO identical fixture invoices for same customer/amount/description; the 2-call path works when the script picks the highest `id` instead of failing on the duplicate
   - 15 consecutive production runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable; duplicate-invoice handling is the only new pitfall discovered
+- production run confirmed on 2026-03-22 for the exact prompt shape `organizationNumber=902392165`, `description="Programvarelisens"`, `amountExcludingVatCurrency=47350` (Norwegian nynorsk prompt):
+  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-23&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+  - `PUT /invoice/2147664001/:createCreditNote?date=2026-03-22&sendToCustomer=false`
+  - the run succeeded with 2 API calls, 0 errors
+  - re-verified in persistent sandbox on 2026-03-22 with a disposable fixture matching `organizationNumber=902392165`, `description="Programvarelisens"`, `amountExcludingVatCurrency=47350`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+  - 16 consecutive optimal production runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable
