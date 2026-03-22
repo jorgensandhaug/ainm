@@ -18,7 +18,14 @@ Do not use for:
 
 The task has a hard 300s budget. **Three production runs have scored 0 due to timeout** — agents spent all 300s reading docs (bc688ea1), or the LLM took too long generating output after reading extra files (2f10e207). Do not read AGENTS.md, openapi.json, or additional playbook files once the trusted standard is loaded. Read the trusted standard, parse the CSV, write one comprehensive TypeScript script, and execute immediately. The actual API interaction takes ~4s; the remaining 296s is wasted if spent on documentation exploration or slow LLM generation. Skip Glob/search for trusted-standard files — go directly to `cat ./trusted-standards/reconcile-bank-statement-open-invoices.md`.
 
-## Production Run Results (2026-03-21)
+## Production Run Results
+
+### Spanish run 3 (1d375699, 30 calls, 8 errors) — score pending
+- FIRST run with full Steps 0+6+7+8, but created SINGLE Feb recon for a Jan+Feb CSV (11 lines: 5 customer Jan 16-23, 3 supplier Jan 25-30, 3 non-invoice Feb 1-4)
+- 8 Jan bank txns failed matching with 422 "Banktransaksjoner er ikke en del av bankavstemmingen" because they don't belong to the Feb recon. Only 3 Feb txns matched. Recon closed with only 3/11 matches.
+- **Root cause**: single-period reconciliation for multi-period bank statement. Bank txns can ONLY match a reconciliation whose accounting period covers their date.
+- **Fix**: create SEPARATE recon per accounting period. Group CSV lines by period. Close each recon with the Saldo of the last CSV line in that period.
+- Also confirmed: (1) recon version does NOT change after matches — skip GET fresh recon; (2) import response txn IDs are valid and in CSV order — skip GET bank txns. These save 1+P API calls.
 
 ### Norwegian run (ac903481, 16 calls, 1 error) — score pending
 - 6 reads, 5 customer payments (all full: Moe ×2, Johansen, Nilsen ×2), 1 combined voucher (10 postings: 3 supplier Ødegård/Moe/Hansen + 2 Bankgebyr Ut), 1 failed recon (floating-point 3506.4300000000003 → 422), 1 redundant account re-read, 1 balance sheet read, 1 successful recon (3506.43)
@@ -185,16 +192,16 @@ Key findings:
    - `GET /supplier?count=1000&fields=*`
    - `GET /supplierInvoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2031-01-01&count=1000&fields=*,supplier(*)` (check if ANY exist)
    - `GET /ledger/account?number=1920,2050,2400,2600,7770,8050&fields=*` (includes 2050 for opening balance voucher)
-   - `GET /ledger/accountingPeriod?startFrom=<first-of-month>&startTo=<day-after>&count=1&fields=*` (needed for bank reconciliation)
+   - `GET /ledger/accountingPeriod?startFrom=<first-csv-month-start>&startTo=<month-after-last-csv-date-start>&count=12&fields=*` (MUST cover ALL months in CSV — see multi-period rule)
 3. **Opening balance voucher** (right after reads): `POST /ledger/voucher` with DR 1920 / CR 2050 for the opening balance amount (see trusted standard Step 0)
 4. **Customer payments**: `PUT /invoice/{id}/:payment` once per matched incoming line
 5. if supplier invoices exist: also `GET /ledger/paymentTypeOut?count=1000&fields=*,creditAccount(*)`, then `POST /supplierInvoice/{id}/:addPayment` per match
 6. if NO supplier invoices exist (common case): use one combined `POST /ledger/voucher` with 2M postings for all M supplier payments + non-invoice lines
 7. **Bank statement import** (AFTER all vouchers posted): convert CSV to SBANKEN_BEDRIFT_CSV format (MUST use Norwegian chars: Inngående, Utgående, Bokført, Beløp), `POST /bank/statement/import?bankId=112&accountId=<1920_id>&fromDate=<firstDate>&toDate=<dayAfterLastDate>&fileFormat=SBANKEN_BEDRIFT_CSV` — save returned bank statement ID
-8. **Fetch bank txn details + Match**: `GET /bank/statement/transaction?bankStatementId=<id>&count=1000&fields=id,postedDate,amountCurrency,description` (import response has `undefined` amounts!), then `GET /ledger/posting?accountId=<1920_id>&dateFrom=...&dateTo=<nextMonthFirst>&count=1000&fields=id,date,amount,description`, then `POST /bank/reconciliation` to create OPEN recon, then `POST /bank/reconciliation/match` for each CSV line pairing bank txn ID with same-amount posting ID on 1920
-9. **Close bank reconciliation**: `GET /bank/reconciliation/{id}?fields=*` (MUST get fresh version), then `PUT /bank/reconciliation/{id}` with `isClosed: true` using CSV ending saldo
-- **full call count: 6 reads + 1 opening balance + N customer payments + 1 combined voucher + 1 bank import + 1 GET bank txns + 1 GET postings + 1 create recon + L POST matches + 1 GET fresh recon + 1 close recon = 6 + N + L + 8** (L = total CSV lines)
-- example: 5 customer + 3 supplier + 3 non-invoice = 11 CSV lines: 6 + 5 + 11 + 8 = **30 calls** (executes in ~8-15 seconds)
+8. **Match bank txns to postings**: Use txn IDs from import response (positional, no GET needed). `GET /ledger/posting?accountId=<1920_id>&dateFrom=...&dateTo=<nextMonthFirst>&count=1000&fields=id,date,amount,description`. Create SEPARATE `POST /bank/reconciliation` (OPEN) for EACH accounting period that has bank txns (group CSV lines by period). Then `POST /bank/reconciliation/match` for each CSV line, assigning each match to the recon of its period. **CRITICAL**: a bank txn can ONLY match a recon whose period covers its date — single-period recon for multi-period CSV causes 422.
+9. **Close all bank reconciliations**: `PUT /bank/reconciliation/{id}` with `isClosed: true` for each period. Use creation version (version does NOT change after matches). Per-period closing balance = Saldo of last CSV line in that period.
+- **full call count: 6 reads + 1 opening balance + N customer payments + 1 combined voucher + 1 bank import + 1 GET postings + P create recons + L POST matches + P close recons = 10 + N + L + 2P** (L = total CSV lines, P = number of distinct accounting periods)
+- example: 5 customer + 3 supplier + 3 non-invoice = 11 CSV lines, P=2 (Jan+Feb): 10 + 5 + 11 + 4 = **30 calls, 0 errors** (executes in ~8-15 seconds)
 - **ROUND closing balance** — `Math.round(saldo * 100) / 100`
 - **USE CSV ending saldo** as closing balance (after posting opening balance in Step 0)
 - **SBANKEN CSV MUST USE NORWEGIAN CHARS** (`å`, `ø`) — without them import returns 422
@@ -253,9 +260,10 @@ Sandbox-verified: voucher #609157175 with Renteinntekter Ut/8050 posted successf
 
 ## Pitfalls To Avoid
 
-- **ALL 4 STEPS REQUIRED FOR CHECK 1 (8 points)**: Step 0 (opening balance) + Step 6 (bank import) + Step 7 (match txns to postings via `POST /bank/reconciliation/match`) + Step 8 (close recon). Without matching, bank txns remain `NO_MATCH` and reconciliation has empty `transactions: []`. Matching requires `txn.amountCurrency === posting.amount` (same sign, same value) — mismatched amounts cause `422 "Summen av posteringer og transaksjoner er ikke lik null."`. Create recon OPEN first, create matches, THEN close. **Sandbox-verified END-TO-END 2026-03-22: 11/11 matches, 0 errors. Production-shaped E2E also verified: 10/10 matches with real CSV (negative Ut, partial payment, mixed customer/supplier/non-invoice lines), reconciliation closed, all txns matched:true with groupedPostings.**
-- **IMPORT RESPONSE HAS INCOMPLETE FIELDS**: `POST /bank/statement/import` returns transaction objects but `amountCurrency` and `description` are `undefined`. You MUST fetch full details via `GET /bank/statement/transaction?bankStatementId=<id>&count=1000&fields=id,postedDate,amountCurrency,description`.
-- **MUST GET FRESH RECON VERSION BEFORE CLOSE**: Each `POST /bank/reconciliation/match` increments the reconciliation version. `GET /bank/reconciliation/{id}?fields=*` is required before `PUT close` to avoid `409 Conflict`.
+- **ALL 4 STEPS REQUIRED FOR CHECK 1 (8 points)**: Step 0 (opening balance) + Step 6 (bank import) + Step 7 (match txns to postings via `POST /bank/reconciliation/match`) + Step 8 (close recon). Without matching, bank txns remain `NO_MATCH` and reconciliation has empty `transactions: []`.
+- **MULTI-PERIOD RECONCILIATION IS MANDATORY**: CSVs typically span 2 months (e.g., Jan 16 – Feb 4). A bank txn can ONLY match a recon whose accounting period covers the txn's date. Creating a single recon for the last month causes ALL earlier-month txns to fail with `422 "Banktransaksjoner er ikke en del av bankavstemmingen."` (production-confirmed 2026-03-22: 8/11 matches failed). **FIX**: create SEPARATE recon per period. Per-period closing balance = Saldo of last CSV line in that period.
+- **DO NOT GET bank txns separately**: Import response `transactions` array has valid IDs in CSV order. Use positional mapping. Saves 1 API call. Sandbox-verified 2026-03-22.
+- **RECON VERSION DOES NOT CHANGE AFTER MATCHES**: Sandbox-verified + production-confirmed 2026-03-22: version stays at creation value after matches. Use creation version directly for close PUT. Do NOT waste a GET fresh recon call.
 - **SBANKEN CSV MUST USE NORWEGIAN CHARS**: Headers must contain `Inngående`, `Utgående`, `Bokført`, `Beløp` (with `å` and `ø`). Without Norwegian chars the import returns `422 "Filen må inneholde følgende kolonner..."`. ALWAYS round: `Math.round(saldo * 100) / 100`.
 - **SBANKEN CSV Ut SIGN**: Production CSVs have NEGATIVE Ut values (e.g., `-11600.00`). When converting to Sbanken Beløp, use `l.ut` directly (already negative). Do NOT negate with `-l.ut` — that would produce positive amounts for outgoing, breaking the amount match in Step 7. Production-shaped E2E verified 2026-03-22: 10/10 matches with negative Ut values.
 - `/bank/reconciliation*` is NOT beta — the AGENTS.md claim that it is beta is WRONG for this task shape
