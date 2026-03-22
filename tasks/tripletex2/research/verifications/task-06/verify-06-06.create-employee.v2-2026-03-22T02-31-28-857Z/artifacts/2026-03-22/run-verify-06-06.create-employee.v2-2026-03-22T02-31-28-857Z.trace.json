@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z",
+  "sidecarId": "trace-1",
+  "kind": "sanitized-trace",
+  "createdAt": "2026-03-22T02:31:28.861Z",
+  "payload": {
+    "notes": [
+      "Captured 5 Tripletex API calls."
+    ],
+    "trace": [
+      {
+        "durationMs": 255,
+        "errorCode": "18000",
+        "index": 1,
+        "method": "POST",
+        "path": "/employee",
+        "query": {
+          "fields": "id,firstName,lastName,email,dateOfBirth,userType,employments(*)"
+        },
+        "requestSummary": "create employee by fields with firstName, lastName, dateOfBirth, email",
+        "responseSummary": "error 18000: Validering feilet.",
+        "status": 422
+      },
+      {
+        "durationMs": 97,
+        "index": 2,
+        "method": "GET",
+        "path": "/department",
+        "query": {
+          "count": 1,
+          "fields": "*",
+          "isInactive": false
+        },
+        "requestSummary": "lookup department by isInactive, count, fields",
+        "responseSummary": "department list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 230,
+        "errorCode": "18000",
+        "index": 3,
+        "method": "POST",
+        "path": "/employee",
+        "query": {
+          "fields": "id,firstName,lastName,email,dateOfBirth,userType,employments(*)"
+        },
+        "requestSummary": "create employee by fields with firstName, lastName, dateOfBirth, email",
+        "responseSummary": "error 18000: Validering feilet.",
+        "status": 422
+      },
+      {
+        "durationMs": 98,
+        "index": 4,
+        "method": "GET",
+        "path": "/division",
+        "query": {
+          "count": 1,
+          "fields": "*"
+        },
+        "requestSummary": "lookup division by count, fields",
+        "responseSummary": "division list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 211,
+        "entityIds": {
+          "employeeId": 18725409
+        },
+        "index": 5,
+        "method": "POST",
+        "path": "/employee",
+        "query": {
+          "fields": "id,firstName,lastName,email,dateOfBirth,userType,employments(*)"
+        },
+        "requestSummary": "create employee by fields with firstName, lastName, dateOfBirth, email",
+        "responseSummary": "employeeId 18725409",
+        "status": 201
+      }
+    ]
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "schemaVersion": "tripletex2.research-verification-report.v1",
+  "reportId": "verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z",
+  "createdAt": "2026-03-22T02:31:28.857Z",
+  "taskId": "06",
+  "strategyId": "06.create-employee.v2",
+  "candidateId": "06.create-employee.v2",
+  "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/packets/task-06/task-06-packet-2026-03-22T02-12-21-076Z.json",
+  "stageDirectory": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z/stage",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z/artifacts/2026-03-22/run-verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z.json",
+  "sandboxReset": {
+    "command": "bun scripts/sandbox.ts reset --task 06 --strategy 06.create-employee.v2",
+    "exitCode": 0,
+    "stdout": "research sandbox reset summary: {\"taskId\":\"06\",\"strategyId\":\"06.create-employee.v2\",\"scannedFiles\":2,\"discoveredRefs\":0,\"completed\":0,\"failed\":0,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-31-28-857Z.json\"}\nresearch sandbox reset: no sandbox-backed cleanup targets were discovered.\n",
+    "stderr": "",
+    "durationMs": 2,
+    "highlights": [
+      "research sandbox reset summary: {\"taskId\":\"06\",\"strategyId\":\"06.create-employee.v2\",\"scannedFiles\":2,\"discoveredRefs\":0,\"completed\":0,\"failed\":0,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-31-28-857Z.json\"}",
+      "research sandbox reset: no sandbox-backed cleanup targets were discovered."
+    ]
+  },
+  "challengeRun": {
+    "runtimeStatus": "completed",
+    "apiCallCount": 5,
+    "baselineCallBudget": 2,
+    "withinBudget": false
+  },
+  "inspection": {
+    "status": "passed",
+    "apiCallCount": 2,
+    "checks": [
+      {
+        "checkId": "employee-readback",
+        "description": "Read the created employee and confirm the normalized identity fields.",
+        "status": "passed",
+        "requestPath": "/employee/18725409",
+        "requestQuery": {
+          "fields": "*"
+        },
+        "assertions": [
+          {
+            "actualPath": "firstName",
+            "expectedPath": "result.verification.firstName",
+            "actualValue": "Maria",
+            "expectedValue": "Maria",
+            "passed": true
+          },
+          {
+            "actualPath": "lastName",
+            "expectedPath": "result.verification.lastName",
+            "actualValue": "Lindqvist",
+            "expectedValue": "Lindqvist",
+            "passed": true
+          },
+          {
+            "actualPath": "email",
+            "expectedPath": "result.verification.email",
+            "actualValue": "maria.lindqvist@example.org",
+            "expectedValue": "maria.lindqvist@example.org",
+            "passed": true
+          },
+          {
+            "actualPath": "dateOfBirth",
+            "expectedPath": "result.verification.dateOfBirth",
+            "actualValue": "1988-03-15",
+            "expectedValue": "1988-03-15",
+            "passed": true
+          }
+        ],
+        "selectedValue": {
+          "id": 18725409,
+          "version": 1,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/employee/18725409",
+          "firstName": "Maria",
+          "lastName": "Lindqvist",
+          "displayName": "Maria Lindqvist",
+          "employeeNumber": "",
+          "dateOfBirth": "1988-03-15",
+          "email": "maria.lindqvist@example.org",
+          "phoneNumberMobileCountry": {
+            "id": 161,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/country/161"
+          },
+          "phoneNumberMobile": "",
+          "phoneNumberHome": "",
+          "phoneNumberWork": "",
+          "nationalIdentityNumber": "",
+          "dnumber": "",
+          "internationalId": {
+            "intAmeldingType": null,
+            "country": null,
+            "number": ""
+          },
+          "bankAccountNumber": "",
+          "iban": "",
+          "bic": "",
+          "creditorBankCountryId": 0,
+          "usesAbroadPayment": false,
+          "userType": null,
+          "allowInformationRegistration": true,
+          "isContact": false,
+          "isProxy": false,
+          "comments": "",
+          "address": null,
+          "department": {
+            "id": 837842,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/department/837842"
+          },
+          "employments": [
+            {
+              "id": 2863745,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/employee/employment/2863745"
+            }
+          ],
+          "holidayAllowanceEarned": {
+            "year": 0,
+            "amount": 0,
+            "basis": 0,
+            "amountExtraHolidayWeek": 0
+          },
+          "employeeCategory": null,
+          "isAuthProjectOverviewURL": true,
+          "pictureId": 0,
+          "companyId": 108114337,
+          "vismaConnect2FAactive": false
+        }
+      },
+      {
+        "checkId": "employment-readback",
+        "description": "Read employments for the created employee and confirm the scored start date.",
+        "status": "passed",
+        "requestPath": "/employee/employment",
+        "requestQuery": {
+          "employeeId": "18725409",
+          "fields": "*"
+        },
+        "assertions": [
+          {
+            "actualPath": "startDate",
+            "expectedPath": "result.verification.startDate",
+            "actualValue": "2026-11-01",
+            "expectedValue": "2026-11-01",
+            "passed": true
+          }
+        ],
+        "selectedValue": {
+          "id": 2863745,
+          "version": 0,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/employee/employment/2863745",
+          "employee": {
+            "id": 18725409,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/employee/18725409"
+          },
+          "employmentId": "",
+          "startDate": "2026-11-01",
+          "endDate": null,
+          "employmentEndReason": null,
+          "division": {
+            "id": 108244566,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/division/108244566"
+          },
+          "lastSalaryChangeDate": null,
+          "noEmploymentRelationship": false,
+          "isMainEmployer": true,
+          "taxDeductionCode": "loennFraHovedarbeidsgiver",
+          "employmentDetails": [],
+          "isRemoveAccessAtEmploymentEnded": false,
+          "latestSalary": null
+        }
+      }
+    ]
+  },
+  "verdict": {
+    "status": "needs-review",
+    "correctnessPassed": true,
+    "withinBudget": false,
+    "message": "Challenger produced the expected sandbox state but used 5 calls against a 2-call baseline budget."
+  }
+}
