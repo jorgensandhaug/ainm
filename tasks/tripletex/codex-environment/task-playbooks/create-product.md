@@ -106,6 +106,19 @@ Fresh-account production verification on 2026-03-22 also showed:
 - 5th production confirmation of the 2-call path for explicit 0% VAT; first German 0% confirmation
 - extends proven 0% language set from {fr, pt, nn} to {de, fr, pt, nn}
 
+Fresh-account production verification on 2026-03-22 also showed:
+- an exact standard-25% product-create task in Spanish (`Mantenimiento` / `4508` / `41500 NOK sin IVA` / standard `25%`) succeeded with one `POST /product`
+- the `201` write response returned `priceIncludingVatCurrency=51875` and `vatType.id=3`
+- 1 write + 1 verification GET, 0 errors, minimal-call execution
+- 12th consecutive production confirmation of the one-call path for the exact fresh-account standard-25% shape
+- 2nd Spanish 25% confirmation (previously `Mantenimiento` / `7266` / `650`); all 7 languages confirmed: {de, en, es, fr, nn, no, pt}
+
+Persistent-sandbox re-verification on 2026-03-22 (later session) showed:
+- `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-22&fields=*` now returns full VAT set: `id=3` (25%), `id=31` (15%), `id=32` (12%), `id=5` (0%), `id=52` (0%), `id=6` (0%)
+- sandbox is NO LONGER blocked for 25%/15%/12% VAT verification
+- `POST /product` without `vatType` now defaults to 25% (id=3) in the sandbox, matching production fresh-account behavior
+- the previous sandbox 0%-only limitation was due to a different account configuration that has since changed
+
 Fresh-account production verification on 2026-03-20 also showed:
 - an initial `Stockage cloud` run for the same exact shape succeeded with `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` plus `POST /product`
 - that earlier run proved that fresh accounts can expose a valid `25%` outgoing row `id=3`, but it did not prove the minimal path
