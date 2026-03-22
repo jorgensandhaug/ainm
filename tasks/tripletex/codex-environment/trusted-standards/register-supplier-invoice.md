@@ -27,7 +27,7 @@
 4. `GET /supplierInvoice?voucherId={voucherId}&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31&fields=*` — **verification**: confirm SI entity was created; log `id`, `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`, `invoiceDueDate`. **CRITICAL**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED — omitting them returns 422 "Kan ikke være null"
 5. `PUT /ledger/voucher/{id}?sendToLedger=false` with `version` (from step 3) + `postings` (set correct accounts, amounts, VAT) — response is `.value` (singular); extract `.value.version`
 6. `PUT /ledger/voucher/{id}?sendToLedger=true` with `version` (from step 5 response) + `voucherType: { name: "Leverandørfaktura" }` — this BOOKS the voucher — response is `.value` (singular)
-7. `GET /ledger/voucher/{id}?fields=*` — **verification**: confirm `number > 0` (booked), log postings, description, voucherType
+7. `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)` — **verification**: confirm `number > 0` (booked), log postings, description, voucherType. **CRITICAL**: plain `fields=*` returns posting IDs only (URL stubs) — you MUST use `postings(*)` for expanded posting data (account, amount, vatType, etc.)
 8. `GET /supplier/{supplierId}?fields=*` — **verification**: confirm `postalAddress`, `physicalAddress`, `bankAccountPresentation` all populated
 
 For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3.
@@ -147,9 +147,10 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
    - Log: `id`, `amount` (should be -gross), `amountExcludingVat` (should be -net), `invoiceNumber`, `kidOrReceiverReference`, `invoiceDueDate`, `outstandingAmount`
    - If count=0: importDocument failed silently — STOP, do not proceed
 
-2. **After booking** (step 7): `GET /ledger/voucher/{id}?fields=*`
+2. **After booking** (step 7): `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)`
+   - **CRITICAL**: plain `fields=*` returns posting IDs only — use `postings(*)` for expanded data
    - Confirm: `number > 0` (booked)
-   - Log: `description`, `voucherType.name`, all postings with `account.number`, `amount`, `amountGross`, `vatType`
+   - Log: `description`, `voucherType.name`, all postings with `account.id`, `amount`, `amountGross`, `vatType`
    - If number=0: booking failed — investigate
 
 3. **After all writes** (step 8): `GET /supplier/{id}?fields=*`
@@ -177,7 +178,8 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
 - do NOT waste a GET call on account 2400 — `POST /supplier` response includes `ledgerAccount.id` which IS account 2400's id
 - do NOT use direct `POST /ledger/voucher` — it does NOT create a supplierInvoice entity; the scorer requires one
 - do NOT try to combine postings + sendToLedger=true in a single PUT — it fails with 422; use two separate PUTs
-- do NOT omit the booking step (step 5) — the 0b6fe5b8 run scored 1/8 without booking; booking should unlock 1 more check
+- do NOT omit the booking step — unbooked runs scored 1/8; booked runs have better correctness
+- do NOT skip POST /supplier and rely on importDocument to auto-create it — importDocument does NOT create a supplier entity; the SI will have `supplier: undefined` and fail supplier-related checks (sandbox-verified 2026-03-22)
 - do NOT send `description` in the PUT body for Leverandørfaktura voucher type — it's rejected with "Det er foreløpig ikke mulig å endre dette feltet"
 - do NOT use `/incomingInvoice*` — returns 403
 - do NOT omit `row` values on POST postings — causes 422 (row 0 conflict)
@@ -194,18 +196,23 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
 
 ## Sandbox Verification (2026-03-22)
 - importDocument + PUT postings (sendToLedger=false) + PUT book (sendToLedger=true) — FULL E2E verified
-- supplier `Lumière SARL` / `913175212` / gross 72350 / account 6300 / 25% VAT
-- 5 calls: GET supplier → GET account → POST importDocument → PUT postings → PUT book
-- voucher 609300371 booked as number 760-2026
+- supplier `Lumière SARL` / `904564184` / gross 75500 / account 7140 / 25% VAT
+- 8 calls: POST supplier → GET account → POST importDocument → GET SI → PUT postings → PUT book → GET voucher → GET supplier
+- voucher 609412977 booked as number 907
 - supplierInvoice entity created with:
-  - invoiceNumber="INV-BOOK-B", invoiceDate=2026-03-22, invoiceDueDate=2026-04-21
-  - amount=-72350, amountExcludingVat=-57880 (CORRECT, non-zero)
-  - outstandingAmount=72350
+  - invoiceNumber, invoiceDate=2026-03-22, invoiceDueDate=2026-04-21
+  - amount=-75500, amountExcludingVat=-60400 (CORRECT, non-zero)
+  - outstandingAmount=75500, kidOrReceiverReference populated (PaymentMeans in XML)
   - orderLines: 1 line with description="services de bureau", vatType.id=1
-- voucher postings: expense 6300 amt=57880 gross=72350 vatType=1; supplier -72350; system VAT 14470
-- voucher description: "Faktura nummer INV-BOOK-B fra Lumière SARL" (immutable — expected)
+- voucher postings (verified with `postings(*)`):
+  - row 1: account 7140 amt=60400 gross=75500 vatType=1
+  - row 2: account 2400 amt=-75500 supplier linked, invoiceNumber, termOfPayment
+  - row 0: account 2710 amt=15100 (system-generated VAT)
+- voucher description: "Faktura nummer {ID} fra Lumière SARL" (immutable — expected)
 - posting descriptions: "services de bureau" (correctly set from PUT)
-- CRITICAL: single PUT with postings + sendToLedger=true → 422 "Bilag uten posteringer kan ikke bli sendt til hovedbok" — MUST use two PUTs
+- CRITICAL: `fields=*` on voucher GET returns posting IDs only — MUST use `postings(*)` for expanded data
+- CRITICAL: single PUT with postings + sendToLedger=true → 422 — MUST use two PUTs
+- CRITICAL: importDocument does NOT auto-create supplier — skipping POST /supplier leaves SI with `supplier: undefined`
 
 ## Production Run History
 
@@ -237,6 +244,15 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
 - SI entity: amount=-50750, amountExcludingVat=-40600, kidOrReceiverReference=INV-2026-6556
 - **LESSON**: buyer org must pass mod11, supplierInvoice GET needs date params, whoAmI doesn't work on proxy
 - FIX: all three pitfalls documented in this standard + playbook
+
+### 2026-03-22 prod-fcfbb67a (French prompt, importDocument + booked, 0 errors) — scored TBD (scoring pending at capture)
+- `Lumière SARL` / `904564184` / `INV-2026-5683` / gross `75500` / account `7140` / `25%`
+- 8 calls total: 4 writes + 1 lookup GET + 3 verification GETs — **0 avoidable errors**
+- POST supplier → GET account → POST importDocument → GET SI → PUT postings → PUT book → GET voucher → GET supplier
+- voucher 609410030 booked as number 1
+- SI entity: amount=-75500, amountExcludingVat=-60400, kidOrReceiverReference=INV-2026-5683
+- **FIRST T11 run with 0 errors and complete importDocument + booking flow**
+- production logging issue: voucher GET with `fields=*` returned posting IDs only — FIX: use `postings(*)` expansion
 
 ### 2026-03-22 direct-voucher runs (scored 0/8 or 1/8)
 - direct `POST /ledger/voucher` creates NO supplierInvoice entity

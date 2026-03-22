@@ -24,7 +24,7 @@ Do not use for:
 4. `GET /supplierInvoice?voucherId={id}&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31&fields=*` — **verify** SI entity created; log `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`. **CRITICAL**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED — omitting them returns 422
 5. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings (version from step 3) — response: `.value`
 6. `PUT /ledger/voucher/{id}?sendToLedger=true` — book the voucher (version from step 5) — response: `.value`
-7. `GET /ledger/voucher/{id}?fields=*` — **verify** booked (`number > 0`); log postings, description, voucherType
+7. `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)` — **verify** booked (`number > 0`); log postings, description, voucherType. **NOTE**: plain `fields=*` returns posting IDs only — use `postings(*)` for expanded data
 8. `GET /supplier/{id}?fields=*` — **verify** postalAddress, physicalAddress, bankAccountPresentation populated
 
 **GETs do NOT lower score.** Use them liberally. 4 write calls + 4 read calls = 8 total. For non-25% VAT, add `GET /ledger/vatType` → 9 total.
@@ -145,6 +145,8 @@ If the script crashes AFTER `importDocument` succeeds but BEFORE booking, retryi
 - do NOT omit `row` values — 422 (row 0 conflict)
 - do NOT use `account: { number: N }` — only `account: { id }` works
 - do NOT omit `physicalAddress` on supplier — set same as `postalAddress`
+- do NOT skip POST /supplier — importDocument does NOT auto-create a supplier; without it, the SI entity has `supplier: undefined` (sandbox-verified 2026-03-22)
+- do NOT use plain `fields=*` on voucher verification GET — postings return as ID stubs only; use `postings(*)` for expanded posting data
 - preserve prompt description's exact casing in posting descriptions and XML item name
 
 ## Production History
@@ -154,3 +156,4 @@ If the script crashes AFTER `importDocument` succeeds but BEFORE booking, retryi
 - direct-voucher runs: peaked at 1/8 despite correct description + auto-booking — NO SI entity
 - **FIX**: added booking step → expected improvement to 3/4 checks
 - **6b159167** (Portuguese prompt, importDocument + booked): 11 calls (4W+4R+3 errors); buyer org 422 + whoAmI 422 + SI GET 422; after fixing: voucher booked as 1-2026, SI correct; all 3 pitfalls documented
+- **fcfbb67a** (French prompt, importDocument + booked): 8 calls (4W+1L+3V) **0 errors** — first clean T11 run; voucher booked as number 1, SI entity correct; logging fix: use `postings(*)` not `fields=*` for voucher verification
