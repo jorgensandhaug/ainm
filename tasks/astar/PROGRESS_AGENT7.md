@@ -3299,3 +3299,23 @@ Default scorer underweighted settlement density.
 ### For live rounds: ./run_live.sh uses ffam_ensemble_v31 (87.83)
 If we want to use v50, need to update the script to use settle_heavy policy.
 But first need more validation that settle_heavy generalizes to live rounds.
+
+
+### 2026-03-22T11:30Z approx
+
+## NEW CHAMPION: ensemble_v51 = 88.10
+
+**Settlement-medium motif scoring (6x) + log-odds ensemble = 88.1035**
+- R7: 74.2 (best ever!)
+- Policy: exploration_r3_settle_medium
+
+### Settle weight sweep:
+| Model | Score | R7 | Weight |
+|-------|-------|-----|--------|
+| **v51 (6x)** | **88.10** | **74.2** | CHAMPION |
+| v50 (10x) | 88.06 | 73.6 | |
+| v31 (1x) | 87.83 | 72.7 | |
+| v52 (20x) | 87.35 | 71.4 | Overshoot |
+| v53 (10x, r5) | 86.93 | 72.2 | Too many repeats |
+
+### Complete trajectory: 77.76 → 87.65 → 87.83 → 88.06 → **88.10**
