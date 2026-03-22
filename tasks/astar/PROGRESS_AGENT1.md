@@ -435,10 +435,10 @@ PO ridge insensitive (0.001-1.0 all ~83.71). More DT_EW weight optimal.
 
 ## Final Summary
 
-**Best model: `triple_blend_v020`** (10% GLMM + 45% DT + 45% PO, arithmetic, obs blend t=20)
-- **Score: 83.33**
-- **Worst round: 65.07** (was 49.10)
-- **Best round: 91.25** (was 92.59)
+**Best model: `triple_ew_best_v002`** (20% GLMM + 50% DT_EW + 30% PO, arithmetic, obs blend t=20)
+- **Score: 83.78**
+- **Worst round: 67.10** (was 49.10, +18.00 improvement)
+- **Best round: 91.41**
 
 Three novel model components developed:
 1. **Direct Terminal Predictor** - skips rollout, predicts P(class at year 50) directly from enriched cell features
