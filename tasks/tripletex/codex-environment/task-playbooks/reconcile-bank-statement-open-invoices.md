@@ -22,6 +22,14 @@ If the pre-built script is missing, read the trusted standard and write one comp
 
 ## Production Run Results
 
+### French run (b8a43ac0, 13 mutating, 0 errors) — score pending (FIRST v3 script + batch match + multi-period)
+- Used pre-built script v3 (invoice reference matching + batch matching + combined voucher). 10 CSV lines spanning Jan-Feb 2026 (2 periods). 5 customer payments (4 full + 1 partial: Bernard SARL 1975/4937.5), 3 supplier payments (Richard SARL/Leroy SARL/Dubois SARL), 2 non-invoice (Renteinntekter Ut + Skattetrekk Ut).
+- 13 mutating calls, 29 GETs, 0 errors. All 10 bank txns matched via batch matching (2 batches: 7 Jan + 3 Feb). Both recons closed (Jan=159250, Feb=148014.53).
+- Invoice reference matching worked correctly: Faktura 1001→inv#1 (modulo), Faktura 1002→inv#2 (modulo), etc.
+- French task prompt but Norwegian CSV descriptions ("Innbetaling fra", "Betaling Fournisseur") — the "Betaling Fournisseur" prefix is a confirmed working supplier matching variant.
+- Copied pre-built script and ran in one command — total execution ~15s well within 300s budget.
+- **FIRST run with all three v3 fixes**: invoice reference matching + batch matching + combined OB+supplier voucher. If score > 0.6, confirms full flow works.
+
 ### Norwegian run 2 (0c420db1, 13 mutating, 0 errors) — SCORED 0/10 (invoice matching bug)
 - Used pre-built script v2 (batch matching + combined voucher). 10 CSV lines spanning Jan-Feb 2026. 5 customer payments (3 full + 2 partial for Moe AS), 3 supplier payments (Ødegård/Moe/Hansen), 2 Bankgebyr.
 - 13 mutating calls (optimal for 2-period 5-customer CSV), 29 GETs, 0 errors.
