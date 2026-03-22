@@ -7,9 +7,11 @@ Maximize **Hybrid Score = 0.7 * detection_mAP@0.5 + 0.3 * classification_mAP@0.5
 
 | Model | Det AP@0.5 | Cls mAP@0.5 (present) | Cls mAP@0.5 (all 356) | Hybrid (all) |
 |-------|-----------|----------------------|----------------------|-------------|
-| 960 pipeline baseline (YOLO26x, 6-stage) | 0.9310 | 0.7993 | 0.6242 | **0.8389** |
+| **960 pipeline v2 (YOLO26x, 6-stage, new seeds)** | **0.9429** | **0.8105** | **0.6328** | **0.8499** |
+| 960 pipeline v1 (YOLO26x, 6-stage) | 0.9310 | 0.7993 | 0.6242 | 0.8389 |
 
-**Weights:** `runs/960_confcurr_s2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt`
+**Best Weights:** `runs/v2_960s6_e20_img960_b4_lr8e-05_mix0_cp0_seed500/weights/best.pt`
+**Reproducibility:** Run `/tmp/pipeline_v2.sh` (seeds: 99, 133, 200, 300, 400, 500)
 
 ## Baseline Details
 - Model: YOLO26x backbone, 960px input, 356 classes
@@ -97,5 +99,21 @@ Maximize **Hybrid Score = 0.7 * detection_mAP@0.5 + 0.3 * classification_mAP@0.5
 - 120 epochs, different seed (137), moderate augmentation
 - Testing if single long run can match the 6-stage pipeline
 
-## Key Finding
-The 6-stage 960 pipeline produces a well-optimized model. All attempts at further fine-tuning, classifier fusion, threshold tuning, and architecture changes have failed to significantly improve the hybrid score. The classification bottleneck is structural: 78 absent classes guarantee zero AP.
+### EXP-010: Long Single Run (2026-03-22)
+- 120 epochs, different seed, moderate augmentation
+- **Hybrid: 0.8007** — far worse than 6-stage pipeline, confirms curriculum learning superiority
+
+### EXP-011: Pipeline v2 — Different Seeds + More Epochs (2026-03-22)
+- Same 6-stage architecture but new seeds (99,133,200,300,400,500) and slightly more epochs
+- Stage epochs: 35/80/30/25/15/20 (vs 30/70/25/20/12/18 in v1)
+- **Hybrid: 0.8499** — NEW BEST! +0.011 over v1
+- Detection improved: 0.943 vs 0.931
+- Classification improved: 0.633 vs 0.624
+- Random seed variance matters significantly on this small dataset
+
+## Key Findings
+1. The 6-stage curriculum pipeline is the best training strategy
+2. Random seeds significantly impact results (0.849 vs 0.839)
+3. External classifiers cannot beat YOLO's own classification
+4. Single long runs cannot match curriculum learning
+5. The classification bottleneck is structural: 78 absent classes guarantee zero AP
