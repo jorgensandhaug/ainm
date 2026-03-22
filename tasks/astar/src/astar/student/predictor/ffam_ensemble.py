@@ -331,7 +331,7 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_scale=1.5,
         blend_space="logodds",
     ),
-    # v50: settle_heavy policy + log-odds ensemble (POTENTIAL NEW CHAMPION)
+    # v50: settle_heavy policy + log-odds ensemble = 88.06 CHAMPION
     "ffam_ensemble_v50": FFAMEnsembleConfig(
         model_name="ffam_ensemble_v50",
         mode_model="ffam_mode_v248",
@@ -341,6 +341,37 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_scale=1.5,
         blend_space="logodds",
         policy_name="exploration_r3_settle_heavy",
+    ),
+    # v51-v53: Tune around settle_heavy
+    "ffam_ensemble_v51": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v51",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_medium",
+    ),
+    "ffam_ensemble_v52": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v52",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_extreme",
+    ),
+    "ffam_ensemble_v53": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v53",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r5_settle_heavy",
     ),
     # v33-v38: Log-odds sweep (BEST DIRECTION!)
     "ffam_ensemble_v33": FFAMEnsembleConfig(
