@@ -1633,3 +1633,37 @@ The Agent7 version of interactive.py didn't support hazard_posterior models. Add
 - 100% observation coverage - information IS available, model ignores it
 - Worst cells: model predicts 60%+ forest where truth is 70%+ settlement
 - The teacher's coefficient model captures wrong dynamics for R7
+
+#### OOD Detection Attempt (FAILED)
+Tried using round-level observation-model KL divergence as OOD detector:
+- R7 (true OOD): disagreement=0.447
+- R6 (well-predicted): disagreement=0.689 (HIGHER than R7!)
+- R2: 0.569, R1: 0.473, R4: 0.372
+- Only R8 (0.195) and R3 (0.132) correctly identified as in-distribution
+- Conclusion: observation-model disagreement reflects observation NOISE, not model ERROR
+- No reliable OOD detection method found from prediction-level features
+
+#### Ultra-Fine Ensemble Sweep (v80-v85)
+All 6 configs score 88.11 - confirming flat optimum:
+| Config | mode_weight | adaptive_scale | Score |
+|--------|-------------|----------------|-------|
+| v80 | 0.83 | 1.9 | 88.11 |
+| v81 | 0.83 | 2.0 | 88.11 |
+| v82 | 0.84 | 1.8 | 88.11 |
+| v83 | 0.84 | 2.2 | 88.11 |
+| v84 | 0.83 | 1.8 | 88.11 |
+| v85 | 0.83 | 2.1 | 88.11 |
+
+#### Policy Variations (settle_extreme, r5_settle_heavy)
+- v67 (settle_extreme, 20x settlement): 87.35 - MUCH WORSE
+- v68 (r5_settle_heavy, 5 replicates): 86.93 - MUCH WORSE
+- Matches Agent7's v52 (87.35) and v53 (86.93) exactly
+
+### Session Summary
+- **Previous best**: 87.73 (ffam_ensemble_v22)
+- **New best**: **88.11** (ffam_ensemble_v75/v76)
+- **Improvement**: +0.38 points (+0.43%)
+- **Key innovation**: More kNN diversity weight (mode_weight 0.88→0.82-0.84)
+- **Attempted but failed**: 20+ post-processing approaches, meta-ensemble, OOD detection
+- **Score trajectory**: 79.19 → 83.79 → 87.73 → **88.11**
+- **R7 remains the bottleneck** at 73.78 (others average 90.01)
