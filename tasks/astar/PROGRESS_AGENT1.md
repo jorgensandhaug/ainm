@@ -421,7 +421,17 @@ Carries through to triple blend: 83.46 (was 83.33, +0.13)
 | 0.001 | 83.50 |
 | 0.005 | 83.02 |
 
-**Total improvement: 78.38 → 83.71 (+5.33 points)**
+**Re-optimized blend with best DT + PO ridge sweep:**
+
+| Model | GLMM% | DT_EW% | PO% | Score | Worst |
+|-------|-------|--------|-----|-------|-------|
+| **best_v002** | **20** | **50** | **30** | **83.78** | **67.10** |
+| best_v001 | 25 | 45 | 30 | 83.77 | 66.51 |
+| best_v003 | 30 | 45 | 25 | 83.74 | 66.03 |
+
+PO ridge insensitive (0.001-1.0 all ~83.71). More DT_EW weight optimal.
+
+**Total improvement: 78.38 → 83.78 (+5.40 points, +18.00 on worst round)**
 
 ## Final Summary
 
