@@ -14,7 +14,7 @@ Do not use for:
 
 | Mistake | Points lost | How to avoid |
 |---------|-------------|--------------|
-| Check 5 (tilbudsbrev) | 2 pts | Include `payrollTaxMunicipalityId` from `GET /salary/settings?fields=municipality` — see RULE 4 in trusted standard |
+| Check 5 (tilbudsbrev) | 2 pts | Set `employeeNumber: "1"` + `employmentId: "1"` (RULE 5). Also include `payrollTaxMunicipalityId` (RULE 4). payrollTaxMunicipalityId alone DISPROVEN (prod-cce321cd). |
 | Check 6 (email omission) | 1 pt | Extract email (E-post/E-mail/Email) from PDF and include on POST /employee. Prod a2367369 passed with email; prod 21c3fea8 failed without. |
 | Check 10 (task 21: dept, task 19: UNKNOWN) | 2 pts | **SEARCH for existing dept first** (`GET /department?name=X`), reuse if found. Fixes Check 10 for task 21 (prod-cce321cd PASSED). Task 19 Check 10 still fails despite GET-first (42b9ad7f) — cause UNKNOWN. |
 | Wrong/missing occupation code | 2 pts | Check hardcoded mapping table first; send by `id`, never `code` |
@@ -62,7 +62,7 @@ Use `"MONTHLY_WAGE"` for **both** tilbudsbrev and arbeidskontrakt. The NOT_CHOSE
 
 1. **Parallel pre-reads (free)**: `GET /division`, `GET /department?name=X`, `GET /salary/settings?fields=municipality`, (optional occ code lookup)
 2. **Resolve department**: If GET found exact match → use its id. If not → `POST /department { name: X }`.
-3. **Create employee**: `POST /employee` with email, nested `employmentDetails[]` including occupation code, remunerationType, salary, percentage, **payrollTaxMunicipalityId**
+3. **Create employee**: `POST /employee` with `employeeNumber: "1"`, email, nested `employmentId: "1"` + `employmentDetails[]` including occupation code, remunerationType, salary, percentage, **payrollTaxMunicipalityId**
 4. **Standard worktime**: `POST /employee/standardTime` with hours from PDF or default 7.5
 5. **Verification readback (free)**: `GET /employee/<id>?fields=*,department(*),employments(*)` + `GET /employee/standardTime?employeeId=<id>&fields=*`
 6. **Employment details readback (free)**: `GET /employee/employment/details?employmentId=<id>&fields=*` — verify occupationCode, payrollTaxMunicipalityId, salary, percentage all stored correctly
@@ -74,16 +74,18 @@ POSTs: 2-3 (employee + standardTime + optional department). GETs: 6-7 (all free)
 - Has rows → include `division: { id }` in employment
 - Zero rows → omit division entirely (fresh accounts work without it)
 
-## Check 5 — Task 21 (tilbudsbrev): UNSOLVABLE — all hypotheses exhausted
+## Check 5 — Task 21 (tilbudsbrev): TESTING employeeNumber/employmentId (RULE 5)
 
 All task 21 production runs score 12/14 with ONLY Check 5 (2pt) failing. 15 total attempts (all participants), NONE have ever passed Check 5.
+
+**NEW HYPOTHESIS: employeeNumber and employmentId** — API leaves these empty (""); UI auto-assigns. Sandbox-verified: `employeeNumber: "999"` and `employmentId: "999"` accepted and stored. Use `"1"` for fresh production accounts. See trusted standard RULE 5.
 
 **payrollTaxMunicipalityId DISPROVEN for task 21:** prod-cce321cd included municipality.id=262 (verified in readback), Check 5 STILL failed.
 **payrollTaxMunicipalityId CONFIRMED for task 19:** prod-21c3fea8 was first run to pass Check 5 after including this field. Still include it — it helps task 19 and does no harm on task 21.
 
 All exhausted hypotheses: payrollTaxMunicipalityId, employmentType, workingHoursScheme, remunerationType (all values tested), hidden API fields (title/jobTitle → 422), separate POST details vs inline, taxDeductionCode, employeeCategory (0 categories exist), address (not in PDFs).
 
-**Conclusion:** Check 5 likely tests something unfixable via current API. Accept 12/14 as ceiling for task 21.
+**Conclusion:** employeeNumber/employmentId is the strongest remaining hypothesis. If it fails in production, Check 5 may be unfixable via API. Current ceiling: 12/14.
 
 ## Sandbox Verification Status
 - **Department search-first**: CONFIRMED for task 21 (prod-cce321cd, Check 10 PASSED). DISPROVEN for task 19 (prod-42b9ad7f, GET-first used, Check 10 still failed). Still use GET-first as best practice.
@@ -101,7 +103,7 @@ All exhausted hypotheses: payrollTaxMunicipalityId, employmentType, workingHours
 | 2 | 1pt | First name | Always passes |
 | 3 | 1pt | Last name | Always passes |
 | 4 | 1pt | Date of birth | Always passes |
-| 5 | 2pt | UNKNOWN (unsolvable) | Always fails — payrollTaxMunicipalityId DISPROVEN (prod-cce321cd). 15 attempts, 0 passes. Likely unfixable via API. |
+| 5 | 2pt | employeeNumber/employmentId (TESTING) | Always fails — payrollTaxMunicipalityId DISPROVEN (prod-cce321cd). NEW: RULE 5 hypothesis = set employeeNumber="1" and employmentId="1" (API leaves them empty, UI auto-assigns). Sandbox-verified: accepted and stored. Awaits production. |
 | 6 | 1pt | Department name | Always passes |
 | 7 | 1pt | Employment form = PERMANENT | Always passes |
 | 8 | 2pt | Occupation code (lenient in task 21) | Passes even with wrong codes |
