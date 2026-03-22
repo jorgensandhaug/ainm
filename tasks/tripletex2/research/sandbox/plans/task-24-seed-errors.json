@@ -1,0 +1,197 @@
+{
+  "schemaVersion": "tripletex2.sandbox-plan.v1",
+  "planId": "task-24-seed-errors",
+  "initialValues": {},
+  "steps": [
+    {
+      "stepId": "wrong-account-voucher",
+      "description": "Voucher on account 6500 (should be 6540), amount 7350 NOK — wrong account error",
+      "method": "POST",
+      "path": "/ledger/voucher",
+      "query": { "sendToLedger": "true" },
+      "body": {
+        "date": "2026-01-12",
+        "description": "Telefonkostnad feil konto",
+        "postings": [
+          {
+            "row": 1,
+            "date": "2026-01-12",
+            "description": "Telefonkostnad feil konto",
+            "account": { "id": 424191128 },
+            "currency": { "id": 1 },
+            "amount": 7350,
+            "amountCurrency": 7350,
+            "amountGross": 7350,
+            "amountGrossCurrency": 7350
+          },
+          {
+            "row": 2,
+            "date": "2026-01-12",
+            "description": "Telefonkostnad feil konto",
+            "account": { "id": 424190862 },
+            "currency": { "id": 1 },
+            "amount": -7350,
+            "amountCurrency": -7350,
+            "amountGross": -7350,
+            "amountGrossCurrency": -7350
+          }
+        ]
+      },
+      "capture": {
+        "wrongAccountVoucherId": "value.id"
+      }
+    },
+    {
+      "stepId": "duplicate-voucher-original",
+      "description": "Real voucher on account 7100, amount 3200 NOK — first of the duplicate pair",
+      "method": "POST",
+      "path": "/ledger/voucher",
+      "query": { "sendToLedger": "true" },
+      "body": {
+        "date": "2026-01-20",
+        "description": "Vedlikehold utstyr",
+        "postings": [
+          {
+            "row": 1,
+            "date": "2026-01-20",
+            "description": "Vedlikehold utstyr",
+            "account": { "id": 424191163 },
+            "currency": { "id": 1 },
+            "amount": 3200,
+            "amountCurrency": 3200,
+            "amountGross": 3200,
+            "amountGrossCurrency": 3200
+          },
+          {
+            "row": 2,
+            "date": "2026-01-20",
+            "description": "Vedlikehold utstyr",
+            "account": { "id": 424190862 },
+            "currency": { "id": 1 },
+            "amount": -3200,
+            "amountCurrency": -3200,
+            "amountGross": -3200,
+            "amountGrossCurrency": -3200
+          }
+        ]
+      },
+      "capture": {
+        "dupOriginalId": "value.id"
+      }
+    },
+    {
+      "stepId": "duplicate-voucher-copy",
+      "description": "Duplicate of 7100/3200 voucher — this is the error to reverse",
+      "method": "POST",
+      "path": "/ledger/voucher",
+      "query": { "sendToLedger": "true" },
+      "body": {
+        "date": "2026-01-21",
+        "description": "Vedlikehold utstyr",
+        "postings": [
+          {
+            "row": 1,
+            "date": "2026-01-21",
+            "description": "Vedlikehold utstyr",
+            "account": { "id": 424191163 },
+            "currency": { "id": 1 },
+            "amount": 3200,
+            "amountCurrency": 3200,
+            "amountGross": 3200,
+            "amountGrossCurrency": 3200
+          },
+          {
+            "row": 2,
+            "date": "2026-01-21",
+            "description": "Vedlikehold utstyr",
+            "account": { "id": 424190862 },
+            "currency": { "id": 1 },
+            "amount": -3200,
+            "amountCurrency": -3200,
+            "amountGross": -3200,
+            "amountGrossCurrency": -3200
+          }
+        ]
+      },
+      "capture": {
+        "dupCopyId": "value.id"
+      }
+    },
+    {
+      "stepId": "missing-vat-voucher",
+      "description": "Voucher on account 6540, net 11450 NOK, WITHOUT VAT (should have 2710 posting) — missing VAT error",
+      "method": "POST",
+      "path": "/ledger/voucher",
+      "query": { "sendToLedger": "true" },
+      "body": {
+        "date": "2026-02-10",
+        "description": "Varekjop uten MVA",
+        "postings": [
+          {
+            "row": 1,
+            "date": "2026-02-10",
+            "description": "Varekjop uten MVA",
+            "account": { "id": 424191132 },
+            "currency": { "id": 1 },
+            "amount": 11450,
+            "amountCurrency": 11450,
+            "amountGross": 11450,
+            "amountGrossCurrency": 11450
+          },
+          {
+            "row": 2,
+            "date": "2026-02-10",
+            "description": "Varekjop uten MVA",
+            "account": { "id": 424190862 },
+            "currency": { "id": 1 },
+            "amount": -11450,
+            "amountCurrency": -11450,
+            "amountGross": -11450,
+            "amountGrossCurrency": -11450
+          }
+        ]
+      },
+      "capture": {
+        "missingVatVoucherId": "value.id"
+      }
+    },
+    {
+      "stepId": "wrong-amount-voucher",
+      "description": "Voucher on account 6300, amount 8200 NOK (should be 5800) — wrong amount error",
+      "method": "POST",
+      "path": "/ledger/voucher",
+      "query": { "sendToLedger": "true" },
+      "body": {
+        "date": "2026-02-18",
+        "description": "Kontorrekvisita feil belop",
+        "postings": [
+          {
+            "row": 1,
+            "date": "2026-02-18",
+            "description": "Kontorrekvisita feil belop",
+            "account": { "id": 424191117 },
+            "currency": { "id": 1 },
+            "amount": 8200,
+            "amountCurrency": 8200,
+            "amountGross": 8200,
+            "amountGrossCurrency": 8200
+          },
+          {
+            "row": 2,
+            "date": "2026-02-18",
+            "description": "Kontorrekvisita feil belop",
+            "account": { "id": 424190862 },
+            "currency": { "id": 1 },
+            "amount": -8200,
+            "amountCurrency": -8200,
+            "amountGross": -8200,
+            "amountGrossCurrency": -8200
+          }
+        ]
+      },
+      "capture": {
+        "wrongAmountVoucherId": "value.id"
+      }
+    }
+  ]
+}

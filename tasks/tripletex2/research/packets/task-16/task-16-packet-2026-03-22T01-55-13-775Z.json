@@ -1,0 +1,270 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-16-packet-2026-03-22T01-55-13-775Z",
+  "createdAt": "2026-03-22T01:55:13.775Z",
+  "taskId": "16",
+  "txTaskId": "16",
+  "taskSlug": "register-supplier-invoice",
+  "taskName": "Register supplier invoice",
+  "queueEntry": {
+    "taskId": "16",
+    "txTaskId": "16",
+    "taskSlug": "register-supplier-invoice",
+    "taskName": "Register supplier invoice",
+    "priority": 8,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "researchLane": "execution-lane",
+    "bestKnownScore": 3,
+    "maxScore": 4,
+    "notes": [
+      "Execution-lane Tier 2 target."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "16.import-then-book-voucher.v1",
+    "strategyPath": "src/tasks/task-16/strategies/import-then-book-voucher.ts",
+    "strategyStatus": "draft",
+    "strategyName": "Import XML then book voucher",
+    "summary": "Creates or resolves the supplier, imports a valid EHF/UBL invoice document, then books the supplier invoice through a partial voucher update with explicit VAT and supplier postings.",
+    "hypothesis": "The trusted supplier-invoice path is XML import first, then a partial voucher update that keeps the imported header immutable while adding the exact accounting postings.",
+    "expectedCallProfile": {
+      "targetCalls": 5,
+      "maxCalls": 6
+    },
+    "stepOutline": [
+      "API call 1: POST /supplier for fresh-account-like prompts, or GET /supplier when the prompt explicitly says the supplier already exists.",
+      "API call 2: GET /ledger/account by expense account number with isApplicableForSupplierInvoice=true.",
+      "API call 3: GET /ledger/vatType for an incoming VAT type on the invoice date.",
+      "API call 4: POST /ledger/voucher/importDocument with a valid minimal EHF/UBL XML invoice.",
+      "API call 5: PUT /ledger/voucher/{id}?sendToLedger=false with only version and postings.",
+      "Optional recovery call: if an explicit existing-supplier lookup returns zero hits, POST /supplier once and continue."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "16.import-then-book-voucher.v1",
+      "strategyPath": "src/tasks/task-16/strategies/import-then-book-voucher.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Import XML then book voucher",
+      "summary": "Creates or resolves the supplier, imports a valid EHF/UBL invoice document, then books the supplier invoice through a partial voucher update with explicit VAT and supplier postings.",
+      "hypothesis": "The trusted supplier-invoice path is XML import first, then a partial voucher update that keeps the imported header immutable while adding the exact accounting postings.",
+      "expectedCallProfile": {
+        "targetCalls": 5,
+        "maxCalls": 6
+      },
+      "stepOutline": [
+        "API call 1: POST /supplier for fresh-account-like prompts, or GET /supplier when the prompt explicitly says the supplier already exists.",
+        "API call 2: GET /ledger/account by expense account number with isApplicableForSupplierInvoice=true.",
+        "API call 3: GET /ledger/vatType for an incoming VAT type on the invoice date.",
+        "API call 4: POST /ledger/voucher/importDocument with a valid minimal EHF/UBL XML invoice.",
+        "API call 5: PUT /ledger/voucher/{id}?sendToLedger=false with only version and postings.",
+        "Optional recovery call: if an explicit existing-supplier lookup returns zero hits, POST /supplier once and continue."
+      ]
+    }
+  ],
+  "baselineCallBudget": 5,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Register supplier invoice. Current best known score is 3/4, leaving a gap of 1. Known call frontier is 5 calls when correctness matches the current best evidence. The active pinned strategy to beat is 16.import-then-book-voucher.v1 with target 5 calls.",
+    "currentBestKnownScore": 3,
+    "maxScore": 4,
+    "scoreGap": 1,
+    "bestKnownCallBudget": 5,
+    "baselineCallBudget": 5,
+    "activeStrategyToBeat": {
+      "strategyId": "16.import-then-book-voucher.v1",
+      "strategyPath": "src/tasks/task-16/strategies/import-then-book-voucher.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Import XML then book voucher",
+      "summary": "Creates or resolves the supplier, imports a valid EHF/UBL invoice document, then books the supplier invoice through a partial voucher update with explicit VAT and supplier postings.",
+      "hypothesis": "The trusted supplier-invoice path is XML import first, then a partial voucher update that keeps the imported header immutable while adding the exact accounting postings.",
+      "expectedCallProfile": {
+        "targetCalls": 5,
+        "maxCalls": 6
+      },
+      "stepOutline": [
+        "API call 1: POST /supplier for fresh-account-like prompts, or GET /supplier when the prompt explicitly says the supplier already exists.",
+        "API call 2: GET /ledger/account by expense account number with isApplicableForSupplierInvoice=true.",
+        "API call 3: GET /ledger/vatType for an incoming VAT type on the invoice date.",
+        "API call 4: POST /ledger/voucher/importDocument with a valid minimal EHF/UBL XML invoice.",
+        "API call 5: PUT /ledger/voucher/{id}?sendToLedger=false with only version and postings.",
+        "Optional recovery call: if an explicit existing-supplier lookup returns zero hits, POST /supplier once and continue."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 3/4, or match the current correctness and score at 5 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 16.import-then-book-voucher.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 3/4.",
+      "If score does not improve, match correctness at 5 API calls or fewer.",
+      "Compare against the active pinned strategy 16.import-then-book-voucher.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-16",
+      "taskReadmePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-16/README.md",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-16/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-16/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-16/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-16/strategies/import-then-book-voucher.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-16/strategies/import-then-book-voucher.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-16/task-16-packet-2026-03-22T01-55-13-775Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-194746652Z-adba202b.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-134233345Z-26bded68.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-161635045Z-902cdde6.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-152251584Z-b8bed751.json"
+      ]
+    },
+    "offlineEvidence": {
+      "trustedStandardPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/legacy/trusted-standards/register-supplier-invoice.md",
+      "taskPlaybookPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/legacy/task-playbooks/register-supplier-invoice.md",
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 4,
+    "recentArtifacts": [
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-194746652Z-adba202b",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-194746652Z-adba202b.json",
+        "createdAt": "2026-03-21T19:47:46.654Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-script-run",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-134233345Z-26bded68",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-134233345Z-26bded68.json",
+        "createdAt": "2026-03-21T13:42:33.346Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-script-run",
+        "apiCallCount": 0
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-20-161635045Z-902cdde6",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-161635045Z-902cdde6.json",
+        "createdAt": "2026-03-20T16:16:35.046Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-script-register-hours-and-project-invoice",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-20-152251584Z-b8bed751",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-152251584Z-b8bed751.json",
+        "createdAt": "2026-03-20T15:22:51.586Z",
+        "runtimeStatus": "timeout",
+        "strategyId": "legacy-tripletex1-multi-script-run",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      }
+    ]
+  },
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 3,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 3,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 3,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 3,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 3,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-202524268Z-c1a2056e",
+      "prod-2026-03-21-194746652Z-adba202b",
+      "prod-2026-03-21-134233345Z-26bded68",
+      "prod-2026-03-20-161635045Z-902cdde6",
+      "prod-2026-03-20-152251584Z-b8bed751"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "readmeText": "# Register supplier invoice\n\nTyped task surface and draft runtime stub for `register-supplier-invoice`.\n\nThe intended deterministic solve path should follow `codex-environment/trusted-standards/register-supplier-invoice.md` when this task gets a real strategy implementation.\n",
+    "trustedStandardText": "# Register Supplier Invoice\n\n## Trust Level\n- Trusted standard\n- Use directly for exact matches\n- Skip `./openapi.json` re-checking for exact matches\n\n## Exact Match\n- register one ordinary unpaid supplier invoice\n- prompt gives supplier identity, invoice number, gross amount, expense account, and VAT rate\n- prompt is about registering the supplier invoice itself, not paying it\n- supplier is identified by business fields such as `name` and `organizationNumber`, not by Tripletex id\n\n## Do Not Use This Standard If\n- prompt explicitly requires a different incoming-invoice feature flow\n- task is reversal, approval, payment, or correction of an already-registered supplier invoice\n- task comes with a real source document that must itself be preserved or uploaded exactly as given\n\n## Standard Flow\n1. `POST /supplier`\n2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`\n3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`\n4. `POST /ledger/voucher/importDocument` with a valid minimal EHF/UBL XML invoice carrying the prompt values\n5. `PUT /ledger/voucher/{id}?sendToLedger=false` with a partial body containing only `version` and `postings`\n\nUse this create-first flow when the real task is fresh-account-like and the prompt gives only supplier business fields without saying the supplier already exists.\n\nIf the prompt explicitly says the supplier already exists, or you are in a retry/persistent-account context where duplicate suppliers are plausible, switch step 1 to `GET /supplier?organizationNumber=...&fields=*` and only `POST /supplier` if that lookup returns zero hits.\n\n## Minimal-Call Claim\n- for the exact fresh-account-like shape where the prompt does not say the supplier already exists, the canonical path is `5` API calls\n- that `5`-call path is:\n  1. `POST /supplier`\n  2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`\n  3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`\n  4. `POST /ledger/voucher/importDocument`\n  5. `PUT /ledger/voucher/{id}?sendToLedger=false`\n- for the common existing-supplier shape, the canonical path is also `5` calls, but with the first step replaced by `GET /supplier?...`\n- the old lookup-first zero-hit branch is `6` calls total and is now dominated for fresh-account-like prompts that do not say the supplier already exists\n- 2026-03-20 production for `Océan SARL` / `853705209` / `INV-2026-4914` / `56300` / `6500` / `25%` took that older zero-hit branch and therefore wasted one initial supplier lookup before creating the supplier anyway\n\n## Why This Standard Exists\n- direct `POST /ledger/voucher` can create a balanced voucher but not a real `supplierInvoice` object\n- that voucher-only path scored `0/8` in production-like supplier-invoice tasks\n- a valid EHF/XML import creates the `supplierInvoice` object first\n- a partial `PUT /ledger/voucher/{id}` on that imported voucher can then add the correct accounting postings with correct VAT\n\n## Payload Rules\n- in fresh-account-like runs, create the supplier first and reuse `response.value.id` plus `response.value.ledgerAccount.id`\n- in explicit existing-supplier or retry/persistent-account runs, resolve the supplier first and reuse `supplier.id` plus `supplier.ledgerAccount.id`\n- resolve the expense account by `number` and require `isApplicableForSupplierInvoice=true`\n- resolve incoming VAT on the actual invoice date; choose the requested percentage and prefer base code `number=\"1\"` when present for ordinary `25%`\n- import a valid EHF/UBL invoice; do not use arbitrary XML or PDF as the trusted fast path\n- in the XML, carry the exact prompt-scored values for:\n  - supplier name\n  - supplier organization number\n  - invoice number\n  - invoice date\n  - due date\n  - line description\n  - net amount\n  - gross amount\n  - VAT percentage\n- on the later `PUT /ledger/voucher/{id}`, send only:\n  - `version`\n  - `postings`\n- do not send `description`, `vendorInvoiceNumber`, or other immutable imported header fields in that `PUT`\n- debit posting:\n  - `account: { \"id\": <expense-account-id> }`\n  - `description: <prompt description>`\n  - `vatType: { \"id\": <incoming-vat-id> }`\n  - `amount = net`\n  - `amountCurrency = net`\n  - `amountGross = gross`\n  - `amountGrossCurrency = gross`\n- supplier liability posting:\n  - `account: { \"id\": <supplier-ledger-account-id> }`\n  - `supplier: { \"id\": <supplier-id> }`\n  - `description: <prompt description>`\n  - `amount = -gross`\n  - `amountCurrency = -gross`\n  - `amountGross = -gross`\n  - `amountGrossCurrency = -gross`\n  - `invoiceNumber = <prompt invoice number>`\n  - `termOfPayment = <due date>`\n- let Tripletex auto-generate the VAT posting\n- do not send `amountVat`\n- do not default `sendToLedger=true`; the trusted sandbox proof is with `sendToLedger=false`\n- if the prompt omits invoice date and due date, use the run date for XML issue/due dates and supplier-posting `termOfPayment`\n\n## XML Rules\n- the XML must be a valid-enough EHF/UBL invoice, not a dummy blob\n- keep this minimal proven structure:\n  - UBL `Invoice` root with the standard invoice namespaces\n  - `cbc:CustomizationID = urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0`\n  - `cbc:ProfileID = urn:fdc:peppol.eu:2017:poacc:billing:01:1.0`\n  - `cbc:InvoiceTypeCode = 380`\n  - `cbc:DocumentCurrencyCode = NOK`\n  - `cac:AccountingSupplierParty` with endpoint id, legal entity, tax scheme, and postal address\n  - `cac:AccountingCustomerParty` with a stable buyer block; do not omit it just because the supplier is the scored entity\n  - `cac:TaxTotal`\n  - `cac:LegalMonetaryTotal`\n  - one `cac:InvoiceLine` with item name, classified tax category, line extension amount, and price\n- use the prompt description exactly in the invoice line item name\n- use net amount in the XML line and totals, not gross\n- earlier malformed/minimalized XML attempts failed with `422 Unable to identify document format`; do not improvise the structure\n\n## Verification\n- fast-path verification is zero extra calls\n- trust the two writes together:\n  - import creates the supplier invoice object family\n  - voucher update response proves the final postings and VAT split\n- a correct write response should show:\n  - one manual debit posting on the requested expense account with requested incoming VAT type\n  - one supplier liability posting linked to the supplier id\n  - one system-generated VAT posting\n- only add `GET /supplierInvoice?...` or `GET /ledger/voucher/{id}?fields=*` if the live write response contradicts the intended state or omits a scored field unexpectedly\n\n## Known Recovery Branches\n- if the run is explicit-existing-supplier or retry/persistent-account and the supplier lookup returns zero hits, create the supplier once and continue with the returned ids\n- if the run is fresh-account-like and the prompt does not say the supplier already exists, do not spend a speculative supplier lookup before the create\n- if supplier lookup returns several hits, continue only when exact `organizationNumber` plus exact `name` leaves one unique supplier\n- if the incoming VAT lookup returns several rows with the requested percentage, prefer the plain base code such as `number=\"1\"` over derived rows\n- if the imported-voucher `PUT` returns validation that `description` or `vendorInvoiceNumber` cannot be changed, remove those fields from the `PUT`; they belong in the import, not the update\n- if a one-line debit-only voucher update succeeds, that is not yet correct for taxable supplier invoices; use the balanced two-line update with currency amounts and explicit debit `vatType`\n- if the two-line update omits currency amounts, sandbox proof showed `500`; keep `amountCurrency` and `amountGrossCurrency` on both rows\n\n## OpenAPI / Sandbox Status\n- `/supplier`, `/ledger/account`, `/ledger/vatType`, `/ledger/voucher/importDocument`, and `/ledger/voucher/{id}` verified in `./openapi.json`\n- 2026-03-20 sandbox proof:\n  - exact original task values for `Elvdal AS` / `889157917` / `INV-2026-8662` / `39750` / `6500` / `25%`\n  - imported voucher `608856087`\n  - supplier invoice `2147547151`\n  - final voucher update created:\n    - expense posting `6500`, `vatType.id=1`, `amount=31800`, `amountGross=39750`\n    - supplier posting `-39750` linked to supplier id\n    - system VAT posting `7950`\n- 2026-03-20 persistent-sandbox re-proof for the French office-services shape:\n  - supplier `Lumière SARL` / `913175212`\n  - invoice number `INV-SANDBOX-7606-1774045461190`\n  - description `services de bureau`\n  - gross `72350`\n  - net `57880`\n  - VAT `25%`\n  - expense account `6300`\n  - supplier lookup returned zero hits, so the run used the `6`-call create branch\n  - imported voucher `608864697`\n  - final voucher update returned:\n    - expense row on `6300` with `vatType.id=1`, `amount=57880`, `amountGross=72350`\n    - supplier row `-72350` linked to the created supplier id\n    - system VAT row `14470`\n- 2026-03-20 persistent-sandbox re-proof for this session's exact amount/account shape:\n  - supplier `Minimal Proof Supplier 007945 AS` / `910079457`\n  - invoice number `INV-SANDBOX-MIN-007945`\n  - description `kontortjenester`\n  - gross `61600`\n  - net `49280`\n  - VAT `25%`\n  - expense account `6340`\n  - path used exactly `5` calls:\n    1. `POST /supplier`\n    2. `GET /ledger/account?number=6340&isApplicableForSupplierInvoice=true&fields=*`\n    3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`\n    4. `POST /ledger/voucher/importDocument`\n    5. `PUT /ledger/voucher/{id}?sendToLedger=false`\n  - created supplier `108283334`\n  - voucher `608865450`\n  - final voucher update returned:\n    - expense row on `6340` with `vatType.id=1`, `amount=49280`, `amountGross=61600`\n    - supplier row `-61600` linked to the created supplier id\n    - system VAT row `12320`\n- 2026-03-20 persistent-sandbox re-proof for the exact fresh-account-like French office-services shape showed the lower-call branch:\n  - supplier `Océan Reflection SARL 321000010` / `321000010`\n  - invoice number `INV-SANDBOX-4914-321000010`\n  - description `services de bureau`\n  - gross `56300`\n  - net `45040`\n  - VAT `25%`\n  - expense account `6500`\n  - path used exactly `5` calls:\n    1. `POST /supplier`\n    2. `GET /ledger/account?number=6500&isApplicableForSupplierInvoice=true&fields=*`\n    3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`\n    4. `POST /ledger/voucher/importDocument`\n    5. `PUT /ledger/voucher/{id}?sendToLedger=false`\n  - created supplier `108282959`\n  - imported voucher `608865065`\n  - final voucher update returned:\n    - expense row on `6500` with `vatType.id=1`, `amount=45040`, `amountGross=56300`\n    - supplier row `-56300` linked to the created supplier id\n    - system VAT row `11260`\n",
+    "playbookText": "# Register Supplier Invoice\n\n## Scope\n\nUse for tasks like:\n- register one unpaid supplier invoice\n- prompt gives supplier identity, invoice number, gross amount, expense account, and VAT rate\n- prompt expects a real supplier-invoice state, not merely a balanced generic voucher\n\nDo not use for:\n- supplier creation as the main task\n- payment/remittance of an already-booked supplier invoice\n- reversal/correction of an existing supplier invoice\n- tasks that explicitly require a different incoming-invoice feature path\n\n## Proven Best Path\n\nThe current best public path is:\n1. create the supplier directly when the prompt gives supplier business fields but does not say the supplier already exists\n2. resolve expense-account id by account number\n3. resolve incoming VAT id on the actual invoice date\n4. import a valid EHF/UBL XML invoice with the prompt values\n5. partially update that imported voucher with the correct debit and supplier postings\n\nThis path is preferred because it creates both:\n- a real `supplierInvoice` object\n- the correct ledger postings with correct VAT split\n\nFor the exact fresh-account-like shape, that is `5` calls total.\n\nIf the prompt explicitly says the supplier already exists, or the run context is persistent/retry-like enough that duplicate suppliers are a real risk, switch the first step to `GET /supplier?organizationNumber=...&fields=*` and only create on zero hits.\n\n## What Failed And Why\n\n### Wrong path: direct `POST /ledger/voucher`\n- it can create a balanced voucher\n- it did not create a real `supplierInvoice` object in sandbox verification\n- production supplier-invoice tasks scored `0/8` on that branch\n- conclusion: do not treat generic voucher booking as equivalent to supplier-invoice registration\n\n### Wrong path: `POST /incomingInvoice`\n- public accounts can return `403 You do not have permission to access this feature`\n- it is not the trusted default path\n\n### Wrong path: PDF import then mutate\n- PDF import can create an empty voucher shell\n- that shell did not provide a reliable supplier-invoice registration path\n- `PUT /supplierInvoice/voucher/{id}/postings` either failed or crashed\n\n### Wrong path: malformed or oversimplified XML\n- earlier reduced XML attempts failed with `422 Unable to identify document format`\n- conclusion: the XML must be valid-enough EHF/UBL, not a dummy blob\n\n### Wrong path: imported voucher `PUT` with immutable header fields\n- sending `description` or `vendorInvoiceNumber` in the later voucher update returned `422`\n- conclusion: those values must be correct in the XML import itself; do not try to rewrite them later\n\n### Wrong path: balanced voucher update without debit `vatType`\n- sandbox accepted the write\n- but Tripletex flattened the debit line to gross amount with `vatType.id=0`\n- conclusion: explicit debit `vatType` is required for correct supplier-invoice VAT\n\n### Wrong path: voucher update without currency amounts\n- several branches produced `500`\n- conclusion: keep `amountCurrency` and `amountGrossCurrency` on both manual rows\n\n## Exact Minimal Flow\n\nFor the fresh-account-like shape where the prompt does not say the supplier already exists:\n1. `POST /supplier`\n2. `GET /ledger/account?number=<expense-account>&isApplicableForSupplierInvoice=true&fields=*`\n3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`\n4. `POST /ledger/voucher/importDocument`\n5. `PUT /ledger/voucher/{id}?sendToLedger=false`\n\nFor an explicit existing-supplier or retry/persistent-account shape:\n1. `GET /supplier?organizationNumber=...&fields=*`\n2. `GET /ledger/account?number=<expense-account>&isApplicableForSupplierInvoice=true&fields=*`\n3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`\n4. `POST /ledger/voucher/importDocument`\n5. `PUT /ledger/voucher/{id}?sendToLedger=false`\n\nIf that lookup-first branch returns zero hits:\n1. `GET /supplier?...`\n2. `POST /supplier`\n3. `GET /ledger/account?...`\n4. `GET /ledger/vatType?...`\n5. `POST /ledger/voucher/importDocument`\n6. `PUT /ledger/voucher/{id}?sendToLedger=false`\n\nFresh-account-like re-proof:\n- 2026-03-20 persistent sandbox re-proof for `Océan Reflection SARL 321000010` / `321000010` / `services de bureau` / `56300` gross / `6500` / `25%` completed in the lower-call `5`-call create-first branch\n- 2026-03-20 persistent sandbox re-proof for this session's exact amount/account shape `Minimal Proof Supplier 007945 AS` / `910079457` / `kontortjenester` / `61600` gross / `6340` / `25%` also completed in the same lower-call `5`-call create-first branch\n- 2026-03-20 persistent sandbox re-proof for `Lumière SARL` / `913175212` / `services de bureau` / `72350` gross / `6300` / `25%` took exactly this `6`-call zero-hit branch\n- no extra `GET /supplierInvoice` or `GET /ledger/voucher/{id}` was needed; the final `PUT /ledger/voucher/{id}` response already proved the expense row, supplier row, and auto VAT row\n\nDo not add:\n- `GET /ledger/voucherType`\n- `POST /ledger/voucher` as the main registration write\n- `GET /supplierInvoice` or `GET /ledger/voucher/{id}` by default\n- `sendToLedger=true` by default\n\n## Supplier Resolution Rules\n\n- for fresh-account-like prompts that give supplier business fields but do not say the supplier already exists, create the supplier directly and reuse the returned `id` plus `ledgerAccount.id`\n- only spend `GET /supplier?organizationNumber=...&fields=*` first when the prompt explicitly says the supplier already exists or the run context is a retry/persistent account where duplicates are plausible\n- if that lookup returns exactly one exact `organizationNumber` + exact `name` hit, reuse it\n- if that lookup returns zero hits, create the supplier once\n- if that lookup returns several hits, the run state is ambiguous; do not guess by newest id\n\nWhy this matters:\n- the 2026-03-20 production run for `Océan SARL` / `853705209` proved that lookup-first wastes one call in the normal fresh-account branch when the supplier does not exist\n- earlier duplicate-supplier evidence still matters in retry/persistent-account contexts, so keep the lookup-first branch there instead of creating blindly\n\n## Account Resolution Rules\n\n- resolve the expense account through `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`\n- do not hardcode account ids across runs or accounts\n- the prompt gives account number, not Tripletex internal id\n- `isApplicableForSupplierInvoice=true` reduces wrong-account and `422` risk\n\n## VAT Resolution Rules\n\n- resolve VAT through `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*`\n- choose the prompt percentage\n- if several rows match the percentage, prefer the base code, typically `number=\"1\"` for ordinary `25%` input VAT\n- cache the selection rule in docs, not the concrete `vatType.id`\n- do not use `INCOMING_INVOICE`\n\n## XML Rules\n\nThe XML is not a dummy transport wrapper. It has to be structurally valid enough for Tripletex to recognize it as EHF/UBL.\n\n### Keep these required pieces\n- UBL `Invoice` root namespaces\n- `cbc:CustomizationID`\n- `cbc:ProfileID`\n- `cbc:ID`\n- `cbc:IssueDate`\n- `cbc:DueDate`\n- `cbc:InvoiceTypeCode = 380`\n- `cbc:DocumentCurrencyCode = NOK`\n- `cac:AccountingSupplierParty`\n- `cac:AccountingCustomerParty`\n- `cac:TaxTotal`\n- `cac:LegalMonetaryTotal`\n- one `cac:InvoiceLine`\n\n### Supplier block requirements\n- supplier endpoint id\n- supplier legal entity company id\n- supplier tax scheme company id in `NO<orgnr>MVA` form\n- supplier name\n- a non-empty postal address and country\n\n### Customer block requirements\n- keep a stable buyer block in the template\n- do not omit the customer block just because the supplier is the scored entity\n- sandbox proof accepted a generic placeholder buyer, but that does not justify stripping the block down further\n\n### Amount rules inside XML\n- XML line and totals use net amount\n- tax subtotal carries taxable amount and tax amount\n- legal monetary total carries both net and gross\n- invoice line item name should be the prompt description exactly\n\n## Trusted Voucher Update Shape\n\nAfter import, update the imported voucher with a partial body containing only:\n- `version`\n- `postings`\n\n### Debit row\n- `row = 1`\n- `date = <invoice-date>`\n- `description = <prompt description>`\n- `account.id = <resolved expense-account-id>`\n- `vatType.id = <resolved incoming-vat-id>`\n- `amount = net`\n- `amountCurrency = net`\n- `amountGross = gross`\n- `amountGrossCurrency = gross`\n\n### Supplier row\n- `row = 2`\n- `date = <invoice-date>`\n- `description = <prompt description>`\n- `account.id = <supplier.ledgerAccount.id>`\n- `supplier.id = <supplier.id>`\n- `amount = -gross`\n- `amountCurrency = -gross`\n- `amountGross = -gross`\n- `amountGrossCurrency = -gross`\n- `invoiceNumber = <prompt invoice number>`\n- `termOfPayment = <due date>`\n\n### Expected result\n- Tripletex adds a third system-generated VAT posting\n- final voucher should show:\n  - debit expense row with requested account and input VAT\n  - supplier/AP row linked to supplier id\n  - system VAT row\n\n## Example Numbers\n\nFor `gross=39750` and `25%` VAT:\n- `net = 31800`\n- `vat = 7950`\n\nFor `gross=72350` and `25%` VAT:\n- `net = 57880`\n- `vat = 14470`\n\nFor `gross=56300` and `25%` VAT:\n- `net = 45040`\n- `vat = 11260`\n\nExpected final accounting shape:\n- expense row: `6500`, `vatType.id=1`, `amount=31800`, `amountGross=39750`\n- supplier row: supplier ledger account, `amount=-39750`, `invoiceNumber=<prompt invoice number>`\n- system VAT row: `7950`\n\n## Verification Strategy\n\nDefault: zero extra reads.\n\nTrust the final `PUT /ledger/voucher/{id}` response when it already shows:\n- the expense posting on the resolved expense account id\n- the debit row `vatType.id`\n- debit row `amount` and `amountGross`\n- supplier liability row linked to supplier id\n- supplier row `invoiceNumber`\n- one extra system-generated VAT row\n\nOnly add one decisive read if the write response is unexpectedly sparse or contradictory:\n- `GET /ledger/voucher/{id}?fields=*`\nor\n- `GET /supplierInvoice?...`\n\nDo not add both by default.\n\n## Sandbox Proof\n\n2026-03-20 sandbox proof for the exact original production task values:\n- supplier `Elvdal AS` / `889157917`\n- invoice number `INV-2026-8662`\n- description `kontortenester`\n- gross `39750`\n- net `31800`\n- VAT `25%`\n- expense account `6500`\n\nProven outcome:\n- imported voucher `608856087`\n- supplier invoice `2147547151`\n- final voucher update returned:\n  - expense row on `6500` with `vatType.id=1`, `amount=31800`, `amountGross=39750`\n  - supplier row `-39750` linked to supplier id\n  - system VAT row `7950`\n- 2026-03-20 persistent-sandbox re-proof for the exact production-like French office-services shape (`Océan Reflection SARL 321000010` / `321000010` / `services de bureau` / `56300` / `6500` / `25%`) succeeded on the lower-call create-first path\n- that re-proof used the `5`-call branch:\n  1. `POST /supplier`\n  2. `GET /ledger/account?number=6500&isApplicableForSupplierInvoice=true&fields=*`\n  3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`\n  4. `POST /ledger/voucher/importDocument`\n  5. `PUT /ledger/voucher/{id}?sendToLedger=false`\n- final write response proved:\n  - expense row on `6500` with `vatType.id=1`, `amount=45040`, `amountGross=56300`\n  - supplier row `-56300` linked to the created supplier id\n  - system VAT row `11260`\n- 2026-03-20 persistent-sandbox re-proof for the French office-services shape (`Lumière SARL` / `913175212` / `services de bureau` / `72350` / `6300` / `25%`) also succeeded\n- that re-proof hit the zero-hit supplier branch, so the measured path was `6` calls:\n  1. `GET /supplier?organizationNumber=913175212&fields=*`\n  2. `POST /supplier`\n  3. `GET /ledger/account?number=6300&isApplicableForSupplierInvoice=true&fields=*`\n  4. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`\n  5. `POST /ledger/voucher/importDocument`\n  6. `PUT /ledger/voucher/{id}?sendToLedger=false`\n- final write response proved:\n  - expense row on `6300` with `vatType.id=1`, `amount=57880`, `amountGross=72350`\n  - supplier row `-72350` linked to the created supplier id\n  - system VAT row `14470`\n- 2026-03-20 persistent-sandbox re-proof for this session's exact amount/account shape (`Minimal Proof Supplier 007945 AS` / `910079457` / `kontortjenester` / `61600` / `6340` / `25%`) also succeeded\n- that re-proof used the same lower-call `5`-call branch:\n  1. `POST /supplier`\n  2. `GET /ledger/account?number=6340&isApplicableForSupplierInvoice=true&fields=*`\n  3. `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=2026-03-20&fields=*`\n  4. `POST /ledger/voucher/importDocument`\n  5. `PUT /ledger/voucher/{id}?sendToLedger=false`\n- final write response proved:\n  - expense row on `6340` with `vatType.id=1`, `amount=49280`, `amountGross=61600`\n  - supplier row `-61600` linked to the created supplier id\n  - system VAT row `12320`\n\n## Reusable Heuristics\n\n- if the task says register a supplier invoice, optimize for creating a real `supplierInvoice` object, not just a balanced voucher\n- import first, mutate second\n- in the voucher update, keep the header immutable and change only `postings`\n- if the balance is wrong, add currency amounts\n- if VAT is wrong, add explicit debit `vatType`\n- if XML import fails, fix the XML structure; do not pivot back to the old voucher-first path\n",
+    "knownFailureModes": [
+      "## Do Not Use This Standard If",
+      "If the prompt explicitly says the supplier already exists, or you are in a retry/persistent-account context where duplicate suppliers are plausible, switch step 1 to `GET /supplier?organizationNumber=...&fields=*` and only `POST /supplier` if that lookup returns zero hits.",
+      "the old lookup-first zero-hit branch is `6` calls total and is now dominated for fresh-account-like prompts that do not say the supplier already exists",
+      "in explicit existing-supplier or retry/persistent-account runs, resolve the supplier first and reuse `supplier.id` plus `supplier.ledgerAccount.id`",
+      "resolve the expense account by `number` and require `isApplicableForSupplierInvoice=true`",
+      "import a valid EHF/UBL invoice; do not use arbitrary XML or PDF as the trusted fast path",
+      "do not send `description`, `vendorInvoiceNumber`, or other immutable imported header fields in that `PUT`",
+      "do not send `amountVat`",
+      "do not default `sendToLedger=true`; the trusted sandbox proof is with `sendToLedger=false`",
+      "`cac:AccountingCustomerParty` with a stable buyer block; do not omit it just because the supplier is the scored entity",
+      "earlier malformed/minimalized XML attempts failed with `422 Unable to identify document format`; do not improvise the structure",
+      "if the run is explicit-existing-supplier or retry/persistent-account and the supplier lookup returns zero hits, create the supplier once and continue with the returned ids",
+      "if the run is fresh-account-like and the prompt does not say the supplier already exists, do not spend a speculative supplier lookup before the create",
+      "if the imported-voucher `PUT` returns validation that `description` or `vendorInvoiceNumber` cannot be changed, remove those fields from the `PUT`; they belong in the import, not the update",
+      "Do not use for:",
+      "tasks that explicitly require a different incoming-invoice feature path",
+      "If the prompt explicitly says the supplier already exists, or the run context is persistent/retry-like enough that duplicate suppliers are a real risk, switch the first step to `GET /supplier?organizationNumber=...&fields=*` and only create on zero hits.",
+      "## What Failed And Why",
+      "conclusion: do not treat generic voucher booking as equivalent to supplier-invoice registration",
+      "public accounts can return `403 You do not have permission to access this feature`"
+    ]
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Execution-lane Tier 2 target.",
+    "Task packet built from checked-in repo evidence for task 16.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 16.import-then-book-voucher.v1."
+  ]
+}

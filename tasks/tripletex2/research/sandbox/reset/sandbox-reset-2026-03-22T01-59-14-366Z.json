@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "tripletex2.sandbox-reset-report.v1",
+  "reportId": "sandbox-reset-2026-03-22T01-59-14-366Z",
+  "createdAt": "2026-03-22T01:59:14.366Z",
+  "dryRun": false,
+  "scannedFiles": 1,
+  "discoveredRefs": [
+    {
+      "entityType": "customer",
+      "entityId": 1001,
+      "source": "sandbox-task06-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-run-S0gpTs/run-artifact.json",
+      "runId": "sandbox-task06-run",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employee",
+      "entityId": 2002,
+      "source": "sandbox-task06-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-run-S0gpTs/run-artifact.json",
+      "runId": "sandbox-task06-run",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employment",
+      "entityId": 3003,
+      "source": "sandbox-task06-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-run-S0gpTs/run-artifact.json",
+      "runId": "sandbox-task06-run",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    }
+  ],
+  "actionResults": [
+    {
+      "actionId": "customer-1001",
+      "entityType": "customer",
+      "entityId": 1001,
+      "operation": "delete",
+      "status": "completed",
+      "path": "/customer/1001",
+      "source": "sandbox-task06-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-run-S0gpTs/run-artifact.json"
+    },
+    {
+      "actionId": "employee-2002",
+      "entityType": "employee",
+      "entityId": 2002,
+      "operation": "neutralize",
+      "status": "completed",
+      "path": "/employee/2002",
+      "source": "sandbox-task06-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-run-S0gpTs/run-artifact.json",
+      "details": "email -> person+sandbox-reset-2026-03-22-2002@example.org"
+    },
+    {
+      "actionId": "employment-3003",
+      "entityType": "employment",
+      "entityId": 3003,
+      "operation": "neutralize",
+      "status": "already-clean",
+      "source": "sandbox-task06-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-run-S0gpTs/run-artifact.json"
+    }
+  ],
+  "summary": {
+    "completed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "alreadyClean": 1
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "tripletex2.sandbox-reset-report.v1",
+  "reportId": "sandbox-reset-2026-03-22T01-59-14-362Z",
+  "createdAt": "2026-03-22T01:59:14.362Z",
+  "dryRun": true,
+  "scannedFiles": 1,
+  "discoveredRefs": [
+    {
+      "entityType": "customer",
+      "entityId": 1001,
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "runId": "sandbox-task29-run",
+      "taskId": "29",
+      "strategyId": "29.full-project-lifecycle.v1"
+    },
+    {
+      "entityType": "employee",
+      "entityId": 501,
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "runId": "sandbox-task29-run",
+      "taskId": "29",
+      "strategyId": "29.full-project-lifecycle.v1"
+    },
+    {
+      "entityType": "invoice",
+      "entityId": 4004,
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "runId": "sandbox-task29-run",
+      "taskId": "29",
+      "strategyId": "29.full-project-lifecycle.v1"
+    },
+    {
+      "entityType": "project",
+      "entityId": 2002,
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "runId": "sandbox-task29-run",
+      "taskId": "29",
+      "strategyId": "29.full-project-lifecycle.v1"
+    },
+    {
+      "entityType": "timesheetEntry",
+      "entityId": 601,
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "runId": "sandbox-task29-run",
+      "taskId": "29",
+      "strategyId": "29.full-project-lifecycle.v1"
+    },
+    {
+      "entityType": "timesheetEntry",
+      "entityId": 602,
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "runId": "sandbox-task29-run",
+      "taskId": "29",
+      "strategyId": "29.full-project-lifecycle.v1"
+    }
+  ],
+  "actionResults": [
+    {
+      "actionId": "invoice-4004",
+      "entityType": "invoice",
+      "entityId": 4004,
+      "operation": "credit-note",
+      "status": "skipped",
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "details": "dry-run"
+    },
+    {
+      "actionId": "timesheetEntry-601",
+      "entityType": "timesheetEntry",
+      "entityId": 601,
+      "operation": "delete",
+      "status": "skipped",
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "details": "dry-run"
+    },
+    {
+      "actionId": "timesheetEntry-602",
+      "entityType": "timesheetEntry",
+      "entityId": 602,
+      "operation": "delete",
+      "status": "skipped",
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "details": "dry-run"
+    },
+    {
+      "actionId": "employee-501",
+      "entityType": "employee",
+      "entityId": 501,
+      "operation": "neutralize",
+      "status": "skipped",
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "details": "dry-run"
+    },
+    {
+      "actionId": "project-2002",
+      "entityType": "project",
+      "entityId": 2002,
+      "operation": "delete",
+      "status": "skipped",
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "details": "dry-run"
+    },
+    {
+      "actionId": "customer-1001",
+      "entityType": "customer",
+      "entityId": 1001,
+      "operation": "delete",
+      "status": "skipped",
+      "source": "sandbox-task29-run:../../../../../../../../tmp/tripletex2-sandbox-cleanup-LOkaqc/run-artifact.json",
+      "details": "dry-run"
+    }
+  ],
+  "summary": {
+    "completed": 0,
+    "failed": 0,
+    "skipped": 6,
+    "alreadyClean": 0
+  }
+}

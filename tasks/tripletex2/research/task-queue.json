@@ -255,15 +255,21 @@
     {
       "taskId": "21",
       "txTaskId": "21",
-      "taskSlug": "correct-ledger-errors-audit",
-      "taskName": "Correct ledger errors audit",
+      "taskSlug": "onboard-employee-offer-letter",
+      "taskName": "Onboard employee from offer letter",
       "priority": 17,
       "band": "watch",
-      "queueEligibility": "hold",
+      "queueEligibility": "ready",
       "bestKnownScore": 2.5714,
       "maxScore": 6,
+      "baselineCallBudget": 4,
+      "proofInputPath": "research/proofs/task-21/task-21-proof-input.json",
+      "verificationPlanId": "task-21.onboard-employee-offer-letter.v1",
       "notes": [
-        "Park unless a specific strategy idea appears."
+        "Task identity fixed 2026-03-22: was incorrectly labeled 'Correct ledger errors audit'.",
+        "Strategy 21.onboard-employee-offer-letter.v1 implemented with remunerationType=NOT_CHOSEN fix.",
+        "Expected to fix Check 5 (always fails) and reach 10/10 checks → approaching 6.0/6.",
+        "Needs sandbox verification, then production run to confirm."
       ]
     },
     {

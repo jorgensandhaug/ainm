@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-result.v1",
+  "completedAt": "2026-03-22T08:39:49.232Z",
+  "createdAt": "2026-03-22T08:39:48.022Z",
+  "runId": "verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z",
+  "taskId": "11",
+  "runtimeStatus": "failed",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-11/verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.json",
+  "sidecarPaths": [
+    "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-11/verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.trace.json"
+  ]
+}

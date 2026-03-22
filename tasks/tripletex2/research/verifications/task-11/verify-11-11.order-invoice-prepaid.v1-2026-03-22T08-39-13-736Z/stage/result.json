@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-result.v1",
+  "completedAt": "2026-03-22T08:39:14.810Z",
+  "createdAt": "2026-03-22T08:39:13.737Z",
+  "runId": "verify-11-11.order-invoice-prepaid.v1-2026-03-22T08-39-13-736Z",
+  "taskId": "11",
+  "runtimeStatus": "failed",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-11/verify-11-11.order-invoice-prepaid.v1-2026-03-22T08-39-13-736Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-prepaid.v1-2026-03-22T08-39-13-736Z.json",
+  "sidecarPaths": [
+    "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-11/verify-11-11.order-invoice-prepaid.v1-2026-03-22T08-39-13-736Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-prepaid.v1-2026-03-22T08-39-13-736Z.trace.json"
+  ]
+}

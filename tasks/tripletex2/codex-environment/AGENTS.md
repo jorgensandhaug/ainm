@@ -44,7 +44,8 @@
 Apply these gates in order before drilling into the detailed task table.
 
 ### 1) Attachment gate — check this FIRST
-- Employment contract / offer-letter PDF → `19`
+- Employment contract (arbeidskontrakt / contrato de trabalho) PDF → `19`
+- Offer letter (tilbudsbrev / lettre d'offre / Angebotsschreiben / tilbodsbrev) PDF → `21`
 - Supplier-invoice PDF → `20`
 - Receipt / kvittering attachment with department expense booking → `22`
 - Bank-statement CSV → `23`
@@ -77,8 +78,7 @@ Apply these gates in order before drilling into the detailed task table.
 - employee + birthdate + email + start date, no attachment → `06`
 
 ### 4) Ledger-correction family
-- Jan-Feb 2026 ledger + EXPLICIT 4-error listing with concrete accounts and NOK values for each error → `24`
-- Jan-Feb 2026 ledger + generic / implicit error hunt without the full explicit 4-error spec → `21`
+- Jan-Feb 2026 ledger + four listed anomalies with concrete account numbers and NOK amounts → `24`
 
 ### 5) Simple payment fallback
 - Existing unpaid customer invoice + register full NOK payment, after ruling out `18`, `25`, and `27` → `17`
@@ -106,7 +106,7 @@ Apply these gates in order before drilling into the detailed task table.
 | `18` | Reverse customer invoice payment | Reverse a customer invoice payment so the invoice becomes unpaid again. | req: `customerOrganizationNumber`, `lineDescription`, `amountExcludingVatNok`; opt: `customerName`, `invoiceId`, `invoiceNumber`, `reversalDate` |
 | `19` | Onboard employee from contract | Create a new employee from a contract, creating the department if needed and writing nested employment details with the resolved occupation code. | req: `employeeName`, `birthDate`, `departmentName`, `occupationCodeId`, `annualSalaryNok`, `percentageOfFullTimeEquivalent`, `startDate`; opt: `email`, `nationalIdentityNumber`, `bankAccountNumber`, `employmentType`, `employmentForm`, `remunerationType`, `workingHoursScheme`, `standardHoursPerDay` |
 | `20` | Register supplier invoice with PDF attachment | Register an incoming supplier invoice from prompt-plus-PDF data and attach the source PDF to the created voucher. | req: `supplierName`, `organizationNumber`, `invoiceNumber`, `lineDescription`, `grossAmountNok`, `expenseAccountNumber`, `vatRatePercent`, `attachmentFileName`; opt: `invoiceDate`, `dueDate`, `supplierAlreadyExists` |
-| `21` | Correct ledger errors — implicit scan | Audit Jan-Feb 2026 vouchers for the known ledger-error pattern when the prompt describes the error types generically rather than enumerating all four exact error specs. | req: none |
+| `21` | Onboard employee from offer letter | Create a new employee from a tilbudsbrev (offer letter) PDF, creating the department if needed. The offer letter does NOT contain Lonnstype so remunerationType is forced to NOT_CHOSEN. | req: `employeeName`, `birthDate`, `departmentName`, `occupationCodeId`, `annualSalaryNok`, `percentageOfFullTimeEquivalent`, `startDate`; opt: `employmentForm`, `standardHoursPerDay` |
 | `22` | Register receipt expense voucher | Book one receipt-backed expense voucher to the requested department, balance it against bank account 1920, and upload the source receipt. | req: `departmentName`, `lineDescription`, `grossAmountNok`, `voucherDate`, `attachmentFileName`; opt: `expenseAccountNumber`, `vatRatePercent`, `departmentAlreadyExists` |
 | `23` | Reconcile bank statement | Reconcile an attached bank-statement CSV against open customer and supplier invoices, handling partial payments and booking non-invoice bank lines. | req: `attachmentFileName` |
 | `24` | Correct ledger errors — explicit listing | Review the Jan-Feb 2026 ledger for the four known anomalies when the prompt explicitly lists each error with concrete account/amount details, then post one corrective voucher that repairs them. | req: none |
@@ -129,11 +129,12 @@ Apply these gates in order before drilling into the detailed task table.
   - `20` → supplier invoice with PDF attachment.
   - `16` → supplier invoice all inline, usually `INV-2026-XXXX`, no attachment.
   - `22` → receipt / kvittering, department expense booking.
-- `06` vs `12` vs `13` vs `19`:
+- `06` vs `12` vs `13` vs `19` vs `21`:
   - `06` → create employee from inline identity data.
   - `12` → payroll / salary / bonus.
   - `13` → travel expense with per diem and itemized costs.
-  - `19` → employment contract / offer-letter PDF.
+  - `19` → employment contract (arbeidskontrakt) PDF — has STYRK code, may include national ID / bank account / email; remunerationType=MONTHLY_WAGE.
+  - `21` → offer letter (tilbudsbrev) PDF — has job title (not STYRK), no national ID / bank account / email; remunerationType=NOT_CHOSEN.
 - `05` vs `14` vs `15` vs `29`:
   - `05` → create project only.
   - `14` → fixed price + milestone invoice.
@@ -143,17 +144,16 @@ Apply these gates in order before drilling into the detailed task table.
   - `17` → simple full NOK payment.
   - `25` → overdue invoice + 50 NOK reminder fee + 5000 NOK partial payment.
   - `27` → EUR payment + two exchange rates.
-- `21` vs `24` vs `28`:
-  - `28` → largest expense increase + internal project/activity creation.
-  - `24` → explicit four-error spec with account/amount details for every error.
-  - `21` → same ledger-correction family but without the explicit per-error specification.
+- `24` vs `28`:
+  - `28` → largest expense increase January→February 2026 + internal project/activity creation.
+  - `24` → four listed ledger anomalies with concrete account numbers and NOK amounts + one corrective voucher.
 
 ## Field Extraction Rules
 - Normalize dates to ISO `YYYY-MM-DD`. Normalize `payrollMonth` to `YYYY-MM`.
 - Preserve names, addresses, descriptions, emails, and other business strings exactly, including Unicode.
 - Convert numeric amounts, percentages, quantities, ids, and account numbers to numbers.
 - If quantity is clearly implicit for a single line, set `quantity: 1`.
-- Use attachment contents as first-class evidence for `19`, `20`, `22`, and `23`. Read from `textContent` when present; otherwise read the staged file at `path`. If the file is unreadable after an actual read attempt, return `unresolved` with `code: "unreadable-file"`.
+- Use attachment contents as first-class evidence for `19`, `20`, `21`, `22`, and `23`. Read from `textContent` when present; otherwise read the staged file at `path`. If the file is unreadable after an actual read attempt, return `unresolved` with `code: "unreadable-file"`.
 - Always copy the exact uploaded filename into `attachmentFileName`; do not rename or normalize it.
 - Only set `supplierAlreadyExists`, `departmentAlreadyExists`, or `allowManualVoucherFallback` when the prompt says so explicitly.
 - Leave optional fields unset when the prompt or attachment does not provide them.
@@ -165,5 +165,6 @@ Apply these gates in order before drilling into the detailed task table.
   - `13.perDiemCompensations[] = { count, rateNok, amountNok, overnightAccommodation? }`
   - `29.employees[] = { employeeName, email, hours, birthDate? }`
 - For `19`, resolve the STYRK-only 2511 contract shape to `occupationCodeId: 301`.
-- For zero-field tasks `21`, `24`, `25`, and `28`, resolve with `inputJson: "{}"` when the prompt clearly matches.
+- For `21`, resolve the job title (Stilling field) in the tilbudsbrev to `occupationCodeId` using these hardcoded mappings: Seniorutvikler→5935, Regnskapssjef→4679, HR-rådgiver→4169, Salgssjef→4930, Kontormedarbeider→2951, IT-konsulent→2610. Do NOT extract `remunerationType` — the strategy forces `NOT_CHOSEN`. Do NOT extract `email`, `nationalIdentityNumber`, or `bankAccountNumber` — offer letters do not contain them.
+- For zero-field tasks `24`, `25`, and `28`, resolve with `inputJson: "{}"` when the prompt clearly matches.
 - For recognized but unsupported tasks `26`, `27`, and `30`, return `status: "unresolved"`, `code: "unsupported-request"`, and include the recognized `taskId` when clear.

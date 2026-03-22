@@ -12,6 +12,7 @@ export async function runSandboxTask(input: {
   strategyId: string;
   payload: Record<string, unknown>;
   credentials: SandboxCredentials;
+  prompt?: string;
   now?: () => Date;
   reportRoot?: string;
 }): Promise<{
@@ -28,7 +29,7 @@ export async function runSandboxTask(input: {
   const selectionConfig = await createSelectionOverride(input.taskId, input.strategyId);
   const result = await runDeterministicSolvePipeline(
     {
-      prompt: [
+      prompt: input.prompt ?? [
         `Sandbox operator run for task ${input.taskId}.`,
         `Strategy under test: ${input.strategyId}.`,
         "Task understanding is pinned manually for this run.",

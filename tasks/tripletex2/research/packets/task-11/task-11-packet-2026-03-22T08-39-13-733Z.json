@@ -1,0 +1,412 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-11-packet-2026-03-22T08-39-13-733Z",
+  "createdAt": "2026-03-22T08:39:13.733Z",
+  "taskId": "11",
+  "taskSlug": "create-order-invoice-and-register-payment",
+  "taskName": "Create order, invoice, and register payment",
+  "queueEntry": {
+    "taskId": "11",
+    "taskSlug": "create-order-invoice-and-register-payment",
+    "taskName": "Create order, invoice, and register payment",
+    "priority": 12,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "researchLane": "hard-research",
+    "bestKnownScore": 1,
+    "maxScore": 4,
+    "baselineCallBudget": 5,
+    "proofInputPath": "research/proofs/task-11/task-11-proof-input.json",
+    "verificationPlanId": "task-11.order-invoice-payment.v1",
+    "notes": [
+      "Hard research lane task involving order-to-invoice flow.",
+      "Trusted Task 11 evidence points to the 5-call combined invoice-and-payment path as the current frontier."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "11.order-invoice-combined-payment.v1",
+    "strategyPath": "src/tasks/task-11/strategies/order-invoice-combined-payment.ts",
+    "strategyStatus": "draft",
+    "strategyName": "Order, invoice, and payment",
+    "summary": "Resolves the customer and products, creates the order, invoices it without sending, then pays the live outstanding amount with one exact incoming payment write.",
+    "hypothesis": "The best production flow for exact existing-customer plus existing-product prompts is the 6-call branch that creates the invoice first, then resolves one usable incoming payment type and pays the exact outstanding amount.",
+    "expectedCallProfile": {
+      "targetCalls": 6,
+      "maxCalls": 9
+    },
+    "stepOutline": [
+      "API call 1: GET /customer by organization number to resolve the existing customer ID.",
+      "API call 2: GET /product using repeated productNumber params, with deterministic fallbacks only if exact product resolution is incomplete.",
+      "API call 3: POST /order with embedded order lines in prompt order.",
+      "API call 4: PUT /order/{id}/:invoice with invoiceDate and sendToCustomer=false.",
+      "API call 5: GET /invoice/paymentType to resolve one usable incoming payment type after the invoice exists.",
+      "API call 6: PUT /invoice/{id}/:payment with the invoice response's live outstanding amount.",
+      "Conditional recovery: repair one bank account and retry the same invoice write if the company-bank-account prerequisite blocks invoice creation."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "11.order-invoice-combined-payment.v1",
+      "strategyPath": "src/tasks/task-11/strategies/order-invoice-combined-payment.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Order, invoice, and payment",
+      "summary": "Resolves the customer and products, creates the order, invoices it without sending, then pays the live outstanding amount with one exact incoming payment write.",
+      "hypothesis": "The best production flow for exact existing-customer plus existing-product prompts is the 6-call branch that creates the invoice first, then resolves one usable incoming payment type and pays the exact outstanding amount.",
+      "expectedCallProfile": {
+        "targetCalls": 6,
+        "maxCalls": 9
+      },
+      "stepOutline": [
+        "API call 1: GET /customer by organization number to resolve the existing customer ID.",
+        "API call 2: GET /product using repeated productNumber params, with deterministic fallbacks only if exact product resolution is incomplete.",
+        "API call 3: POST /order with embedded order lines in prompt order.",
+        "API call 4: PUT /order/{id}/:invoice with invoiceDate and sendToCustomer=false.",
+        "API call 5: GET /invoice/paymentType to resolve one usable incoming payment type after the invoice exists.",
+        "API call 6: PUT /invoice/{id}/:payment with the invoice response's live outstanding amount.",
+        "Conditional recovery: repair one bank account and retry the same invoice write if the company-bank-account prerequisite blocks invoice creation."
+      ]
+    },
+    {
+      "strategyId": "11.order-invoice-prepaid.v1",
+      "strategyPath": "src/tasks/task-11/strategies/order-invoice-prepaid.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Order, invoice, and settle in one write",
+      "summary": "Resolves the customer, products, and incoming payment type up front, then creates the order and settles the invoice during the order-to-invoice write.",
+      "hypothesis": "The proven exact-match frontier for Task 11 is the 5-call path that resolves payment type before invoicing and reuses one combined invoice-and-payment write instead of a later standalone payment call.",
+      "expectedCallProfile": {
+        "targetCalls": 5,
+        "maxCalls": 8
+      },
+      "stepOutline": [
+        "API call 1: GET /customer by organization number to resolve the existing customer ID.",
+        "API call 2: GET /product using repeated productNumber params, with deterministic fallbacks only if exact product resolution is incomplete.",
+        "API call 3: GET /invoice/paymentType to resolve one usable incoming payment type before invoicing.",
+        "API call 4: POST /order with embedded order lines in prompt order.",
+        "API call 5: PUT /order/{id}/:invoice with invoiceDate, sendToCustomer=false, paymentTypeId, paidAmount=0.01, and paymentTypeIdRestAmount.",
+        "Conditional recovery: repair one bank account and retry the same combined invoice write if the company-bank-account prerequisite blocks invoice creation.",
+        "Conditional fallback: if the invoice write still leaves an outstanding balance, pay the exact remainder with one standalone PUT /invoice/{id}/:payment."
+      ]
+    }
+  ],
+  "baselineCallBudget": 5,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Create order, invoice, and register payment. Current best known score is 1/4, leaving a gap of 3. Known call frontier is 5 calls when correctness matches the current best evidence. The active pinned strategy 11.order-invoice-combined-payment.v1 currently targets 6 calls, so matching correctness at 5 calls or fewer would already move the frontier. Latest stored challenger status is draft for 11.order-invoice-prepaid.v1.",
+    "currentBestKnownScore": 1,
+    "maxScore": 4,
+    "scoreGap": 3,
+    "bestKnownCallBudget": 5,
+    "baselineCallBudget": 5,
+    "activeStrategyToBeat": {
+      "strategyId": "11.order-invoice-combined-payment.v1",
+      "strategyPath": "src/tasks/task-11/strategies/order-invoice-combined-payment.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Order, invoice, and payment",
+      "summary": "Resolves the customer and products, creates the order, invoices it without sending, then pays the live outstanding amount with one exact incoming payment write.",
+      "hypothesis": "The best production flow for exact existing-customer plus existing-product prompts is the 6-call branch that creates the invoice first, then resolves one usable incoming payment type and pays the exact outstanding amount.",
+      "expectedCallProfile": {
+        "targetCalls": 6,
+        "maxCalls": 9
+      },
+      "stepOutline": [
+        "API call 1: GET /customer by organization number to resolve the existing customer ID.",
+        "API call 2: GET /product using repeated productNumber params, with deterministic fallbacks only if exact product resolution is incomplete.",
+        "API call 3: POST /order with embedded order lines in prompt order.",
+        "API call 4: PUT /order/{id}/:invoice with invoiceDate and sendToCustomer=false.",
+        "API call 5: GET /invoice/paymentType to resolve one usable incoming payment type after the invoice exists.",
+        "API call 6: PUT /invoice/{id}/:payment with the invoice response's live outstanding amount.",
+        "Conditional recovery: repair one bank account and retry the same invoice write if the company-bank-account prerequisite blocks invoice creation."
+      ]
+    },
+    "latestCandidateStatus": {
+      "candidateId": "11.order-invoice-prepaid.v1",
+      "strategyId": "11.order-invoice-prepaid.v1",
+      "status": "draft",
+      "updatedAt": "2026-03-21T20:21:01Z",
+      "strategyPath": "src/tasks/task-11/strategies/order-invoice-prepaid.ts",
+      "strategyName": "Order, invoice, and settle in one write"
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 1/4, or match the current correctness and score at 5 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 11.order-invoice-combined-payment.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 1/4.",
+      "If score does not improve, match correctness at 5 API calls or fewer.",
+      "Compare against the active pinned strategy 11.order-invoice-combined-payment.v1 before calling the new branch better.",
+      "Account for the latest stored candidate status (draft) before retrying the same idea.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-11",
+      "taskReadmePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-11/README.md",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-11/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-11/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-11/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-11/strategies/order-invoice-combined-payment.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-11/strategies/order-invoice-combined-payment.ts",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-11/strategies/order-invoice-prepaid.ts"
+      ]
+    },
+    "proof": {
+      "inputPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/proofs/task-11/task-11-proof-input.json",
+      "verificationPlanId": "task-11.order-invoice-payment.v1",
+      "verificationPlanSourcePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/research/verification-plan.ts",
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-11/task-11-packet-2026-03-22T08-39-13-733Z.json --strategy <strategy-id> --input-file /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/proofs/task-11/task-11-proof-input.json"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-production-2026-03-21T21-45-26-584Z-21b20e3f.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-195645795Z-8c302260.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-190910708Z-a3b089eb.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-181408946Z-db7151ac.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-202623091Z-aa17fe23.json"
+      ]
+    },
+    "offlineEvidence": {
+      "trustedStandardPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/legacy/trusted-standards/create-order-invoice-and-register-payment.md",
+      "taskPlaybookPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/legacy/task-playbooks/create-order-invoice-and-register-payment.md",
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 1,
+    "statuses": {
+      "draft": 1,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 8,
+    "recentArtifacts": [
+      {
+        "runId": "production-2026-03-21T21-45-26-584Z-21b20e3f",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-production-2026-03-21T21-45-26-584Z-21b20e3f.json",
+        "createdAt": "2026-03-21T21:45:26.584Z",
+        "runtimeStatus": "failed",
+        "strategyId": "11.order-invoice-combined-payment.v1",
+        "apiCallCount": 0
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-195645795Z-8c302260",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-195645795Z-8c302260.json",
+        "createdAt": "2026-03-21T19:56:45.796Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-script-register-supplier-invoice",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-190910708Z-a3b089eb",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-190910708Z-a3b089eb.json",
+        "createdAt": "2026-03-21T19:09:10.709Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-script-run",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-181408946Z-db7151ac",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-181408946Z-db7151ac.json",
+        "createdAt": "2026-03-21T18:14:08.947Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-multi-script-run",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-20-202623091Z-aa17fe23",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-202623091Z-aa17fe23.json",
+        "createdAt": "2026-03-20T20:26:23.096Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-multi-script-run",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      }
+    ]
+  },
+  "productionRuns": [
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-222435205Z-dd7f6755",
+      "timestamp": "2026-03-21T22:24:35.205Z",
+      "score": "8/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-204051670Z-cc819daa",
+      "timestamp": "2026-03-21T20:40:51.670Z",
+      "score": "8/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-194143438Z-8e978a3e",
+      "timestamp": "2026-03-21T19:41:43.438Z",
+      "score": "8/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-180354595Z-419dbb16",
+      "timestamp": "2026-03-21T18:03:54.595Z",
+      "score": "8/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-171446078Z-7315b8b8",
+      "timestamp": "2026-03-21T17:14:46.078Z",
+      "score": "8/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-135631200Z-647074c0",
+      "timestamp": "2026-03-21T13:56:31.200Z",
+      "score": "8/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-185625383Z-ee73443d",
+      "timestamp": "2026-03-20T18:56:25.383Z",
+      "score": "skipped"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-163628397Z-e88605ae",
+      "timestamp": "2026-03-20T16:36:28.397Z",
+      "score": "missing"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-162059824Z-e71cd397",
+      "timestamp": "2026-03-20T16:20:59.824Z",
+      "score": "missing"
+    }
+  ],
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 1,
+        "totalAttempts": 22,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 1,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 1,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 1,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 1,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-22-013352179Z-c290243c",
+      "prod-2026-03-21-233302338Z-b8f958e4",
+      "prod-2026-03-21-231803951Z-1a623504",
+      "prod-2026-03-21-212237391Z-aa847819",
+      "prod-2026-03-21-195645795Z-8c302260"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "readmeText": "# Create order, invoice, and register payment\n\nCanonical task surface: `task.ts`\n\nCurrent strategies:\n\n- `strategies/order-invoice-combined-payment.ts` keeps the older split-tail baseline: create the invoice first, then resolve payment type, then pay the live outstanding amount with a separate write.\n- `strategies/order-invoice-prepaid.ts` is the current research challenger aligned to the trusted exact-match frontier: resolve payment type before invoicing and settle during `PUT /order/{id}/:invoice`.\n\nKey research notes:\n\n- The documented exact-match frontier for Task 11 is a 5-call path when direct product-number resolution succeeds and no bank-account repair is needed.\n- Keep `/ledger/account` as a conditional repair branch for the missing-company-bank-account `422`, not as a default preflight hedge.\n- Use `research/proofs/task-11/task-11-proof-input.json` and the Task 11 verification plan in `src/research/verification-plan.ts` when verifying challengers through the research OS.\n",
+    "trustedStandardText": "# Create Order, Invoice, and Register Full Payment\n\n## Trust Level\n- Trusted standard\n- Use directly for exact matches\n- Skip `./openapi.json` re-checking for exact matches\n\n## Exact Match\n- create one order for an existing customer\n- use one or more existing products already identified in the prompt\n- convert that new order into an invoice immediately\n- register full payment on that created invoice immediately\n- do not send the invoice unless the prompt explicitly asks for it\n\n## Do Not Use This Standard If\n- the task also requires creating the customer or products first\n- the task is project-fixed-price, on-account, subscription, reversal, or partial-payment specific\n- the prompt is too ambiguous to identify the existing customer or products decisively\n- the task explicitly requires sending the invoice\n\n## Standard Flow\n1. `GET /customer?organizationNumber=...&fields=*` if the prompt identifies the customer by organization number\n2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`\n3. only if that first product read does not resolve every product, do one fallback `GET /product?ids=<ref>,<ref>&fields=*`\n4. only if both numeric reads miss and the prompt also gives exact product names, do one final decisive `GET /product?count=1000&fields=*` and filter locally\n5. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n6. `POST /order` with embedded `orderLines`\n7. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`\n8. verify `amountCurrencyOutstanding=0` or `amountOutstanding=0` from the invoice write response\n9. stop\n\n## Payload Rules\n- on `POST /order`, send:\n  - `customer: { \"id\": ... }`\n  - `orderDate`\n  - `deliveryDate`\n  - `orderLines[]` with:\n    - `product: { \"id\": ... }`\n    - `description`\n    - `count`\n    - `unitPriceExcludingVatCurrency`\n- preserve prompt product names/descriptions exactly when they are part of the scored state\n- when resolving `GET /product?productNumber=...&fields=*`, normalize both `number` and `productNumber` from the response; some accounts return the matched key under `number`\n- do not insert an automatic `GET /order/{id}` just because `POST /order` can echo `orderLines=[]`\n- the canonical exact-match path does not include an automatic `GET /ledger/account` preflight\n- if this is likely the first outgoing invoice in a fresh-account run and you intentionally choose the hedge against the missing-company-bank-account `422`, use one proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write\n- if you take that hedge and the chosen invoice account already has a `bankAccountNumber`, skip the repair and continue with the same invoice write\n- for the combined invoice-and-payment write, use one valid incoming `paymentTypeId`, a minimal positive `paidAmount` seed, and the same id as `paymentTypeIdRestAmount`\n- `paidAmount=0` is not a valid shortcut here; live validation treats it as missing\n- for ordinary NOK runs, `paidAmount=0.01` is a proven safe seed that lets Tripletex calculate the remaining full payment automatically\n\n## Reuse From Write Response\n- from `POST /order`:\n  - `value.id`\n- from `PUT /order/{id}/:invoice`:\n  - `value.id`\n  - `value.invoiceNumber`\n  - `value.amountCurrencyOutstanding` or `value.amountOutstanding`\n  - invoice totals if needed for proof\n\n## Verification\n- default verification is zero extra calls after the combined invoice write\n- trust the invoice write response when it proves remaining outstanding amount is `0`\n- do not add a follow-up `GET /invoice/{id}` unless the task explicitly scores expanded linked fields that the write response omits\n\n## Known Recovery Branches\n- if the first product-number lookup only partially resolves:\n  - try one fallback `GET /product?ids=...&fields=*`\n  - only then consider one final `GET /product?count=1000&fields=*` name-filter fallback\n  - do not let a name-only match from the first product-number read count as resolution for a missing numeric ref\n- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:\n  - `GET /ledger/account?isBankAccount=true&fields=*`\n  - update the existing invoice bank account with `PUT /ledger/account/{id}` using the minimal payload `{ \"bankAccountNumber\": \"12345678903\" }`\n  - retry the same `PUT /order/{id}/:invoice?...` once\n  - do not create a second order\n- if the combined invoice-and-payment write rejects the seed-payment shape for an unexpected account-specific reason after the invoice already exists:\n  - resume from the existing unpaid invoice instead of rebuilding the order\n  - `GET /invoice/paymentType?...` only if the same run does not already hold a proven valid incoming payment type\n  - `PUT /invoice/{id}/:payment?...` with the actual outstanding amount from the invoice object\n\n## OpenAPI / Sandbox Status\n- `/order`, `/order/{id}/:invoice`, `/invoice/paymentType`, and `/invoice/{id}/:payment` verified in `./openapi.json`\n- exact downstream fast path re-proven on 2026-03-20 in production and sandbox\n- when the first `GET /product?productNumber=...` already resolves every product and no same-run `paymentTypeId` is cached yet, the exact-match path is usually 5 Tripletex API calls:\n  - `GET /customer`\n  - `GET /product`\n  - `GET /invoice/paymentType`\n  - `POST /order`\n  - `PUT /order/{id}/:invoice` with `paymentTypeId`, a minimal positive `paidAmount`, and `paymentTypeIdRestAmount`\n- if the same run already holds a proven valid incoming `paymentTypeId` for the same company and currency, the path drops to 4 calls:\n  - `GET /customer`\n  - `GET /product`\n  - `POST /order`\n  - `PUT /order/{id}/:invoice` with the combined prepayment parameters\n- re-verified earlier on 2026-03-20 in persistent sandbox for customer `864062245` with product refs `6749` and `3048`; before the combined-prepayment improvement was proven, the downstream split-tail path completed in 6 calls, selected payment type `32813748` (`Betalt til bank` / debit account `1920`), and settled the invoice to outstanding `0`\n- further persistent-sandbox verification on 2026-03-20 with customer `975687821` and product refs `4366` / `3402` proved the lower-call replacement path:\n  - `GET /customer?organizationNumber=975687821&fields=*`\n  - `GET /product?productNumber=4366&productNumber=3402&fields=*`\n  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n  - `POST /order`\n  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=32813748&paidAmount=0.01&paymentTypeIdRestAmount=32813748`\n  - the invoice write returned `amountCurrencyOutstanding=0` directly, so the extra `PUT /invoice/{id}/:payment` call was unnecessary\n- same-day production re-verification on 2026-03-20 for the exact Norwegian prompt `Vestfjord AS` / `970769994` / `Nettverksteneste (3237)` / `Analyserapport (4609)` / prices `13450` + `14200` also finished on the plain 5-call path with no `/ledger/account` repair branch:\n  - `GET /customer?organizationNumber=970769994&fields=*`\n  - `GET /product?productNumber=3237&productNumber=4609&fields=*`\n  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n  - `POST /order`\n  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=<resolved>&paidAmount=0.01&paymentTypeIdRestAmount=<same-id>`\n  - the invoice write returned outstanding `0`, so no extra payment or verification call was needed\n- same-day production re-verification on 2026-03-20 for the exact German prompt `Waldstein GmbH` / `975687821` / `Netzwerkdienst (4366)` / `Beratungsstunden (3402)` completed in the same 5-call path with payment type `36030207` and no `/ledger/account` repair branch\n- that paired production+sandbox proof confirms the flow is stable but the incoming `paymentTypeId` is still account-specific; do not hardcode the earlier sandbox id `32813748` into production or another environment\n- the same sandbox proof also showed that `GET /product?productNumber=...&fields=*` can return the matched product ref under `number` instead of `productNumber`; resolvers must normalize both\n- additional production re-verification on 2026-03-20 for customer `989093630` with product refs `5981` and `6784` had earlier completed in the same 6-call split-tail path with no `/ledger/account` hedge, and the created invoice outstanding was `63000` even though the prompt ex-VAT sum was `50400`\n- production re-verification on 2026-03-20 again showed that the prompt ex-VAT total can differ from the payment amount because payment must use the created invoice outstanding balance\n- production reflection on 2026-03-20 also showed that when the first outgoing order invoice in the account would otherwise hit the missing-company-bank-account validation, a proactive `/ledger/account` preflight would have saved one Tripletex call and avoided the `422`\n- later production reflection on 2026-03-20 also showed the opposite risk: turning that `/ledger/account` hedge into a default step would spend a sixth call on accounts where the plain 5-call exact path already works, so the hedge must stay conditional rather than canonical\n",
+    "playbookText": "# Create Order, Invoice, and Register Full Payment\n\n## Scope\n\nUse for tasks like:\n- create an order for an existing customer\n- use one or more existing products on the order\n- convert that order into an invoice\n- register full payment on the created invoice\n- do not send the invoice unless the prompt explicitly asks for sending\n\nDo not use for:\n- create-only order tasks with no invoice/payment step\n- invoice-send tasks where customer delivery/send method is the main concern\n- update/delete/reverse flows on existing orders or invoices\n\nExact-match tasks should now prefer the trusted standard:\n- `./trusted-standards/create-order-invoice-and-register-payment.md`\n\n## Key Findings\n\n- `POST /order` can create embedded `orderLines`, but the `201` response may still echo `orderLines=[]`\n- do not treat an empty `response.value.orderLines` on `POST /order` as proof that line creation failed\n- sandbox verification on 2026-03-20 showed:\n  - `POST /order` with embedded `orderLines` returned `orderLines=[]` in `response.value`\n  - `GET /order/{id}?fields=*,customer(*),orderLines(*)` on that same order returned the expected 2 order lines\n  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false` on an order created that way succeeded directly\n  - the invoice response returned `amountExcludingVatCurrency=20450` and `amountCurrencyOutstanding=20450`\n  - `PUT /invoice/{id}/:payment?...` reduced the remaining outstanding amount to `0`\n- additional production verification on 2026-03-20 showed:\n  - `PUT /order/{id}/:invoice?...` can fail after a successful `POST /order` with `422` and validation message `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`\n  - `GET /ledger/account?isBankAccount=true&fields=*`, then `PUT /ledger/account/{id}` on the existing invoice bank account `1920`, then retrying the same `PUT /order/{id}/:invoice` succeeded\n  - therefore the recovery branch must resume from the already-created order; do not create a second order\n- product lookup verification on 2026-03-20 showed:\n  - `GET /product?productNumber=<a>&productNumber=<b>&fields=*` returned both target products\n  - `GET /product?ids=<id-a>,<id-b>&fields=*` also returned both target products\n  - therefore, for numeric product refs in the prompt, product-number lookup is a good first try and one fallback ID lookup is enough if needed\n  - if the first `productNumber` lookup misses one ref, do not let a name-only match from that same partial response count as success; keep exact-name matching as the final fallback after both numeric reads miss\n  - the same search can return the matched product ref under `number` instead of `productNumber`; normalize both response keys before treating the direct numeric lookup as incomplete\n- additional production verification on 2026-03-20 showed two more traps:\n  - prompt numeric refs in parentheses are not guaranteed to be Tripletex `productNumber` values or product IDs\n  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` can return the correct incoming payment type with `creditAccount=null`; in that account `Betalt til bank` with debit account `1920` was still the right payment type and successfully settled the invoice\n- same-day production verification on 2026-03-20 for the exact German prompt `Waldstein GmbH` / `975687821` / `Netzwerkdienst (4366)` / `Beratungsstunden (3402)` confirmed the canonical 5-call path directly:\n  - `GET /customer?organizationNumber=975687821&fields=*`\n  - `GET /product?productNumber=4366&productNumber=3402&fields=*`\n  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n  - `POST /order`\n  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=36030207&paidAmount=0.01&paymentTypeIdRestAmount=36030207`\n  - that run needed no `/ledger/account` repair branch and the invoice write returned outstanding `0`\n- same-day production verification on 2026-03-20 for the exact Norwegian prompt `Vestfjord AS` / `970769994` / `Nettverksteneste (3237)` / `Analyserapport (4609)` / prices `13450` + `14200` re-confirmed that same uncached 5-call path on a second prompt family:\n  - `GET /customer?organizationNumber=970769994&fields=*`\n  - `GET /product?productNumber=3237&productNumber=4609&fields=*`\n  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n  - `POST /order`\n  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false&paymentTypeId=<resolved>&paidAmount=0.01&paymentTypeIdRestAmount=<same-id>`\n  - that run also needed no `/ledger/account` repair branch and the invoice write returned outstanding `0`\n- paired with the same-day persistent-sandbox proof for the same customer/product refs, this also confirmed that `paymentTypeId` is environment-specific: sandbox used `32813748`, production used `36030207`; keep resolving `/invoice/paymentType` dynamically unless the same run already holds a proven reusable id\n- persistent-sandbox verification on 2026-03-20 showed a lower-call replacement for the old split invoice/payment tail:\n  - `PUT /order/{id}/:invoice` accepts `paymentTypeId`, `paidAmount`, and `paymentTypeIdRestAmount`\n  - `paidAmount=0` was rejected as effectively missing even when `paymentTypeId` was present\n  - `paidAmount=0.01` plus the same id as `paymentTypeIdRestAmount` settled the full NOK invoice in that same invoice write\n  - therefore the extra `PUT /invoice/{id}/:payment` call is unnecessary on this exact task shape unless the combined prepayment branch fails\n- later production reflection on 2026-03-20 showed one more efficiency trap:\n  - turning the `/ledger/account` bank-account hedge into an automatic preflight on this exact task shape spends a sixth Tripletex call on accounts where the plain 5-call path already works\n  - keep `/ledger/account` as a conditional hedge or repair branch, not as the default exact-match path\n- additional production verification on 2026-03-20 also showed the older split-tail exact-match path before the combined-prepayment improvement:\n  - one successful run completed with 6 Tripletex API calls after local spec confirmation\n  - `GET /customer?organizationNumber=...&fields=*`\n  - `GET /product?productNumber=<a>&productNumber=<b>&fields=*` already returned both target products, so no fallback `/product?ids=...` read was needed\n  - `POST /order`\n  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false`\n  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n  - `PUT /invoice/{id}/:payment?...`\n  - the prompt line-price sum excluding VAT was `56350`, but the actual payment amount from the invoice response was `70437.5`; this confirmed again that payment must use the invoice outstanding amount, not the prompt ex-VAT total\n- another production verification on 2026-03-20 confirmed the same exact-match path again:\n  - `GET /customer?organizationNumber=911511053&fields=*`\n  - `GET /product?productNumber=7579&productNumber=2292&fields=*`\n  - `POST /order`\n  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false`\n  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n  - `PUT /invoice/{id}/:payment?...`\n  - the prompt line-price sum excluding VAT was `26450`, but the actual payment amount from the invoice response was `33062.5`; `Betalt til bank` again settled the invoice to `0`\n- persistent-sandbox re-verification on 2026-03-20 confirmed the same downstream exact-match path for customer `864062245` and products `6749` / `3048` once those entities existed in the sandbox:\n  - `GET /customer?organizationNumber=864062245&fields=*`\n  - `GET /product?productNumber=6749&productNumber=3048&fields=*`\n  - `POST /order`\n  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false`\n  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n  - `PUT /invoice/{id}/:payment?...`\n  - the invoice response exposed `paidAmount=12650`, payment type `32813748` (`Betalt til bank` / debit account `1920`), and the payment write settled the invoice to `0`\n\n- additional production verification on 2026-03-20 confirmed the same exact-match path for customer `989093630` and products `5981` / `6784`:\n  - `GET /customer?organizationNumber=989093630&fields=*`\n  - `GET /product?productNumber=5981&productNumber=6784&fields=*`\n  - `POST /order`\n  - `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false`\n  - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n  - `PUT /invoice/{id}/:payment?...`\n  - the prompt line-price sum excluding VAT was `50400`, but the actual payment amount from the invoice response was `63000`; this exact Spanish-language prompt again confirmed that payment must use invoice outstanding, not prompt arithmetic\n\n## Minimal Flow\n\n1. Confirm these operations in `./openapi.json`\n   - `GET /customer`\n   - `GET /product`\n   - `GET /invoice/paymentType`\n   - `POST /order`\n   - `PUT /order/{id}/:invoice`\n2. Resolve the customer\n   - usually `GET /customer?organizationNumber=...&fields=*`\n3. Resolve the products from prompt refs\n   - first try `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`\n   - if that does not uniquely resolve the products, do one fallback `GET /product?ids=<ref>,<ref>&fields=*`\n   - if both numeric lookups fail and the prompt also gives exact product names, do one final decisive fallback `GET /product?count=1000&fields=*` and filter locally by exact prompt names\n4. Resolve one usable incoming payment type\n   - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n   - prefer a bank-style incoming payment type whose debit account is `19xx`\n   - if available, prefer `isBankAccount=true` or `isInvoiceAccount=true` on that debit account\n   - do not reject the candidate just because `creditAccount` is `null`\n5. Create the order with embedded lines\n   - `POST /order`\n   - send `customer`, `orderDate`, `deliveryDate`\n   - embed `orderLines` with `product: { id }`, `description`, `count`, and the requested unit price\n6. Convert the order into an invoice and settle it in the same write\n   - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`\n   - for ordinary NOK runs, `paidAmount=0.01` is the proven seed\n   - do not use `paidAmount=0`; sandbox validation treated it as missing\n7. Only if that invoice write fails with the company-bank-account validation, repair that prerequisite and retry the same order once\n   - `GET /ledger/account?isBankAccount=true&fields=*`\n   - choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`\n   - `PUT /ledger/account/{id}` with the minimal payload `{ \"bankAccountNumber\": \"12345678903\" }`\n   - retry `PUT /order/{id}/:invoice?...` on the same order\n8. Reuse the invoice write response\n   - verify `amountCurrencyOutstanding` first, otherwise `amountOutstanding`\n   - use invoice totals/lines in that response as verification where available\n9. Stop when remaining outstanding amount is `0`\n\n## Exact-Match Fast Path\n\n- For a prompt that already identifies:\n  - the existing customer by organization number\n  - the existing products by numeric refs\n  - the order line prices\n  - the need to invoice and fully pay immediately\n- the winning path is usually 5 Tripletex API calls when the first product-number read succeeds and the run does not already hold a reusable incoming `paymentTypeId`:\n  1. `GET /customer?organizationNumber=...&fields=*`\n  2. `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`\n  3. if that misses, `GET /product?ids=<ref>,<ref>&fields=*`\n  4. only if both numeric lookups miss and the prompt also gives exact product names, `GET /product?count=1000&fields=*` and filter locally by exact names\n  5. `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)`\n  6. `POST /order` with embedded `orderLines`\n  7. `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false&paymentTypeId=<id>&paidAmount=<seed>&paymentTypeIdRestAmount=<same-id>`\n- if the same run already holds a proven valid incoming `paymentTypeId` for the same company and currency, the same exact task drops to 4 downstream calls by skipping step 5\n- Do not insert an automatic `GET /order/{id}` just because `POST /order` echoed empty `orderLines`\n- Do not insert an automatic `GET /ledger/account` before the first invoice write; on this exact task shape that turns the canonical 5-call path into a 6-call hedge\n- If `PUT /order/{id}/:invoice` fails only because the company bank account number is missing, repair `/ledger/account` and retry the same order instead of creating a new one\n- If the invoice response already proves the charged lines/totals and outstanding amount, that same write response is enough; do not automatically split into a later payment write\n\n## Order Payload Notes\n\n- Use the `Order` schema referenced by `POST /order`\n- a safe embedded-line shape is:\n\n```json\n{\n  \"customer\": { \"id\": 123 },\n  \"orderDate\": \"2026-03-20\",\n  \"deliveryDate\": \"2026-03-20\",\n  \"orderLines\": [\n    {\n      \"product\": { \"id\": 456 },\n      \"description\": \"Training session\",\n      \"count\": 1,\n      \"unitPriceExcludingVatCurrency\": 5700\n    },\n    {\n      \"product\": { \"id\": 789 },\n      \"description\": \"Consulting hours\",\n      \"count\": 1,\n      \"unitPriceExcludingVatCurrency\": 14750\n    }\n  ]\n}\n```\n\n- if the account/product setup requires it, include a valid `vatType` on the order line\n- when you already resolved products from `GET /product?fields=*`, reuse the returned product IDs directly\n\n## Response Shape Trap\n\n- `POST /order` may not be a reliable verifier for embedded line creation\n- specifically, the write response can contain:\n\n```json\n{\n  \"value\": {\n    \"id\": 401954042,\n    \"orderLines\": []\n  }\n}\n```\n\n- even though the order actually contains lines and can be invoiced immediately\n- do not branch into a corrective rewrite just because that field is empty\n- only add `GET /order/{id}?fields=*,orderLines(*)` if you truly need decisive pre-invoice verification\n\n## Product Resolution Rules\n\n- When the prompt names existing products with numeric refs in parentheses, try product-number resolution first\n- Use:\n  - `GET /product?productNumber=<ref>&productNumber=<ref>&fields=*`\n- If that first read already returns both target products, stop there and reuse those IDs directly\n- normalize both `number` and `productNumber` from the returned product objects before deciding a ref is missing\n- If that does not uniquely resolve the products, do one fallback:\n  - `GET /product?ids=<ref>,<ref>&fields=*`\n- If both numeric reads fail and the prompt also gives exact product names, one final decisive fallback is allowed:\n  - `GET /product?count=1000&fields=*`\n  - filter locally by exact prompt names\n- Do not let a name-only match from the initial `productNumber` response count as success for a still-missing numeric ref\n- Do not spray multiple exploratory `/product` reads after that final fallback\n- Reuse the resolved product objects for IDs and any needed VAT context\n\n## Payment Rules\n\n- For `GET /invoice/paymentType`, normalize account numbers before prefix checks\n- Prefer a `19xx` debit account that is also flagged as `isBankAccount=true` or `isInvoiceAccount=true`\n- Do not require a `15xx` `creditAccount`; the correct incoming payment type may return `creditAccount=null`\n- For the lower-call exact-match path, pay during `PUT /order/{id}/:invoice` instead of using a separate `PUT /invoice/{id}/:payment`\n- Use the same resolved incoming `paymentTypeId` as both `paymentTypeId` and `paymentTypeIdRestAmount`\n- Seed `paidAmount` with the smallest positive amount accepted for the invoice currency; `0.01` is proven for ordinary NOK runs\n- Do not use `paidAmount=0`; sandbox validation rejected it as effectively missing\n- Only fall back to a later standalone invoice-payment write if the combined invoice-prepayment write fails for an account-specific reason\n\n## Recovery Rule After Partial Success\n\n- If `POST /order` succeeded but `PUT /order/{id}/:invoice` failed only because the company bank account number is missing:\n  - do `GET /ledger/account?isBankAccount=true&fields=*`\n  - update the existing invoice bank account with `PUT /ledger/account/{id}`\n  - retry the same `PUT /order/{id}/:invoice?...`\n  - do not restart from `POST /order`\n- If `POST /order` and `PUT /order/{id}/:invoice` already succeeded but the combined prepayment branch did not settle the invoice, do not start over with a new order\n- Locate the existing unpaid invoice with one decisive read such as:\n  - `GET /invoice?customerId=<id>&invoiceDateFrom=<date>&invoiceDateTo=<next-date>&count=1000&fields=*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))`\n- Filter locally by:\n  - positive outstanding amount\n  - exact ex-VAT total\n  - exact prompt line descriptions or product refs\n- Then finish with:\n  - `GET /invoice/paymentType?...`\n  - `PUT /invoice/{id}/:payment?...`\n- This avoids duplicating orders/invoices after a late-step failure\n\n## Verification Shape\n\n- `POST /order`:\n  - trust the returned `id`\n  - do not over-trust `orderLines`\n- `PUT /order/{id}/:invoice`:\n  - expect `ResponseWrapperInvoice`\n  - reuse `id`, `invoiceNumber`, invoice totals, and outstanding amount\n- `PUT /invoice/{id}/:payment`:\n  - expect `ResponseWrapperInvoice`\n  - verify remaining outstanding amount is `0`\n\n## If You Still Need To Probe\n\n- First probe only the exact missing uncertainty\n- Good examples:\n  - `GET /order/{id}?fields=*,orderLines(*)` if you must confirm line creation before invoicing\n  - `GET /product?ids=...&fields=*` if product-number lookup failed\n- Avoid widening into generic invoice/order browsing when the created invoice or payment response already proves the next step\n",
+    "knownFailureModes": [
+      "The documented exact-match frontier for Task 11 is a 5-call path when direct product-number resolution succeeds and no bank-account repair is needed.",
+      "Keep `/ledger/account` as a conditional repair branch for the missing-company-bank-account `422`, not as a default preflight hedge.",
+      "do not send the invoice unless the prompt explicitly asks for it",
+      "## Do Not Use This Standard If",
+      "do not insert an automatic `GET /order/{id}` just because `POST /order` can echo `orderLines=[]`",
+      "if this is likely the first outgoing invoice in a fresh-account run and you intentionally choose the hedge against the missing-company-bank-account `422`, use one proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write",
+      "if you take that hedge and the chosen invoice account already has a `bankAccountNumber`, skip the repair and continue with the same invoice write",
+      "`paidAmount=0` is not a valid shortcut here; live validation treats it as missing",
+      "do not add a follow-up `GET /invoice/{id}` unless the task explicitly scores expanded linked fields that the write response omits",
+      "do not let a name-only match from the first product-number read count as resolution for a missing numeric ref",
+      "update the existing invoice bank account with `PUT /ledger/account/{id}` using the minimal payload `{ \"bankAccountNumber\": \"12345678903\" }`",
+      "retry the same `PUT /order/{id}/:invoice?...` once",
+      "do not create a second order",
+      "same-day production re-verification on 2026-03-20 for the exact Norwegian prompt `Vestfjord AS` / `970769994` / `Nettverksteneste (3237)` / `Analyserapport (4609)` / prices `13450` + `14200` also finished on the plain 5-call path with no `/ledger/account` repair branch:",
+      "same-day production re-verification on 2026-03-20 for the exact German prompt `Waldstein GmbH` / `975687821` / `Netzwerkdienst (4366)` / `Beratungsstunden (3402)` completed in the same 5-call path with payment type `36030207` and no `/ledger/account` repair branch",
+      "that paired production+sandbox proof confirms the flow is stable but the incoming `paymentTypeId` is still account-specific; do not hardcode the earlier sandbox id `32813748` into production or another environment",
+      "production reflection on 2026-03-20 also showed that when the first outgoing order invoice in the account would otherwise hit the missing-company-bank-account validation, a proactive `/ledger/account` preflight would have saved one Tripletex call and avoided the `422`",
+      "do not send the invoice unless the prompt explicitly asks for sending",
+      "Do not use for:",
+      "do not treat an empty `response.value.orderLines` on `POST /order` as proof that line creation failed"
+    ]
+  },
+  "proof": {
+    "inputPath": "research/proofs/task-11/task-11-proof-input.json",
+    "verificationPlan": {
+      "schemaVersion": "tripletex2.research-verification-plan.v1",
+      "planId": "task-11.order-invoice-payment.v1",
+      "taskId": "11",
+      "checks": [
+        {
+          "type": "object",
+          "checkId": "invoice-readback",
+          "description": "Read the created invoice and confirm the customer, invoice date, paid state, and scored order lines.",
+          "pathTemplate": "/invoice/{{result.createdEntityIds.invoiceId}}",
+          "query": {
+            "fields": "*,customer(*),orderLines(*,product(*)),orders(*,orderLines(*,product(*)))"
+          },
+          "responsePath": "value",
+          "assertions": [
+            {
+              "actualPath": "customer.id",
+              "equalsFromPath": "result.createdEntityIds.customerId"
+            },
+            {
+              "actualPath": "invoiceDate",
+              "equalsFromPath": "result.verification.invoiceDate"
+            },
+            {
+              "actualPath": "invoiceNumber",
+              "equalsFromPath": "result.verification.invoiceNumber"
+            },
+            {
+              "actualPath": "orders.0.orderLines.0.description",
+              "equalsFromPath": "input.lines.0.description"
+            },
+            {
+              "actualPath": "orders.0.orderLines.1.description",
+              "equalsFromPath": "input.lines.1.description"
+            },
+            {
+              "actualPath": "amountCurrencyOutstanding",
+              "equalsFromPath": "result.verification.remainingOutstanding"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "operatorNotes": [
+    "Hard research lane task involving order-to-invoice flow.",
+    "Trusted Task 11 evidence points to the 5-call combined invoice-and-payment path as the current frontier.",
+    "Task packet built from checked-in repo evidence for task 11.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 11.order-invoice-combined-payment.v1."
+  ]
+}

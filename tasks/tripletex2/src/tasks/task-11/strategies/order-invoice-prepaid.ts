@@ -632,8 +632,8 @@ function assertPositiveNumber(value: number, fieldName: string): void {
   }
 }
 
-function normalizeOrganizationNumber(value: string | undefined): string {
-  return (value ?? "").replace(/\s+/g, "");
+function normalizeOrganizationNumber(value: string | number | undefined): string {
+  return String(value ?? "").replace(/\s+/g, "");
 }
 
 function normalizeOptionalText(value: unknown): string | undefined {
@@ -641,8 +641,8 @@ function normalizeOptionalText(value: unknown): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function normalizeAccountNumber(value: string | undefined): string {
-  return (value ?? "").replace(/\s+/g, "");
+function normalizeAccountNumber(value: string | number | undefined): string {
+  return String(value ?? "").replace(/\s+/g, "");
 }
 
 function sameText(left: string, right: string): boolean {

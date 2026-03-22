@@ -1,6 +1,6 @@
 {
   "schemaVersion": "tripletex2.research-candidate-store.v1",
-  "updatedAt": "2026-03-21T21:38:12.930Z",
+  "updatedAt": "2026-03-22T08:42:27.792Z",
   "entries": [
     {
       "candidateId": "06.create-employee.v1",
@@ -41,6 +41,28 @@
       ],
       "createdAt": "2026-03-21T20:20:44Z",
       "updatedAt": "2026-03-21T20:21:01Z"
+    },
+    {
+      "candidateId": "21.onboard-employee-offer-letter.v1",
+      "taskId": "21",
+      "strategyId": "21.onboard-employee-offer-letter.v1",
+      "strategyPath": "src/tasks/task-21/strategies/onboard-employee-offer-letter.ts",
+      "strategyName": "Onboard employee from offer letter (tilbudsbrev)",
+      "status": "needs-review",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-21/task-21-packet-2026-03-22T08-42-25-253Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-27-792Z/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-27-792Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": false,
+        "withinBudget": false,
+        "apiCallCount": 0,
+        "baselineCallBudget": 4,
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-27-792Z/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-27-792Z.json"
+      },
+      "notes": [
+        "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 21 --strategy 21.onboard-employee-offer-letter.v1\nExit code: 1\nDuration: 2534ms\nresearch sandbox reset summary: {\"taskId\":\"21\",\"strategyId\":\"21.onboard-employee-offer-letter.v1\",\"scannedFiles\":900,\"discoveredRefs\":7,\"completed\":3,\"failed\":4,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T08-42-25-255Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nsandbox-action\tfailed\tcredit-note\tinvoice\t2147685127\tverify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z:research/verifications/task-11/verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.json\tValidering feilet.\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet.\nreset warning: invoice 2147685127: Validering feilet."
+      ],
+      "createdAt": "2026-03-22T08:42:27.792Z",
+      "updatedAt": "2026-03-22T08:42:27.792Z"
     },
     {
       "candidateId": "23.reconcile-bank-statement.v1",

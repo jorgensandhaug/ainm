@@ -1,0 +1,214 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-29-packet-2026-03-22T01-55-12-444Z",
+  "createdAt": "2026-03-22T01:55:12.444Z",
+  "taskId": "29",
+  "txTaskId": "29",
+  "taskSlug": "full-project-lifecycle",
+  "taskName": "Full project lifecycle",
+  "queueEntry": {
+    "taskId": "29",
+    "txTaskId": "29",
+    "taskSlug": "full-project-lifecycle",
+    "taskName": "Full project lifecycle",
+    "priority": 4,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "researchLane": "implemented-unproven",
+    "bestKnownScore": 0.5455,
+    "maxScore": 6,
+    "notes": [
+      "Implemented and research-draftable, but still far from tier max after the latest live runs."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "29.full-project-lifecycle.v1",
+    "strategyPath": "src/tasks/task-29/strategies/full-project-lifecycle.ts",
+    "strategyStatus": "draft",
+    "strategyName": "Full project lifecycle",
+    "summary": "Creates or reuses the customer, supplier, and employees needed for a new project, registers project hours and supplier cost, then creates the customer invoice through the proven order-to-invoice path.",
+    "hypothesis": "The strongest available path is the production-reflected lifecycle branch: create the project and one non-chargeable project-specific activity with the requested budget, bulk-write the split timesheet entries, post supplier cost through project/orderline, and invoice the project budget through POST /order followed by PUT /order/:invoice.",
+    "expectedCallProfile": {
+      "targetCalls": 13,
+      "maxCalls": 22
+    },
+    "stepOutline": [
+      "Resolve or create the customer by organization number.",
+      "Resolve or create the supplier by organization number.",
+      "Try the preferred project-manager email as an assignable manager, then fall back to any assignable manager if needed.",
+      "Resolve each employee by email and create only the missing ones using a shared department and division.",
+      "POST /project with the resolved customer and chosen project manager.",
+      "POST /project/projectActivity with one project-specific non-chargeable activity carrying the project budget.",
+      "POST /timesheet/entry/list with one row per planned date chunk after splitting hours above 24 per day.",
+      "POST /project/orderline for the supplier cost.",
+      "GET /ledger/vatType, POST /order, then PUT /order/{id}/:invoice with sendToCustomer=false.",
+      "Only if invoice creation fails on the known company-bank-account prerequisite, repair one invoice bank account and retry the same invoice write once."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "29.full-project-lifecycle.v1",
+      "strategyPath": "src/tasks/task-29/strategies/full-project-lifecycle.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Full project lifecycle",
+      "summary": "Creates or reuses the customer, supplier, and employees needed for a new project, registers project hours and supplier cost, then creates the customer invoice through the proven order-to-invoice path.",
+      "hypothesis": "The strongest available path is the production-reflected lifecycle branch: create the project and one non-chargeable project-specific activity with the requested budget, bulk-write the split timesheet entries, post supplier cost through project/orderline, and invoice the project budget through POST /order followed by PUT /order/:invoice.",
+      "expectedCallProfile": {
+        "targetCalls": 13,
+        "maxCalls": 22
+      },
+      "stepOutline": [
+        "Resolve or create the customer by organization number.",
+        "Resolve or create the supplier by organization number.",
+        "Try the preferred project-manager email as an assignable manager, then fall back to any assignable manager if needed.",
+        "Resolve each employee by email and create only the missing ones using a shared department and division.",
+        "POST /project with the resolved customer and chosen project manager.",
+        "POST /project/projectActivity with one project-specific non-chargeable activity carrying the project budget.",
+        "POST /timesheet/entry/list with one row per planned date chunk after splitting hours above 24 per day.",
+        "POST /project/orderline for the supplier cost.",
+        "GET /ledger/vatType, POST /order, then PUT /order/{id}/:invoice with sendToCustomer=false.",
+        "Only if invoice creation fails on the known company-bank-account prerequisite, repair one invoice bank account and retry the same invoice write once."
+      ]
+    }
+  ],
+  "baselineCallBudget": 13,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Full project lifecycle. Current best known score is 0.5455/6, leaving a gap of 5.4545. Known call frontier is 13 calls when correctness matches the current best evidence. The active pinned strategy to beat is 29.full-project-lifecycle.v1 with target 13 calls.",
+    "currentBestKnownScore": 0.5455,
+    "maxScore": 6,
+    "scoreGap": 5.4545,
+    "bestKnownCallBudget": 13,
+    "baselineCallBudget": 13,
+    "activeStrategyToBeat": {
+      "strategyId": "29.full-project-lifecycle.v1",
+      "strategyPath": "src/tasks/task-29/strategies/full-project-lifecycle.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Full project lifecycle",
+      "summary": "Creates or reuses the customer, supplier, and employees needed for a new project, registers project hours and supplier cost, then creates the customer invoice through the proven order-to-invoice path.",
+      "hypothesis": "The strongest available path is the production-reflected lifecycle branch: create the project and one non-chargeable project-specific activity with the requested budget, bulk-write the split timesheet entries, post supplier cost through project/orderline, and invoice the project budget through POST /order followed by PUT /order/:invoice.",
+      "expectedCallProfile": {
+        "targetCalls": 13,
+        "maxCalls": 22
+      },
+      "stepOutline": [
+        "Resolve or create the customer by organization number.",
+        "Resolve or create the supplier by organization number.",
+        "Try the preferred project-manager email as an assignable manager, then fall back to any assignable manager if needed.",
+        "Resolve each employee by email and create only the missing ones using a shared department and division.",
+        "POST /project with the resolved customer and chosen project manager.",
+        "POST /project/projectActivity with one project-specific non-chargeable activity carrying the project budget.",
+        "POST /timesheet/entry/list with one row per planned date chunk after splitting hours above 24 per day.",
+        "POST /project/orderline for the supplier cost.",
+        "GET /ledger/vatType, POST /order, then PUT /order/{id}/:invoice with sendToCustomer=false.",
+        "Only if invoice creation fails on the known company-bank-account prerequisite, repair one invoice bank account and retry the same invoice write once."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 0.5455/6, or match the current correctness and score at 13 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 29.full-project-lifecycle.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 0.5455/6.",
+      "If score does not improve, match correctness at 13 API calls or fewer.",
+      "Compare against the active pinned strategy 29.full-project-lifecycle.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-29",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-29/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-29/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-29/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-29/strategies/full-project-lifecycle.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-29/strategies/full-project-lifecycle.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-29/task-29-packet-2026-03-22T01-55-12-444Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": []
+    },
+    "offlineEvidence": {
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 0,
+    "recentArtifacts": []
+  },
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 1.0909090909090908,
+        "totalAttempts": 15,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 1.0909090909090908,
+        "totalAttempts": 15,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 1.0909090909090908,
+        "totalAttempts": 15,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 1.0909090909090908,
+        "totalAttempts": 15,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 1.0909090909090908,
+        "totalAttempts": 15,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-211402061Z-a81782be",
+      "prod-2026-03-21-210613278Z-f17d4753",
+      "prod-2026-03-21-205413966Z-25760653",
+      "prod-2026-03-21-181150994Z-0f38a072",
+      "prod-2026-03-21-174545193Z-5c16a788"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "knownFailureModes": []
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Implemented and research-draftable, but still far from tier max after the latest live runs.",
+    "Task packet built from checked-in repo evidence for task 29.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 29.full-project-lifecycle.v1."
+  ]
+}

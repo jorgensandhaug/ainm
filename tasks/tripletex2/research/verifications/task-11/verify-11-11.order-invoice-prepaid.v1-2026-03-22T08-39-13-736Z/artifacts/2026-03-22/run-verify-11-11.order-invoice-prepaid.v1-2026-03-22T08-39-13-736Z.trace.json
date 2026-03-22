@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "verify-11-11.order-invoice-prepaid.v1-2026-03-22T08-39-13-736Z",
+  "sidecarId": "trace-1",
+  "kind": "sanitized-trace",
+  "createdAt": "2026-03-22T08:39:13.737Z",
+  "payload": {
+    "notes": [
+      "Captured 5 Tripletex API calls."
+    ],
+    "trace": [
+      {
+        "durationMs": 297,
+        "index": 1,
+        "method": "GET",
+        "path": "/customer",
+        "query": {
+          "count": 10,
+          "fields": "*",
+          "organizationNumber": "975687821"
+        },
+        "requestSummary": "lookup customer by organizationNumber, count, fields",
+        "responseSummary": "customer list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 96,
+        "index": 2,
+        "method": "GET",
+        "path": "/product?productNumber=4366&productNumber=3402&fields=*",
+        "requestSummary": "lookup product productNumber 4366 productNumber 3402 fields",
+        "responseSummary": "product productNumber 4366 productNumber 3402 fields list 2 items",
+        "status": 200
+      },
+      {
+        "durationMs": 93,
+        "index": 3,
+        "method": "GET",
+        "path": "/invoice/paymentType",
+        "query": {
+          "count": 1000,
+          "fields": "*,debitAccount(*),creditAccount(*)"
+        },
+        "requestSummary": "lookup paymentType by count, fields",
+        "responseSummary": "paymentType list 2 items",
+        "status": 200
+      },
+      {
+        "durationMs": 240,
+        "entityIds": {
+          "orderId": 402069856
+        },
+        "index": 4,
+        "method": "POST",
+        "path": "/order",
+        "requestSummary": "create order with customer, orderDate, deliveryDate, orderLines",
+        "responseSummary": "orderId 402069856",
+        "status": 201
+      },
+      {
+        "durationMs": 307,
+        "errorCode": "18000",
+        "index": 5,
+        "method": "PUT",
+        "path": "/order/402069856/:invoice",
+        "query": {
+          "invoiceDate": "2026-03-20",
+          "paidAmount": 0.01,
+          "paymentTypeId": 32813748,
+          "paymentTypeIdRestAmount": 32813748,
+          "sendToCustomer": false
+        },
+        "requestSummary": "update invoice by invoiceDate, sendToCustomer, paymentTypeId, paidAmount, paymentTypeIdRestAmount",
+        "responseSummary": "error 18000: Validering feilet.",
+        "status": 422
+      }
+    ]
+  }
+}

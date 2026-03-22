@@ -62,8 +62,8 @@ export const task = {
       "Whether the prompt explicitly says the target department already exists and runtime should prefer an exact lookup-first branch.",
   },
   extractionNotes: [
-    "Use the attached receipt PDF as first-class evidence to extract the booked line description, gross line amount, receipt date, and exact attachment filename.",
-    "Extract the selected receipt line amount, not the whole receipt total, when the prompt points to one specific line on a multi-line receipt.",
+    "Use the attached receipt PDF as first-class evidence to extract the booked line description, receipt line amount, receipt date, and exact attachment filename.",
+    "Extract the selected receipt line amount exactly as printed on the receipt, not the whole receipt total. Do NOT add VAT or multiply by any rate — pass the receipt line price as-is. The runtime strategy handles VAT conversion.",
     "Normalize the receipt date to ISO YYYY-MM-DD and preserve the department name and booked line text exactly.",
     "Only set expenseAccountNumber or vatRatePercent when the prompt or receipt makes them explicit; otherwise leave account and VAT selection to the deterministic runtime strategy.",
     "Only set departmentAlreadyExists when the prompt explicitly says the department already exists or clearly implies a retry against existing state.",
@@ -93,10 +93,13 @@ export async function loadTaskModule(): Promise<RegisterReceiptExpenseVoucherTas
   const { strategy } = await import(
     "./strategies/receipt-expense-booking"
   );
+  const { strategy: strategyV2 } = await import(
+    "./strategies/receipt-expense-booking-v2"
+  );
 
   return {
     task,
-    strategies: [strategy],
+    strategies: [strategy, strategyV2],
   };
 }
 

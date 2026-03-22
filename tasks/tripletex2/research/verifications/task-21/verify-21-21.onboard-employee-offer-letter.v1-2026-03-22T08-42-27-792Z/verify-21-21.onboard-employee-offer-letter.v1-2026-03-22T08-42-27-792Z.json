@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "tripletex2.research-verification-report.v1",
+  "reportId": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-27-792Z",
+  "createdAt": "2026-03-22T08:42:27.792Z",
+  "taskId": "21",
+  "strategyId": "21.onboard-employee-offer-letter.v1",
+  "candidateId": "21.onboard-employee-offer-letter.v1",
+  "packetPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-21/task-21-packet-2026-03-22T08-42-25-253Z.json",
+  "stageDirectory": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-27-792Z/stage",
+  "artifactPath": "",
+  "sandboxReset": {
+    "command": "bun scripts/sandbox.ts reset --task 21 --strategy 21.onboard-employee-offer-letter.v1",
+    "exitCode": 1,
+    "stdout": "research sandbox reset summary: {\"taskId\":\"21\",\"strategyId\":\"21.onboard-employee-offer-letter.v1\",\"scannedFiles\":900,\"discoveredRefs\":7,\"completed\":3,\"failed\":4,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T08-42-25-255Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nsandbox-action\tfailed\tcredit-note\tinvoice\t2147685127\tverify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z:research/verifications/task-11/verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.json\tValidering feilet.\n",
+    "stderr": "reset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet.\nreset warning: invoice 2147685127: Validering feilet.\n",
+    "durationMs": 2534,
+    "highlights": [
+      "research sandbox reset summary: {\"taskId\":\"21\",\"strategyId\":\"21.onboard-employee-offer-letter.v1\",\"scannedFiles\":900,\"discoveredRefs\":7,\"completed\":3,\"failed\":4,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T08-42-25-255Z.json\"}",
+      "sandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.",
+      "sandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.",
+      "sandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.",
+      "sandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t",
+      "sandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t",
+      "sandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t",
+      "sandbox-action\tfailed\tcredit-note\tinvoice\t2147685127\tverify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z:research/verifications/task-11/verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.json\tValidering feilet.",
+      "reset warning: employee 18667403: Validering feilet.",
+      "reset warning: employee 18667476: Validering feilet.",
+      "reset warning: employee 18667507: Validering feilet.",
+      "reset warning: invoice 2147685127: Validering feilet."
+    ]
+  },
+  "failureStage": "reset",
+  "challengeRun": {
+    "runtimeStatus": "not-run",
+    "apiCallCount": 0,
+    "baselineCallBudget": 4,
+    "withinBudget": false
+  },
+  "inspection": {
+    "status": "failed",
+    "apiCallCount": 0,
+    "checks": []
+  },
+  "verdict": {
+    "status": "needs-review",
+    "correctnessPassed": false,
+    "withinBudget": false,
+    "message": "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 21 --strategy 21.onboard-employee-offer-letter.v1\nExit code: 1\nDuration: 2534ms\nresearch sandbox reset summary: {\"taskId\":\"21\",\"strategyId\":\"21.onboard-employee-offer-letter.v1\",\"scannedFiles\":900,\"discoveredRefs\":7,\"completed\":3,\"failed\":4,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T08-42-25-255Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nsandbox-action\tfailed\tcredit-note\tinvoice\t2147685127\tverify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z:research/verifications/task-11/verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.json\tValidering feilet.\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet.\nreset warning: invoice 2147685127: Validering feilet."
+  }
+}

@@ -1,0 +1,234 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-20-packet-2026-03-22T02-50-35-950Z",
+  "createdAt": "2026-03-22T02:50:35.950Z",
+  "taskId": "20",
+  "taskSlug": "register-supplier-invoice-pdf",
+  "taskName": "Register supplier invoice with PDF attachment",
+  "queueEntry": {
+    "taskId": "20",
+    "taskSlug": "register-supplier-invoice-pdf",
+    "taskName": "Register supplier invoice with PDF attachment",
+    "priority": 18,
+    "band": "watch",
+    "queueEligibility": "hold",
+    "bestKnownScore": 2.4,
+    "maxScore": 6,
+    "notes": [
+      "Improved recently, but still parked behind the higher-leverage Tier 3 frontier."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "20.register-supplier-invoice-pdf.v1",
+    "strategyPath": "src/tasks/task-20/strategies/register-supplier-invoice-pdf.ts",
+    "strategyStatus": "draft",
+    "strategyName": "Import XML, book voucher, and attach source PDF",
+    "summary": "Creates or resolves the supplier, imports a valid XML supplier invoice, books the final taxable postings, then uploads the original PDF attachment to the voucher.",
+    "hypothesis": "The reliable supplier-invoice path still starts with XML import plus voucher update, but task 20 additionally requires preserving the original PDF by uploading it to the created voucher attachment endpoint.",
+    "expectedCallProfile": {
+      "targetCalls": 6,
+      "maxCalls": 7
+    },
+    "stepOutline": [
+      "API call 1: POST /supplier for fresh-account-like prompts, or GET /supplier when the prompt explicitly says the supplier already exists.",
+      "API call 2: GET /ledger/account by expense account number with isApplicableForSupplierInvoice=true.",
+      "API call 3: GET /ledger/vatType for an incoming VAT type on the invoice date.",
+      "API call 4: POST /ledger/voucher/importDocument with a valid minimal EHF/UBL XML invoice.",
+      "API call 5: PUT /ledger/voucher/{id}?sendToLedger=false with only version and postings.",
+      "API call 6: POST /ledger/voucher/{id}/attachment with the original PDF attachment from the request.",
+      "Optional recovery call: if an explicit existing-supplier lookup returns zero hits, POST /supplier once and continue."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "20.register-supplier-invoice-pdf.v1",
+      "strategyPath": "src/tasks/task-20/strategies/register-supplier-invoice-pdf.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Import XML, book voucher, and attach source PDF",
+      "summary": "Creates or resolves the supplier, imports a valid XML supplier invoice, books the final taxable postings, then uploads the original PDF attachment to the voucher.",
+      "hypothesis": "The reliable supplier-invoice path still starts with XML import plus voucher update, but task 20 additionally requires preserving the original PDF by uploading it to the created voucher attachment endpoint.",
+      "expectedCallProfile": {
+        "targetCalls": 6,
+        "maxCalls": 7
+      },
+      "stepOutline": [
+        "API call 1: POST /supplier for fresh-account-like prompts, or GET /supplier when the prompt explicitly says the supplier already exists.",
+        "API call 2: GET /ledger/account by expense account number with isApplicableForSupplierInvoice=true.",
+        "API call 3: GET /ledger/vatType for an incoming VAT type on the invoice date.",
+        "API call 4: POST /ledger/voucher/importDocument with a valid minimal EHF/UBL XML invoice.",
+        "API call 5: PUT /ledger/voucher/{id}?sendToLedger=false with only version and postings.",
+        "API call 6: POST /ledger/voucher/{id}/attachment with the original PDF attachment from the request.",
+        "Optional recovery call: if an explicit existing-supplier lookup returns zero hits, POST /supplier once and continue."
+      ]
+    }
+  ],
+  "baselineCallBudget": 6,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Register supplier invoice with PDF attachment. Current best known score is 2.4/6, leaving a gap of 3.6. Known call frontier is 6 calls when correctness matches the current best evidence. The active pinned strategy to beat is 20.register-supplier-invoice-pdf.v1 with target 6 calls.",
+    "currentBestKnownScore": 2.4,
+    "maxScore": 6,
+    "scoreGap": 3.6,
+    "bestKnownCallBudget": 6,
+    "baselineCallBudget": 6,
+    "activeStrategyToBeat": {
+      "strategyId": "20.register-supplier-invoice-pdf.v1",
+      "strategyPath": "src/tasks/task-20/strategies/register-supplier-invoice-pdf.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Import XML, book voucher, and attach source PDF",
+      "summary": "Creates or resolves the supplier, imports a valid XML supplier invoice, books the final taxable postings, then uploads the original PDF attachment to the voucher.",
+      "hypothesis": "The reliable supplier-invoice path still starts with XML import plus voucher update, but task 20 additionally requires preserving the original PDF by uploading it to the created voucher attachment endpoint.",
+      "expectedCallProfile": {
+        "targetCalls": 6,
+        "maxCalls": 7
+      },
+      "stepOutline": [
+        "API call 1: POST /supplier for fresh-account-like prompts, or GET /supplier when the prompt explicitly says the supplier already exists.",
+        "API call 2: GET /ledger/account by expense account number with isApplicableForSupplierInvoice=true.",
+        "API call 3: GET /ledger/vatType for an incoming VAT type on the invoice date.",
+        "API call 4: POST /ledger/voucher/importDocument with a valid minimal EHF/UBL XML invoice.",
+        "API call 5: PUT /ledger/voucher/{id}?sendToLedger=false with only version and postings.",
+        "API call 6: POST /ledger/voucher/{id}/attachment with the original PDF attachment from the request.",
+        "Optional recovery call: if an explicit existing-supplier lookup returns zero hits, POST /supplier once and continue."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 2.4/6, or match the current correctness and score at 6 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 20.register-supplier-invoice-pdf.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 2.4/6.",
+      "If score does not improve, match correctness at 6 API calls or fewer.",
+      "Compare against the active pinned strategy 20.register-supplier-invoice-pdf.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-20",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-20/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-20/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-20/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-20/strategies/register-supplier-invoice-pdf.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-20/strategies/register-supplier-invoice-pdf.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-20/task-20-packet-2026-03-22T02-50-35-950Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": []
+    },
+    "offlineEvidence": {
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 0,
+    "recentArtifacts": []
+  },
+  "productionRuns": [
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-214952821Z-61320c6d",
+      "timestamp": "2026-03-21T21:49:52.821Z",
+      "score": "8/10"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-202215771Z-80b7e1d2",
+      "timestamp": "2026-03-21T20:22:15.771Z",
+      "score": "8/10"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-201432477Z-dedc4bfe",
+      "timestamp": "2026-03-21T20:14:32.477Z",
+      "score": "8/10"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-163650940Z-aaf59452",
+      "timestamp": "2026-03-21T16:36:50.940Z",
+      "score": "7/10"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-155323641Z-9b2a1d22",
+      "timestamp": "2026-03-21T15:53:23.641Z",
+      "score": "7/10"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-145920300Z-53cb0731",
+      "timestamp": "2026-03-21T14:59:20.300Z",
+      "score": "7/10"
+    }
+  ],
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 2.4000000000000004,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 2.4000000000000004,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 2.4000000000000004,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 2.4000000000000004,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 2.4000000000000004,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-214952821Z-61320c6d",
+      "prod-2026-03-21-202215771Z-80b7e1d2",
+      "prod-2026-03-21-201432477Z-dedc4bfe",
+      "prod-2026-03-21-163650940Z-aaf59452",
+      "prod-2026-03-21-145920300Z-53cb0731"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "knownFailureModes": []
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Improved recently, but still parked behind the higher-leverage Tier 3 frontier.",
+    "Task packet built from checked-in repo evidence for task 20.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 20.register-supplier-invoice-pdf.v1."
+  ]
+}

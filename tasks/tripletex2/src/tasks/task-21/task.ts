@@ -6,50 +6,98 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 
-export const CORRECT_LEDGER_ERRORS_TASK_ID = "21";
-export const CORRECT_LEDGER_ERRORS_TX_TASK_ID = "21";
-export const CORRECT_LEDGER_ERRORS_INPUT_SCHEMA_ID = "21.v1";
+export const ONBOARD_EMPLOYEE_OFFER_LETTER_TASK_ID = "21";
+export const ONBOARD_EMPLOYEE_OFFER_LETTER_TX_TASK_ID = "21";
+export const ONBOARD_EMPLOYEE_OFFER_LETTER_INPUT_SCHEMA_ID = "21.v1";
 
-export interface CorrectLedgerErrorsInput {}
+export interface OnboardEmployeeOfferLetterInput {
+  employeeName: string;
+  birthDate: string;
+  departmentName: string;
+  occupationCodeId: number;
+  annualSalaryNok: number;
+  percentageOfFullTimeEquivalent: number;
+  startDate: string;
+  employmentForm?: string;
+  standardHoursPerDay?: number;
+}
 
 export const task = {
-  taskId: CORRECT_LEDGER_ERRORS_TASK_ID,
-  txTaskId: CORRECT_LEDGER_ERRORS_TX_TASK_ID,
-  taskName: "Correct ledger errors",
+  taskId: ONBOARD_EMPLOYEE_OFFER_LETTER_TASK_ID,
+  txTaskId: ONBOARD_EMPLOYEE_OFFER_LETTER_TX_TASK_ID,
+  taskName: "Onboard employee from offer letter",
   implementationStatus: "implemented",
-  signature: "correctLedgerErrors()",
+  signature:
+    "onboardEmployeeOfferLetter(employeeName, birthDate, departmentName, occupationCodeId, annualSalaryNok, percentageOfFullTimeEquivalent, startDate, employmentForm?, standardHoursPerDay?)",
   summary:
-    "Audit Jan-Feb 2026 vouchers for four known ledger errors and post the corrective entries.",
-  inputSchemaId: CORRECT_LEDGER_ERRORS_INPUT_SCHEMA_ID,
-  requiredFields: [] as const,
-  optionalFields: [] as const,
-  fieldDescriptions: {},
+    "Create a new employee from a tilbudsbrev (offer letter) PDF, creating the department if needed. Uses remunerationType NOT_CHOSEN because offer letters do not specify Lonnstype.",
+  inputSchemaId: ONBOARD_EMPLOYEE_OFFER_LETTER_INPUT_SCHEMA_ID,
+  requiredFields: [
+    "employeeName",
+    "birthDate",
+    "departmentName",
+    "occupationCodeId",
+    "annualSalaryNok",
+    "percentageOfFullTimeEquivalent",
+    "startDate",
+  ] as const,
+  optionalFields: [
+    "employmentForm",
+    "standardHoursPerDay",
+  ] as const,
+  fieldDescriptions: {
+    employeeName:
+      "Full employee name exactly as written in the tilbudsbrev PDF.",
+    birthDate:
+      "Employee birth date from the tilbudsbrev, normalized to ISO YYYY-MM-DD.",
+    departmentName:
+      "Exact department name from the tilbudsbrev PDF.",
+    occupationCodeId:
+      "Resolved Tripletex occupation code id. Use hardcoded mappings: Seniorutvikler→5935, Regnskapssjef→4679, HR-rådgiver→4169, Salgssjef→4930, Kontormedarbeider→2951, IT-konsulent→2610.",
+    annualSalaryNok:
+      "Annual salary in NOK from the tilbudsbrev ('Årslønn' field).",
+    percentageOfFullTimeEquivalent:
+      "Employment percentage from the tilbudsbrev ('Stillingsprosent' field), as a whole number like 100 or 80.",
+    startDate:
+      "Employment start date from the tilbudsbrev ('Tiltredelse' field), normalized to ISO YYYY-MM-DD.",
+    employmentForm:
+      "Employment form from the tilbudsbrev ('Ansettelsesform' field). Usually 'Fast stilling' → PERMANENT. Defaults to PERMANENT.",
+    standardHoursPerDay:
+      "Standard working hours per day from the tilbudsbrev ('Arbeidstid' field). Optional; used with POST /employee/standardTime.",
+  },
   extractionNotes: [
-    "This task is fully determined by the prompt and the live ledger state, so the extractor should return an empty object.",
-    "Runtime must scan vouchers dated in January and February 2026, locate the one wrong-account voucher, one duplicate voucher pair, one missing-VAT voucher, and one wrong-amount voucher, then apply the fixed corrective postings from the task prompt.",
+    "Use the attached tilbudsbrev (offer letter) PDF as first-class evidence. The prompt itself is generic.",
+    "The tilbudsbrev does NOT contain Lonnstype. Do NOT extract remunerationType — the strategy forces NOT_CHOSEN.",
+    "The tilbudsbrev does NOT contain email, nationalIdentityNumber, or bankAccountNumber. Do not fabricate them.",
+    "Resolve the job title (Stilling field) to a Tripletex occupationCodeId using hardcoded mappings. For 'Senior'-prefixed titles, map to the base occupation (e.g., Seniorutvikler→SYSTEMUTVIKLER id 5935).",
+    "Keep percentageOfFullTimeEquivalent as the percentage value itself, not a fractional ratio.",
+    "Normalize 'Fast stilling' to employmentForm=PERMANENT.",
   ] as const,
 } satisfies TaskSpec<
-  CorrectLedgerErrorsInput,
-  typeof CORRECT_LEDGER_ERRORS_TASK_ID
+  OnboardEmployeeOfferLetterInput,
+  typeof ONBOARD_EMPLOYEE_OFFER_LETTER_TASK_ID
 >;
 
-export type CorrectLedgerErrorsStrategy = TaskStrategy<
-  CorrectLedgerErrorsInput,
-  typeof CORRECT_LEDGER_ERRORS_TASK_ID
+export type OnboardEmployeeOfferLetterStrategy = TaskStrategy<
+  OnboardEmployeeOfferLetterInput,
+  typeof ONBOARD_EMPLOYEE_OFFER_LETTER_TASK_ID
 >;
 
-export type CorrectLedgerErrorsTaskModule = TaskModule<
-  CorrectLedgerErrorsInput,
-  typeof CORRECT_LEDGER_ERRORS_TASK_ID
+export type OnboardEmployeeOfferLetterTaskModule = TaskModule<
+  OnboardEmployeeOfferLetterInput,
+  typeof ONBOARD_EMPLOYEE_OFFER_LETTER_TASK_ID
 >;
 
-export type CorrectLedgerErrorsTaskUnderstandingResult = TaskUnderstandingResult<
-  CorrectLedgerErrorsInput,
-  typeof CORRECT_LEDGER_ERRORS_TASK_ID
->;
+export type OnboardEmployeeOfferLetterTaskUnderstandingResult =
+  TaskUnderstandingResult<
+    OnboardEmployeeOfferLetterInput,
+    typeof ONBOARD_EMPLOYEE_OFFER_LETTER_TASK_ID
+  >;
 
-export async function loadTaskModule(): Promise<CorrectLedgerErrorsTaskModule> {
-  const { strategy } = await import("./strategies/correct-ledger-errors");
+export async function loadTaskModule(): Promise<OnboardEmployeeOfferLetterTaskModule> {
+  const { strategy } = await import(
+    "./strategies/onboard-employee-offer-letter"
+  );
 
   return {
     task,
@@ -61,6 +109,6 @@ export const taskRegistration = {
   task,
   loadTaskModule,
 } satisfies TaskRegistration<
-  CorrectLedgerErrorsInput,
-  typeof CORRECT_LEDGER_ERRORS_TASK_ID
+  OnboardEmployeeOfferLetterInput,
+  typeof ONBOARD_EMPLOYEE_OFFER_LETTER_TASK_ID
 >;

@@ -1,0 +1,219 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-30-packet-2026-03-22T02-46-01-212Z",
+  "createdAt": "2026-03-22T02:46:01.212Z",
+  "taskId": "30",
+  "taskSlug": "simplified-annual-closing",
+  "taskName": "Simplified annual closing (2025)",
+  "queueEntry": {
+    "taskId": "30",
+    "taskSlug": "unknown-task-30",
+    "taskName": "Unknown task 30",
+    "priority": 14,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "bestKnownScore": 1.8,
+    "maxScore": 6,
+    "notes": [
+      "Secondary open Tier 3 frontier."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "30.not-implemented.v1",
+    "strategyPath": "src/tasks/task-30/strategies/not-implemented.ts",
+    "strategyStatus": "baseline",
+    "strategyName": "Not implemented",
+    "summary": "No deterministic runtime exists yet; solve dispatch must fall through to the Codex tmux solver.",
+    "hypothesis": "The best available behavior for this task family is to preserve classification coverage while handing execution to the existing Codex/tmux path.",
+    "expectedCallProfile": {
+      "targetCalls": 0,
+      "maxCalls": 0
+    },
+    "stepOutline": [
+      "Do not run a local deterministic Tripletex strategy for this task id.",
+      "Fall through to the Codex tmux solver so the task still gets an attempted solve."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "30.not-implemented.v1",
+      "strategyPath": "src/tasks/task-30/strategies/not-implemented.ts",
+      "strategyStatus": "baseline",
+      "strategyName": "Not implemented",
+      "summary": "No deterministic runtime exists yet; solve dispatch must fall through to the Codex tmux solver.",
+      "hypothesis": "The best available behavior for this task family is to preserve classification coverage while handing execution to the existing Codex/tmux path.",
+      "expectedCallProfile": {
+        "targetCalls": 0,
+        "maxCalls": 0
+      },
+      "stepOutline": [
+        "Do not run a local deterministic Tripletex strategy for this task id.",
+        "Fall through to the Codex tmux solver so the task still gets an attempted solve."
+      ]
+    }
+  ],
+  "baselineCallBudget": 0,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Simplified annual closing (2025). Current best known score is 1.8/6, leaving a gap of 4.2. Known call frontier is 0 calls when correctness matches the current best evidence. The active pinned strategy to beat is 30.not-implemented.v1 with target 0 calls.",
+    "currentBestKnownScore": 1.8,
+    "maxScore": 6,
+    "scoreGap": 4.2,
+    "bestKnownCallBudget": 0,
+    "baselineCallBudget": 0,
+    "activeStrategyToBeat": {
+      "strategyId": "30.not-implemented.v1",
+      "strategyPath": "src/tasks/task-30/strategies/not-implemented.ts",
+      "strategyStatus": "baseline",
+      "strategyName": "Not implemented",
+      "summary": "No deterministic runtime exists yet; solve dispatch must fall through to the Codex tmux solver.",
+      "hypothesis": "The best available behavior for this task family is to preserve classification coverage while handing execution to the existing Codex/tmux path.",
+      "expectedCallProfile": {
+        "targetCalls": 0,
+        "maxCalls": 0
+      },
+      "stepOutline": [
+        "Do not run a local deterministic Tripletex strategy for this task id.",
+        "Fall through to the Codex tmux solver so the task still gets an attempted solve."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 1.8/6, or match the current correctness and score at 0 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 30.not-implemented.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 1.8/6.",
+      "If score does not improve, match correctness at 0 API calls or fewer.",
+      "Compare against the active pinned strategy 30.not-implemented.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-30",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-30/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-30/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-30/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-30/strategies/not-implemented.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-30/strategies/not-implemented.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-30/task-30-packet-2026-03-22T02-46-01-212Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": []
+    },
+    "offlineEvidence": {
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 0,
+    "recentArtifacts": []
+  },
+  "productionRuns": [
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-211638603Z-1bb3d762",
+      "timestamp": "2026-03-21T21:16:38.603Z",
+      "score": "6/10"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-195120731Z-f672a798",
+      "timestamp": "2026-03-21T19:51:20.731Z",
+      "score": "6/10"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-193813638Z-ab110742",
+      "timestamp": "2026-03-21T19:38:13.638Z",
+      "score": "6/10"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-181650216Z-a2134b64",
+      "timestamp": "2026-03-21T18:16:50.216Z",
+      "score": "6/10"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-172204858Z-0479229c",
+      "timestamp": "2026-03-21T17:22:04.858Z",
+      "score": "6/10"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-161132690Z-3f398097",
+      "timestamp": "2026-03-21T16:11:32.690Z",
+      "score": "6/10"
+    }
+  ],
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 1.8,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 1.8,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 1.8,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 1.8,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 1.8,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-211638603Z-1bb3d762",
+      "prod-2026-03-21-195120731Z-f672a798",
+      "prod-2026-03-21-193813638Z-ab110742",
+      "prod-2026-03-21-181650216Z-a2134b64",
+      "prod-2026-03-21-172204858Z-0479229c"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "knownFailureModes": []
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Secondary open Tier 3 frontier.",
+    "Task packet built from checked-in repo evidence for task 30.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 30.not-implemented.v1."
+  ]
+}

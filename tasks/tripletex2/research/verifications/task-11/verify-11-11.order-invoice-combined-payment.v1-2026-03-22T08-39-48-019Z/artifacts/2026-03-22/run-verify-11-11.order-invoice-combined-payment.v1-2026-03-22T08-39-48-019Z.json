@@ -1,0 +1,177 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z",
+  "createdAt": "2026-03-22T08:39:48.022Z",
+  "mode": "sandbox",
+  "task": {
+    "taskId": "11",
+    "taskName": "Create order, invoice, and register payment",
+    "taskSource": "manual-label"
+  },
+  "strategy": {
+    "strategyId": "11.order-invoice-combined-payment.v1",
+    "strategyName": "Order, invoice, and payment",
+    "strategyPath": "src/tasks/task-11/strategies/order-invoice-combined-payment.ts",
+    "strategyStatus": "draft"
+  },
+  "selection": {
+    "selectionConfigId": "active-strategies-2026-03-21-tier3-fallback-a.verify.11.11.order-invoice-combined-payment.v1",
+    "selectionConfigPath": "inline-override",
+    "requestedTaskId": "11"
+  },
+  "request": {
+    "requestFingerprint": "req:7311b3ec25c1965b9536b89ef7c33fbc52c53e3ead4a122663b575defe8b9936",
+    "promptText": "Research OS verifier run for task 11 (Create order, invoice, and register payment). Strategy under test: 11.order-invoice-combined-payment.v1. Task understanding is pinned manually for this run. This prompt exists only to give the deterministic runtime a stable request fingerprint.",
+    "promptSummary": "Research OS verifier run for task 11 (Create order, invoice, and register payment). Strategy under test: 11.order-invoice-combined-payment.v1. Task understan...",
+    "files": [],
+    "credentialSource": "tripletex2.sandbox-env"
+  },
+  "input": {
+    "inputSchemaId": "11.v1",
+    "status": "resolved",
+    "source": "manual",
+    "value": {
+      "customerName": "Waldstein GmbH",
+      "customerOrganizationNumber": "975687821",
+      "invoiceDate": "2026-03-20",
+      "lines": [
+        {
+          "description": "Netzwerkdienst",
+          "productName": "Netzwerkdienst",
+          "productNumber": "4366",
+          "quantity": 1,
+          "unitPriceExcludingVatNok": 32750
+        },
+        {
+          "description": "Beratungsstunden",
+          "productName": "Beratungsstunden",
+          "productNumber": "3402",
+          "quantity": 1,
+          "unitPriceExcludingVatNok": 17450
+        }
+      ]
+    }
+  },
+  "execution": {
+    "startedAt": "2026-03-22T08:39:48.029Z",
+    "completedAt": "2026-03-22T08:39:49.222Z",
+    "durationMs": 1193,
+    "deadlineMs": 300000,
+    "runtimeStatus": "failed",
+    "apiCallCount": 6,
+    "api4xxCount": 1,
+    "api5xxCount": 0,
+    "apiCalls": [
+      {
+        "index": 1,
+        "method": "GET",
+        "path": "/customer",
+        "query": {
+          "count": 10,
+          "fields": "*",
+          "organizationNumber": "975687821"
+        },
+        "requestSummary": "lookup customer by organizationNumber, count, fields",
+        "responseSummary": "customer list 1 item",
+        "status": 200,
+        "durationMs": 229
+      },
+      {
+        "index": 2,
+        "method": "GET",
+        "path": "/product?productNumber=4366&productNumber=3402&fields=*",
+        "requestSummary": "lookup product productNumber 4366 productNumber 3402 fields",
+        "responseSummary": "product productNumber 4366 productNumber 3402 fields list 2 items",
+        "status": 200,
+        "durationMs": 100
+      },
+      {
+        "index": 3,
+        "method": "POST",
+        "path": "/order",
+        "requestSummary": "create order with customer, orderDate, deliveryDate, orderLines",
+        "responseSummary": "orderId 402069882",
+        "status": 201,
+        "durationMs": 280,
+        "entityIds": {
+          "orderId": 402069882
+        }
+      },
+      {
+        "index": 4,
+        "method": "PUT",
+        "path": "/order/402069882/:invoice",
+        "query": {
+          "invoiceDate": "2026-03-20",
+          "sendToCustomer": false
+        },
+        "requestSummary": "update invoice by invoiceDate, sendToCustomer",
+        "responseSummary": "invoiceId 2147685127",
+        "status": 200,
+        "durationMs": 385,
+        "entityIds": {
+          "invoiceId": 2147685127
+        }
+      },
+      {
+        "index": 5,
+        "method": "GET",
+        "path": "/invoice/paymentType",
+        "query": {
+          "count": 1000,
+          "fields": "*,debitAccount(*),creditAccount(*)"
+        },
+        "requestSummary": "lookup paymentType by count, fields",
+        "responseSummary": "paymentType list 2 items",
+        "status": 200,
+        "durationMs": 92
+      },
+      {
+        "index": 6,
+        "method": "PUT",
+        "path": "/invoice/2147685127/:payment",
+        "query": {
+          "paidAmount": 50200,
+          "paymentDate": "2026-03-20",
+          "paymentTypeId": 32813748
+        },
+        "requestSummary": "update payment by paymentDate, paymentTypeId, paidAmount",
+        "responseSummary": "error 18000: Validering feilet.",
+        "status": 422,
+        "durationMs": 98,
+        "errorCode": "18000"
+      }
+    ],
+    "error": {
+      "code": "18000",
+      "message": "Validering feilet.",
+      "retryable": false
+    }
+  },
+  "attribution": {
+    "status": "not-needed"
+  },
+  "evaluation": {
+    "status": "not-available",
+    "rawNotes": [
+      "Sandbox and dry-run executions do not have live competition scoring in this wave."
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "trace-1",
+      "kind": "sanitized-trace",
+      "path": "run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.trace.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-22T08:39:48.022Z",
+      "sha256": "sha256:3fef8d75bd3cbb919e1ebc3ce3cf597540e181be0137019dbf9148c06c889718",
+      "summary": "Sanitized trace for 11.order-invoice-combined-payment.v1."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Research OS verifier ran one explicit challenger strategy (11.order-invoice-combined-payment.v1) in a reset sandbox.",
+      "Deterministic runtime started only after the task-understanding handoff."
+    ]
+  }
+}

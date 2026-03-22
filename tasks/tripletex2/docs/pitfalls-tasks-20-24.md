@@ -43,8 +43,8 @@ Check 5 (2 points) = **PDF attachment on voucher**. The production agent never c
 
 ## Task 21 — Onboard Employee from Offer Letter
 
-### CRITICAL: Task identity mismatch
-**Production tx_task_id=21 is "onboard employee from offer letter", NOT "correct ledger errors".** The tripletex2 codebase maps task 21 to the wrong task type. The strategy file `correct-ledger-errors.ts` and the `active-strategies.json` pin are completely wrong.
+### Task identity (fixed 2026-03-22)
+**Production tx_task_id=21 is "onboard employee from offer letter".** Strategy pin, task.ts, classifier, and legacy bridge have been remapped. Old correct-ledger-errors files removed.
 
 Task 21 vs Task 19:
 - Task 19 = contract-based onboarding (arbeidskontrakt, STYRK codes, 15 checks, 22 max)
@@ -201,7 +201,7 @@ Check 3 (2.5 points) = **missing VAT correction approach**. Also has a fundament
 2. **NEVER hardcode account numbers or amounts.** The prompt parameters vary on every single run. Nine production runs had completely different sets of accounts and amounts.
 3. **NEVER hardcode vatType=1 on 7xxx expense accounts.** Many 7xxx accounts are locked to vatType=0, causing 422 errors.
 4. **NEVER re-fetch voucher data that was already returned.** The initial `GET /ledger/voucher` with nested expansion provides all account IDs needed.
-5. **Do NOT assume task 21 and task 24 are the same.** They share the name "Correct ledger errors" but have different txTaskIds and different seed data in production.
+5. **Task 21 is NOT ledger errors.** Task 21 is "Onboard employee from offer letter" (tilbudsbrev). Only task 24 is "Correct ledger errors". The old mislabeling was fixed 2026-03-22.
 6. **Watch for the VAT detection trap.** Two vouchers exist with same amountGross on the prompt account — one WITH 2710 posting (correct), one WITHOUT (error). Must filter for vouchers WITHOUT a 2710 posting.
 
 ### Correct VAT correction approach
