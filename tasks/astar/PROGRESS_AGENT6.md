@@ -4249,6 +4249,10 @@
 | **0.0001** | **79.67** | **84.16** |
 - Floor sweep converges around f=0.0001-0.0003
 - Agent1's m=0.30 (trust particles more) slightly hurts our ensemble (79.29 vs 79.63 at same floor)
+- Agent1's original coefficient trick: implemented but zero effect on probe3/dev5
+  - With rank=3 and 2-4 training rounds per fold, SVD reconstruction is already near-exact
+  - The trick helps most when rank << training rounds (agent1 uses r=5 with 7 rounds)
+  - Correctly implemented and ready for full-tier where it may matter
 
 ### Observation-frequency blending sweep:
 | obs_temp | Probe3 |
