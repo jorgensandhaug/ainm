@@ -44,6 +44,19 @@ Maximize hybrid score: `0.7 * detection_mAP@50 + 0.3 * classification_mAP@50`
 - But still weaker than YOLO contextual classification
 - Crop-level fusion doesn't improve hybrid score
 
+### YOLO26l (smaller backbone)
+- Solo: Hybrid=0.8675 (weaker than 26x as expected)
+- Mixed ensemble (3×26x + 1×26l = 392MB): 0.9026 (worse than 3×26x = 0.9047)
+- Conclusion: 26l too weak to help ensemble despite size savings
+
+### Best submittable configuration (420MB limit)
+**3 models × YOLO26x = 360MB:**
+1. `runs/960_confcurr_s2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt` (114MB)
+2. `runs/1280_confcurr_s2_e18_img1280_b2_lr8e-05_mix0_cp0_seed123/weights/best.pt` (114MB)
+3. `runs/s99_confcurr_s2_e20_img960_b4_lr6e-05_mix0_cp0_seed99/weights/best.pt` (114MB)
+**Inference:** scales=[640,960,1280], flip=True, WBF IoU=0.7
+**Score:** Hybrid(present)=**0.9047**
+
 ## Single Model Baselines
 
 **960px model:** `runs/960_confcurr_s2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt` (120 MB)

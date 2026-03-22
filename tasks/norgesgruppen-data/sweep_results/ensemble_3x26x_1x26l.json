@@ -1,0 +1,23 @@
+{
+  "weights": [
+    "runs/960_confcurr_s2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt",
+    "runs/1280_confcurr_s2_e18_img1280_b2_lr8e-05_mix0_cp0_seed123/weights/best.pt",
+    "runs/s99_confcurr_s2_e20_img960_b4_lr6e-05_mix0_cp0_seed99/weights/best.pt",
+    "runs/y26l_finetune_e18_img960_b8_lr6e-05_mix0_cp0_seed42/weights/best.pt"
+  ],
+  "scales": [
+    640,
+    960,
+    1280
+  ],
+  "flip": true,
+  "wbf_iou": 0.7,
+  "n_predictions": 74831,
+  "metrics": {
+    "detection_ap50": 0.9408882461194764,
+    "cls_present": 0.8133049994088539,
+    "cls_all": 0.635108960212532,
+    "hybrid_present": 0.9026132721062896,
+    "hybrid_all": 0.8491544603473931
+  }
+}
