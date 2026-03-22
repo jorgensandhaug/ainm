@@ -124,6 +124,9 @@ Maximize **Hybrid Score = 0.7 * detection_mAP@0.5 + 0.3 * classification_mAP@0.5
 | **v2** | **99/133/200/300/400/500** | **0.943** | **0.633** | **0.850** |
 | v3 | 7/23/47/71/97/113 | 0.939 | 0.622 | 0.844 |
 | v4 | 314/271/618/577/433/859 | 0.939 | 0.634 | 0.847 |
+| v2-fulltrain | v2 stage 5 → fulltrain final stage | 0.958* | 0.661* | 0.869* |
+
+*Note: v2-fulltrain score is biased (val images in training). Use for submission only.
 
 ## Key Findings
 1. The 6-stage curriculum pipeline is the best training strategy
