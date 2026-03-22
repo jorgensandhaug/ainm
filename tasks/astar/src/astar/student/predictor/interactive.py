@@ -96,6 +96,10 @@ from astar.student.predictor.hazard_posterior_v20 import (
     HazardPosteriorV20Predictor,
     hazard_posterior_v20_spec_for_model_name,
 )
+from astar.student.predictor.hazard_posterior_v21 import (
+    HazardPosteriorV21Predictor,
+    hazard_posterior_v21_spec_for_model_name,
+)
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
@@ -639,6 +643,22 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    hazard_posterior_v21 = hazard_posterior_v21_spec_for_model_name(normalized)
+    if hazard_posterior_v21 is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        (alpha,) = hazard_posterior_v21
+        predictor = HazardPosteriorV21Predictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=(
+                list(historical_round_ids) if historical_round_ids is not None
+                else sorted(rd.name for rd in workspace_paths.raw_dir.joinpath("replays").glob("*") if rd.is_dir())
+            ),
+            policy_name=resolved_policy_name, samples_per_round=samples_per_round,
+            alpha=alpha,
+            model_name=f"hazard_posterior_v21__policy={resolved_policy_name}__alpha={int(alpha*100)}",
+        )
+        return RoundPredictorAdapter(predictor=predictor, name=predictor.name)
     hazard_posterior_v20 = hazard_posterior_v20_spec_for_model_name(normalized)
     if hazard_posterior_v20 is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
