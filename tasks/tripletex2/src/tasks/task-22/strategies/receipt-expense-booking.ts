@@ -796,17 +796,22 @@ function looksLikeTravel(normalizedEvidence: string): boolean {
 }
 
 function looksLikeMeetingExpense(normalizedEvidence: string): boolean {
-  return /(kaffemote|kaffemate|coffee.?meeting|intern.?mote|kurs|seminar)/.test(
+  return /(kaffemote|kaffemate|kundemote|coffee.?meeting|intern.?mote|kurs|seminar)/.test(
     normalizedEvidence,
   );
 }
 
 function looksLikeRepresentation(normalizedEvidence: string): boolean {
-  // Kaffemøte is a meeting expense (6860), NOT representation (7360).
+  // Meeting expenses (6860) and travel expenses (7140) are NOT representation.
+  // "bedriftskort" is a payment method, not an expense category — excluded.
+  // Bare "lunsj" is too ambiguous — only "forretningslunsj" is representation-specific.
   if (looksLikeMeetingExpense(normalizedEvidence)) {
     return false;
   }
-  return /(forretningslunsj|representasjon|restaurant|middag|lunsj|bedriftskort)/.test(
+  if (looksLikeTravel(normalizedEvidence)) {
+    return false;
+  }
+  return /(forretningslunsj|representasjon|restaurant|middag)/.test(
     normalizedEvidence,
   );
 }
@@ -816,6 +821,8 @@ function normalizeText(value: string): string {
     .normalize("NFKD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
+    .replace(/ø/g, "o")
+    .replace(/æ/g, "ae")
     .trim();
 }
 
