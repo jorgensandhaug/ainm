@@ -1,6 +1,6 @@
 {
-  "customerOrganizationNumber": "991882502",
-  "lineDescription": "Opplæring",
-  "amountExcludingVatNok": 13100,
+  "customerOrganizationNumber": "905570862",
+  "lineDescription": "Test without vatType",
+  "amountExcludingVatNok": 100000,
   "creditNoteDate": "2026-03-22"
 }

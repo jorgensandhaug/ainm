@@ -1,6 +1,6 @@
 {
   "schemaVersion": "tripletex2.research-candidate-store.v1",
-  "updatedAt": "2026-03-21T21:38:12.930Z",
+  "updatedAt": "2026-03-22T02:29:50.998Z",
   "entries": [
     {
       "candidateId": "06.create-employee.v1",
@@ -26,6 +26,29 @@
       ],
       "createdAt": "2026-03-21T20:26:42.285Z",
       "updatedAt": "2026-03-21T20:53:36.324Z"
+    },
+    {
+      "candidateId": "10.issue-full-credit-note.v1",
+      "taskId": "10",
+      "strategyId": "10.issue-full-credit-note.v1",
+      "strategyPath": "src/tasks/task-10/strategies/issue-full-credit-note.ts",
+      "strategyName": "Issue exact full credit note",
+      "status": "sandbox-pass",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/packets/task-10/task-10-packet-2026-03-22T02-21-54-601Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/verifications/task-10/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": true,
+        "apiCallCount": 2,
+        "baselineCallBudget": 2,
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/verifications/task-10/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z.json"
+      },
+      "notes": [
+        "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 10 --strategy 10.issue-full-credit-note.v1\nExit code: 1\nDuration: 6906ms\nresearch sandbox reset summary: {\"taskId\":\"10\",\"strategyId\":\"10.issue-full-credit-note.v1\",\"scannedFiles\":21,\"discoveredRefs\":6,\"completed\":3,\"failed\":3,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-22-23-012Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet.",
+        "Challenger produced the expected sandbox state within the current baseline call budget."
+      ],
+      "createdAt": "2026-03-22T02:22:23.012Z",
+      "updatedAt": "2026-03-22T02:29:50.998Z"
     },
     {
       "candidateId": "11.order-invoice-prepaid.v1",
