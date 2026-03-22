@@ -3624,3 +3624,11 @@ Successfully submitted predictions for round #19 (597e60cf-d1a1-4627-ac4d-2a61da
 - Trained GT-crossseed ensemble on ALL 8 historical rounds
 - Used saved query results as evidence with cross-seed features
 - All 5 seeds submitted: status='accepted'
+
+### Additional experiments after live submission
+
+- ev40 crossseed: **88.50** — same as ev30 (88.60), curve fully flat
+- Logit-space targets: **67.68 (ev1), 71.62 (ev15)** — MUCH worse, per-class regression is incompatible with logit parameterization
+- V2 heatmap features: slightly negative (-0.1 to -0.14)
+
+**Conclusion: The cross-seed probability-target ensemble at ev30 (88.60) represents the ceiling for this architecture.** Further gains require fundamentally different model structure, not more parameter tuning.
