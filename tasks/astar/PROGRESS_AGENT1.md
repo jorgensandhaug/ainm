@@ -1667,3 +1667,34 @@ All 6 configs score 88.11 - confirming flat optimum:
 - **Attempted but failed**: 20+ post-processing approaches, meta-ensemble, OOD detection
 - **Score trajectory**: 79.19 → 83.79 → 87.73 → **88.11**
 - **R7 remains the bottleneck** at 73.78 (others average 90.01)
+
+#### Episode Seed Robustness (v75)
+| Seed | Score | Delta |
+|------|-------|-------|
+| 0 | **88.11** | baseline |
+| 1 | 87.13 | -0.98 |
+| 2 | 87.12 | -0.99 |
+~1 point variation. Seed 0 consistently best (matches Agent7 finding).
+
+#### Multi-Sample Ensemble (s=2,4,6,8 geometric mean)
+- ffam_mode_v248: blend=73.20 vs best_individual(s4)=73.42 → WORSE
+- ffam_ensemble_v75: blend=73.98 vs best_individual(s4)=74.14 → WORSE
+- Models trained on same training data have CORRELATED errors → no diversity benefit
+
+### Final Architecture Analysis
+
+**Why 88.11 is the ceiling for this architecture:**
+1. **R7 (OOD, 73.78)** drags mean down. Would need R7→85 for overall 89.5+
+2. R7's dynamics have NO similar training round - the regime manifold fails
+3. All post-processing (30+ variants) is net negative
+4. Weaker models (v15=83.8, Agent2=84, Agent3=65) have CORRELATED errors with ffam
+5. Temperature/calibration already optimal (T=1.0)
+6. Ensemble weights flat at mode_weight=0.82-0.84, adaptive_scale=1.8-2.0
+
+**To go beyond 88.11 would require:**
+1. More rounds with ground truth data
+2. A model architecture that handles OOD rounds fundamentally differently
+3. Direct simulation modeling (learning the simulator's parameters)
+
+### Complete Score Trajectory (Agent1)
+79.19 → 83.79 → 87.73 → 88.06 → **88.11** (+8.92 total, +11.3%)
