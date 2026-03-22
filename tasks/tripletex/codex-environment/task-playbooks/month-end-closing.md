@@ -253,6 +253,16 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - 14 production runs total: 12 optimal, 1 blocked (creds), 1 suboptimal (Run 8, batch-create fix applied in Run 11)
 - Confirmed language variants: nb, nn, en, es, fr, pt, de (all 7 produce correct results)
 
+### Run 15 (1720→6300 + 6020→1029 variant, Norwegian prompt, 3 calls — optimal)
+- Task: March 2026, prepaid 10150 (1720→6300), depreciation 120100/4yr (6020→1029), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET (accounts) + 1 POST (create 1029) + 1 POST (combined 6-line voucher)
+- 0 errors, optimal for 6020→1029 variant
+- Missing: only 1029. Existing: 1720, 5000, 2900, 6020, 6300
+- Depreciation: Math.round((120100/48)*100)/100 = 2502.08
+- 8th optimal run for 6020→1029 variant (Runs 2, 5, 6, 7, 9, 10, 13, 15)
+- 2nd production confirmation of 1720→6300 + 6020→1029 combination (first was Run 5)
+- 15 production runs total: 13 optimal, 1 blocked (creds), 1 suboptimal (Run 8, batch-create fix applied in Run 11)
+
 ### Sandbox confirmations
 - `account.number` + `account.name` without `id` → 422 (id is mandatory)
 - Combined 6-line voucher works, 2-call path verified when all accounts exist
@@ -269,3 +279,4 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - 1700→6300 + 6010→1249 with 156750/10yr (dep 1306.25) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero
 - Spanish "periodificación de la cuenta 1700 a gasto" maps to 1700→6300 (confirmed Run 14)
 - 1700→6300 + 6030→1209 with 232650/6yr (dep 3231.25) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero
+- 1720→6300 + 6020→1029 with 120100/4yr (dep 2502.08) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero

@@ -232,6 +232,15 @@ Log all non-zero `balanceOut` accounts. The voucher postings are balanced by con
 - 14 production runs total: 12 optimal, 1 blocked (creds), 1 suboptimal (Run 7, 4 calls — batch-create fix applied in Run 10)
 - Confirmed language variants: nb, nn, en, es, fr, pt, de (all 7 produce correct results)
 
+### Run 14 (2026-03-22, 1720→6300 + 6020→1029 variant, Norwegian prompt, 3 calls)
+- Task: March 2026, prepaid 10150 (1720→6300), depreciation 120100/4yr (6020→1029), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET (accounts) + 1 POST (create 1029) + 1 POST (combined 6-line voucher)
+- 0 errors. Depreciation: Math.round((120100/48)*100)/100 = 2502.08
+- Missing account: only 1029. Existing: 1720, 5000, 2900, 6020, 6300
+- 8th optimal run for 6020→1029 variant (Runs 1, 4, 5, 6, 8, 9, 12, 14)
+- 2nd production confirmation of 1720→6300 + 6020→1029 combination (first was Run 4)
+- 15 production runs total: 13 optimal, 1 blocked (creds), 1 suboptimal (Run 7, 4 calls — batch-create fix applied in Run 10)
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `account: { number: 5000 }` without `id` → 422 "postings.account.name: Kan ikke være null."
@@ -255,3 +264,4 @@ Log all non-zero `balanceOut` accounts. The voucher postings are balanced by con
   - 1700→6300 + 6010→1249 with 156750/10yr (dep 1306.25) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero, voucher deleted after verification
   - 1700→6300 + 6020→1029 with 147250/5yr (dep 2454.17) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero, voucher deleted after verification
   - 1700→6300 + 6030→1209 with 232650/6yr (dep 3231.25) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero, voucher deleted after verification (Spanish prompt variant)
+  - 1720→6300 + 6020→1029 with 120100/4yr (dep 2502.08) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero, voucher deleted after verification
