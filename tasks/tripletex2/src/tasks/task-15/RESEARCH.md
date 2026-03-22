@@ -32,15 +32,35 @@ Update it after any meaningful frontier import, sandbox verification, promotion 
 ### Strongest known branch (sandbox-verified)
 
 **v2 challenger: `15.register-hours-direct-invoice.v2`**
-- Non-chargeable branch: **6 calls** (down from 7 in v1)
-- Request path: GET /employee → GET /project → GET /activity/>forTimeSheet → POST /timesheet/entry → GET /ledger/vatType → POST /invoice
-- Key insight: POST /invoice accepts embedded orders with project linkage, customer, and order lines, replacing the two-step POST /order + PUT /order/:invoice path
-- Sandbox-verified 2026-03-22: timesheet entry + invoice readback both passed, amountExcludingVatCurrency=9600 (8h * 1200 NOK/hr)
+
+Key change: POST /invoice with embedded order replaces POST /order + PUT /order/:invoice (saves 1 call).
+
+#### Sandbox-verified branches
+
+| Branch | Calls | Date | Input | Result |
+|--------|-------|------|-------|--------|
+| Non-chargeable, single-day | 6 | 2026-03-22 | Prosjektadministrasjon, 8h, 1200 NOK/hr | pass, amount=9600 |
+| Chargeable, single-day | 7 | 2026-03-22 | Fakturerbart arbeid, 5h, 1550 NOK/hr | pass, amount=7750, hourlyRate=1550 |
+| Non-chargeable, multi-day (39h) | 7 | 2026-03-22 | Prosjektadministrasjon, 39h, 1450 NOK/hr | pass, amount=56550, split 24+15 |
+
+#### invoiceDueDate fix (2026-03-22)
+
+- v2 originally hardcoded `+30 days`, which was semantically wrong
+- Fixed to read `customer.invoicesDueIn` from the already-expanded project/customer response (no extra call)
+- Sandbox-verified: computed dueDate matches PUT /order/:invoice auto-derived dueDate exactly (14 days for this sandbox customer)
+- Default fallback: 14 days if `invoicesDueIn` is missing
+
+#### Missing-bank-account recovery
+
+- **Not independently sandbox-proven**: the sandbox already has a valid bank account (1920: 12345678903), so the error path cannot be triggered without destructive setup
+- The recovery code is **structurally identical** to v1: same error message detection (`MISSING_BANK_ACCOUNT_MESSAGE`), same account resolution (`chooseInvoiceBankAccount`), same repair (`makeValidBankAccountNumber` + PUT /ledger/account), same retry pattern
+- The only difference is the retry calls `createDirectInvoice` (POST /invoice) instead of `createInvoiceFromOrder` (PUT /order/:invoice)
+- Risk is low but the path is unproven
 
 ### v1 baseline: `15.register-hours-then-project-order-invoice.v1`
 - Non-chargeable branch: **7 calls**
-- Request path: GET /employee → GET /project → GET /activity/>forTimeSheet → POST /timesheet/entry → GET /ledger/vatType → POST /order → PUT /order/:invoice
-- Sandbox-verified 2026-03-22: all assertions passed, amountExcludingVatCurrency=9600
+- Sandbox-verified 2026-03-22: all assertions passed
+- Does NOT have the `invoiceDueDate` issue (PUT /order/:invoice auto-derives it)
 
 ### Score / correctness ceiling
 
@@ -51,41 +71,47 @@ Update it after any meaningful frontier import, sandbox verification, promotion 
 
 ### Call-budget frontier
 
-- Non-chargeable branch: 6 calls (v2) vs 7 calls (v1)
-- Chargeable branch: ~9-10 calls (v2) vs ~10-11 calls (v1) — same 1-call reduction
-- Multi-day split (>24h): +1 call per extra date chunk
-- Bank account repair branch: +2 calls when missing bank account
+| Branch | v1 calls | v2 calls | Savings |
+|--------|----------|----------|---------|
+| Non-chargeable, single-day | 7 | 6 | -1 |
+| Chargeable, single-day (existing rate) | 8 | 7 | -1 |
+| Chargeable, single-day (new rate holder + rate) | 10 | 9 | -1 |
+| Multi-day split (>24h) | +1/extra day | +1/extra day | same |
+| Bank account repair | +2 | +2 | same |
 
 ### Production run evidence consulted
 
-- `prod-2026-03-21-214315010Z-edea42c4` — French, "set fixed price 75%", 3/4 normalized, 4/4 checks (noisy attribution to tx_task_id 15)
+- `prod-2026-03-21-214315010Z-edea42c4` — French, "set fixed price 75%", 3/4 normalized, 4/4 checks
 - `prod-2026-03-21-190544892Z-d64d5813` — Portuguese, "set fixed price 50%", 3/4 normalized, 4/4 checks
 - `prod-2026-03-21-183449812Z-49332405` — Portuguese, "correct ledger errors", 3/4 normalized, 4/4 checks
 - `prod-2026-03-21-171706513Z-d961e89d` — Portuguese, "set fixed price 50%", 3.3333/4 normalized, 4/4 checks (best scoring run)
 - `prod-2026-03-21-165237770Z-a63caffa` — 2.64/4 normalized, 4/4 checks
-- Note: all attributed runs are for different task types (fixed price, ledger errors), not "register hours" — tx_task_id attribution is noisy
+- Note: all attributed runs are for different task types — tx_task_id 15 attribution is noisy
 
 ### Anti-patterns / dead ends to avoid
 
-- Do NOT drop GET /ledger/vatType even though sandbox 0%-only accounts accept omitted vatType — production taxable accounts need it
-- Do NOT try to skip POST /timesheet/entry — the task requires registering hours
+- Do NOT drop GET /ledger/vatType — production taxable accounts need it
+- Do NOT skip POST /timesheet/entry — the task requires registering hours
 - Do NOT send projectChargeableHours > 24 in a single entry
 - Do NOT attempt same-day duplicate entries for same employee+project+activity
-- Do NOT try to embed projectSpecificRates inside PUT /project/hourlyRates — these are separate writes
-- POST /invoice requires `invoiceDueDate` (unlike the PUT /order/:invoice path which auto-computes it)
+- Do NOT hardcode invoiceDueDate — read `customer.invoicesDueIn` from expanded project data
+- POST /invoice requires `invoiceDueDate` (unlike PUT /order/:invoice which auto-computes it)
+- POST /invoice requires `invoiceDueDate` to not be null (422 validation error)
 
 ## Verification Infrastructure
 
 - Verification plan: `task-15.register-hours-project-invoice.v1` in `src/research/verification-plan.ts`
-- Proof input: `research/proofs/task-15/task-15-proof-input.json`
+- Proof inputs:
+  - `research/proofs/task-15/task-15-proof-input.json` (non-chargeable, 8h)
+  - `research/proofs/task-15/task-15-proof-input-chargeable.json` (chargeable, 5h)
+  - `research/proofs/task-15/task-15-proof-input-multiday.json` (non-chargeable, 39h multi-day)
 - Checks: timesheet-entry-readback (project, activity, hours) + invoice-readback (customer, amount, invoiceNumber)
 - Baseline call budget: 7
 - Queue config: `proofInputPath` + `verificationPlanId` + `baselineCallBudget` all set
 
 ## Next Improving-Agent Update Checklist
 
-- [ ] Verify the v2 challenger on the chargeable branch (use `Fakturerbart arbeid` activity in proof input)
-- [ ] Verify the v2 challenger with >24 hour multi-day split
-- [ ] Consider whether POST /invoice handles the missing-bank-account error the same way as PUT /order/:invoice
-- [ ] If v2 is promoted to active, update the strategy pin in active-strategies.json
-- [ ] Investigate whether the leaderboard scoring formula is API-call-count-based — if so, the 7→6 reduction should improve the normalized score
+- [ ] Promote v2 to active if a production run confirms score improvement
+- [ ] If promoting, update strategy pin in active-strategies.json and reduce baselineCallBudget to 6
+- [ ] Consider destructive sandbox setup to test the missing-bank-account recovery path for POST /invoice
+- [ ] Investigate whether the scoring formula is API-call-count-based or latency-based

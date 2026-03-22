@@ -1,6 +1,6 @@
 {
   "schemaVersion": "tripletex2.research-candidate-store.v1",
-  "updatedAt": "2026-03-22T02:30:33.703Z",
+  "updatedAt": "2026-03-22T02:41:29.849Z",
   "entries": [
     {
       "candidateId": "06.create-employee.v1",
@@ -49,20 +49,20 @@
       "strategyPath": "src/tasks/task-15/strategies/register-hours-direct-invoice.ts",
       "strategyName": "Register hours then direct invoice",
       "status": "sandbox-pass",
-      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/packets/task-15/task-15-packet-2026-03-22T02-30-29-646Z.json",
-      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-30-33-703Z/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-30-33-703Z.json",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/packets/task-15/task-15-packet-2026-03-22T02-40-54-692Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.json",
       "latestSandboxVerdict": {
         "correctnessPassed": true,
         "withinBudget": true,
-        "apiCallCount": 6,
+        "apiCallCount": 7,
         "baselineCallBudget": 7,
-        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-30-33-703Z/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-30-33-703Z.json"
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.json"
       },
       "notes": [
         "Challenger produced the expected sandbox state within the current baseline call budget."
       ],
       "createdAt": "2026-03-22T02:30:33.703Z",
-      "updatedAt": "2026-03-22T02:30:33.703Z"
+      "updatedAt": "2026-03-22T02:41:29.849Z"
     },
     {
       "candidateId": "15.register-hours-then-project-order-invoice.v1",
