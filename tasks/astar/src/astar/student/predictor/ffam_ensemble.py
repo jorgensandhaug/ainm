@@ -46,6 +46,7 @@ class FFAMEnsembleConfig(BaseModel):
     adaptive_blend: bool = False
     adaptive_scale: float = Field(default=1.0, ge=0.0)
     blend_space: str = "probability"  # "probability" or "logodds"
+    post_sharpen_power: float = Field(default=1.0, gt=0.0)
 
 
 FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
@@ -393,6 +394,57 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         blend_space="logodds",
         policy_name="exploration_r3_settle_8x",
     ),
+    # v60-v65: Post-sharpening power sweep (on top of v31's exact setup)
+    "ffam_ensemble_v60": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v60",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        post_sharpen_power=1.02,
+    ),
+    "ffam_ensemble_v61": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v61",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        post_sharpen_power=1.05,
+    ),
+    "ffam_ensemble_v62": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v62",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        post_sharpen_power=1.08,
+    ),
+    "ffam_ensemble_v63": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v63",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        post_sharpen_power=1.12,
+    ),
+    "ffam_ensemble_v64": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v64",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        post_sharpen_power=1.15,
+    ),
     # v33-v38: Log-odds sweep (BEST DIRECTION!)
     "ffam_ensemble_v33": FFAMEnsembleConfig(
         model_name="ffam_ensemble_v33",
@@ -506,6 +558,7 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
     adaptive_blend: bool = False
     adaptive_scale: float = Field(default=1.0, ge=0.0)
     blend_space: str = "probability"
+    post_sharpen_power: float = Field(default=1.0, gt=0.0)
 
     @classmethod
     def fit_named_from_workspace(
@@ -557,6 +610,7 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
             adaptive_blend=config.adaptive_blend,
             adaptive_scale=config.adaptive_scale,
             blend_space=config.blend_space,
+            post_sharpen_power=config.post_sharpen_power,
         )
 
     def _blend_predictions(
@@ -624,6 +678,9 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
                 combined = self._blend_logodds(mode_pred, knn_pred)
             else:
                 combined = self._blend_predictions(mode_pred, knn_pred)
+            if self.post_sharpen_power != 1.0:
+                sharpened = np.power(np.clip(combined, 1e-10, 1.0), self.post_sharpen_power)
+                combined = sharpened / np.sum(sharpened, axis=-1, keepdims=True)
             blended[seed_index] = apply_probability_floor(combined, self.probability_floor)
 
         return PredictionBundle(
@@ -665,6 +722,7 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
             "adaptive_blend": self.adaptive_blend,
             "adaptive_scale": self.adaptive_scale,
             "blend_space": self.blend_space,
+            "post_sharpen_power": self.post_sharpen_power,
             "mode_checkpoint_path": str(mode_cp),
             "knn_checkpoint_path": str(knn_cp),
         }
@@ -685,4 +743,5 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
             adaptive_blend=meta.get("adaptive_blend", False),
             adaptive_scale=meta.get("adaptive_scale", 1.0),
             blend_space=meta.get("blend_space", "probability"),
+            post_sharpen_power=meta.get("post_sharpen_power", 1.0),
         )

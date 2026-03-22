@@ -1,9 +1,9 @@
 {
-  "fetched_at": "2026-03-22T08:32:33.078749Z",
+  "fetched_at": "2026-03-22T13:40:31.232979Z",
   "round": {
     "id": "b3a0be6b-b48b-419d-916a-b7a77fa58c4d",
     "round_number": 21,
-    "status": "active",
+    "status": "completed",
     "map_width": 40,
     "map_height": 40,
     "seeds_count": 5,

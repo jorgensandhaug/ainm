@@ -778,6 +778,9 @@ class FFAMModePredictor(BaseRoundPredictor):
     evidence_smooth_sigma: float = Field(default=0.0, ge=0.0)
     evidence_propagation_beta_scale: float = Field(default=0.0, ge=0.0)
     include_spatial_features: bool = False
+    class_logit_bias: np.ndarray = Field(
+        default_factory=lambda: np.zeros(CLASS_COUNT, dtype=np.float64),
+    )
     mode_feature_names: tuple[str, ...] = ()
     posterior_input_names: tuple[str, ...] = ()
     mode_round_ids: tuple[str, ...] = ()
@@ -1184,6 +1187,7 @@ class FFAMModePredictor(BaseRoundPredictor):
             evidence_smooth_sigma=config.evidence_smooth_sigma,
             evidence_propagation_beta_scale=config.evidence_propagation_beta_scale,
             include_spatial_features=config.include_spatial_features,
+            class_logit_bias=np.asarray(config.class_logit_bias, dtype=np.float64),
             mode_feature_names=tuple(mode_feature_names),
             posterior_input_names=tuple(posterior_input_names),
             mode_round_ids=tuple(mode_round_ids),
@@ -2006,6 +2010,11 @@ class FFAMModePredictor(BaseRoundPredictor):
                 smoothed = np.clip(smoothed, self.probability_floor, 1.0)
                 smoothed = smoothed / np.sum(smoothed, axis=-1, keepdims=True)
                 prediction = smoothed
+            if np.any(self.class_logit_bias != 0.0):
+                logits_for_bias = np.log(np.clip(prediction, 1e-10, 1.0))
+                logits_for_bias = logits_for_bias + self.class_logit_bias[None, None, :]
+                prediction = np.exp(logits_for_bias)
+                prediction = prediction / np.sum(prediction, axis=-1, keepdims=True)
             predictions_by_seed[seed_index] = apply_probability_floor(prediction, self.probability_floor)
         return PredictionBundle(
             round_id=round_detail.id,
