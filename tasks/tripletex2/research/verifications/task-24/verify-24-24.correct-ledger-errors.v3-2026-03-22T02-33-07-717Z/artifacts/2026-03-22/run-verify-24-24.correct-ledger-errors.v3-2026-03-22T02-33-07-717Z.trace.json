@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "verify-24-24.correct-ledger-errors.v3-2026-03-22T02-33-07-717Z",
+  "sidecarId": "trace-1",
+  "kind": "sanitized-trace",
+  "createdAt": "2026-03-22T02:33:07.720Z",
+  "payload": {
+    "notes": [
+      "Captured 2 Tripletex API calls."
+    ],
+    "trace": [
+      {
+        "durationMs": 299,
+        "index": 1,
+        "method": "GET",
+        "path": "/ledger/account",
+        "query": {
+          "fields": "*",
+          "number": "6500,6540,7100,6300,2710"
+        },
+        "requestSummary": "lookup account by number, fields",
+        "responseSummary": "account list 5 items",
+        "status": 200
+      },
+      {
+        "durationMs": 251,
+        "index": 2,
+        "method": "GET",
+        "path": "/ledger/voucher",
+        "query": {
+          "count": 1000,
+          "dateFrom": "2026-01-01",
+          "dateTo": "2026-03-01",
+          "fields": "id,number,date,description,reverseVoucher(id),postings(id,row,date,description,account(id,number),supplier(id),customer(id),employee(id),project(id),product(...",
+          "sorting": "date"
+        },
+        "requestSummary": "lookup voucher by dateFrom, dateTo, count, sorting, fields",
+        "responseSummary": "voucher list 118 items",
+        "status": 200
+      }
+    ]
+  }
+}

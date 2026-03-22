@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-result.v1",
+  "completedAt": "2026-03-22T02:33:08.511Z",
+  "createdAt": "2026-03-22T02:33:07.720Z",
+  "runId": "verify-24-24.correct-ledger-errors.v3-2026-03-22T02-33-07-717Z",
+  "taskId": "24",
+  "runtimeStatus": "failed",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/research/verifications/task-24/verify-24-24.correct-ledger-errors.v3-2026-03-22T02-33-07-717Z/artifacts/2026-03-22/run-verify-24-24.correct-ledger-errors.v3-2026-03-22T02-33-07-717Z.json",
+  "sidecarPaths": [
+    "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/research/verifications/task-24/verify-24-24.correct-ledger-errors.v3-2026-03-22T02-33-07-717Z/artifacts/2026-03-22/run-verify-24-24.correct-ledger-errors.v3-2026-03-22T02-33-07-717Z.trace.json"
+  ]
+}
