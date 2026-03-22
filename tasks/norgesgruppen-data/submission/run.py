@@ -146,14 +146,15 @@ def main():
             boxes = unletterbox(boxes, scale, pad_w, pad_h, src_w, src_h)
 
         for i in range(len(boxes)):
-            x1, y1, x2, y2 = boxes[i]
-            if x2 <= x1 or y2 <= y1:
+            x1, y1, x2, y2 = float(boxes[i][0]), float(boxes[i][1]), float(boxes[i][2]), float(boxes[i][3])
+            w = round(x2 - x1, 1)
+            h = round(y2 - y1, 1)
+            if w <= 0 or h <= 0:
                 continue
             predictions.append({
                 "image_id": image_id,
                 "category_id": int(class_ids[i]),
-                "bbox": [round(float(x1), 1), round(float(y1), 1),
-                         round(float(x2 - x1), 1), round(float(y2 - y1), 1)],
+                "bbox": [round(x1, 1), round(y1, 1), w, h],
                 "score": round(float(scores[i]), 6),
             })
 
