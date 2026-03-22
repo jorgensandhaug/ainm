@@ -3753,3 +3753,34 @@ query_residual_v11 training took 60+ min and didn't complete before round closed
 - These should be approximately equivalent (both are single year-50 observations)
 - The only difference: viewports come from DIFFERENT stochastic runs per cell
   - This is minor because cell outcomes are ~independent given round parameters
+
+### 2026-03-22T07:15Z — Complete 16-round leaderboard + pre-trained submission
+
+**FINAL LEADERBOARD (16-round LOO, 10 models):**
+
+| Rank | Model | ev | Score |
+|------|-------|-----|-------|
+| 1 | Trajectory + crossseed | 15 | **92.16** |
+| 2 | Transition + crossseed | 15 | 91.21 |
+| 3 | Evidence (no crossseed) | 15 | 90.40 |
+| 4 | Crossseed ensemble | 15 | 90.13 |
+| 5 | Spatial + crossseed | 15 | 90.12 |
+| 6 | Focused + crossseed | 15 | 90.01 |
+| 7 | Crossseed ensemble | 5 | 89.29 |
+| 8 | Crossseed ensemble | 1 | 87.48 |
+| 9 | Evidence (no crossseed) | 1 | 86.13 |
+| 10 | Trajectory + crossseed | 1 | 83.91 |
+
+**Pre-trained model ready:**
+- Script: `scripts/agent4_pretrain_and_serve.py`
+- Models saved: 32MB LGB + 3MB CatBoost
+- Load time: 0.9s
+- Prediction time: <1s per seed
+- For next round: `serve --round-id ROUND_ID` (total ~30s)
+
+**Key insight for live rounds:**
+- Live is closest to ev=1 (single composite observation from 9 viewports)
+- Best ev1 model: crossseed at 87.48
+- Evidence model at ev1: 86.13
+- Trajectory model bad at ev1: 83.91 (needs many replays)
+- For live: use evidence model + crossseed (pre-trained, fast serve)
