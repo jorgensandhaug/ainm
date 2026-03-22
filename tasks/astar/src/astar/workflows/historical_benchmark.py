@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import csv
 import json
-import multiprocessing
-import sys
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from time import perf_counter
 
@@ -15,76 +12,12 @@ from astar.infra.catalog.db import CatalogDB
 from astar.infra.catalog.schema import CatalogEvent
 from astar.infra.serialization.json_utils import to_jsonable
 from astar.policy.interactive import build_interactive_policy
-from astar.student.predictor.hazard_posterior import (
-    hazard_posterior_blend_spec_for_model_name,
-    hazard_posterior_k_neighbors_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v2 import (
-    hazard_posterior_v2_blend_spec_for_model_name,
-    hazard_posterior_v2_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v3 import (
-    hazard_posterior_v3_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v4 import (
-    hazard_posterior_v4_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v5 import (
-    hazard_posterior_v5_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v6 import (
-    hazard_posterior_v6_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v7 import (
-    hazard_posterior_v7_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v10 import (
-    hazard_posterior_v10_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v11 import (
-    hazard_posterior_v11_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v12 import (
-    hazard_posterior_v12_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v13 import (
-    hazard_posterior_v13_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v14 import (
-    hazard_posterior_v14_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v15 import (
-    hazard_posterior_v15_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v16 import (
-    hazard_posterior_v16_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v17 import (
-    hazard_posterior_v17_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v18 import (
-    hazard_posterior_v18_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v19 import (
-    hazard_posterior_v19_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v20 import (
-    hazard_posterior_v20_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v21 import (
-    hazard_posterior_v21_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v22 import (
-    hazard_posterior_v22_spec_for_model_name,
-)
-from astar.student.predictor.ffam_mode_config import resolve_ffam_mode_config
-from astar.student.predictor.hazard_posterior_v8 import (
-    hazard_posterior_v8_spec_for_model_name,
-)
-from astar.student.predictor.hazard_posterior_v9 import (
-    hazard_posterior_v9_spec_for_model_name,
-)
-from astar.student.predictor.interactive import build_online_predictor
+from astar.policy.registry import resolve_policy_name
+from astar.student.predictor.ffam_config import is_ffam_model_name
+from astar.student.predictor.ffam_knn_config import is_ffam_knn_model_name
+from astar.student.predictor.ffam_mode_config import is_ffam_mode_model_name
+from astar.student.predictor.ffam_operator_config import is_ffam_operator_model_name
+from astar.student.predictor.query_residual_config import is_query_residual_model_name
 from astar.workflows.model_eval import (
     ModelSeedEvaluationContext,
     discover_historical_eval_round_ids,
@@ -163,86 +96,21 @@ def _write_summary_csv(path: Path, seed_results: list[HistoricalBenchmarkSeedRes
     return path
 
 
-def _benchmark_mp_context() -> multiprocessing.context.BaseContext:
-    main_module = sys.modules.get("__main__")
-    main_path = getattr(main_module, "__file__", None)
-    if main_path in {None, "<stdin>"}:
-        return multiprocessing.get_context("fork")
-    return multiprocessing.get_context("spawn")
-
-
-def _evaluate_historical_benchmark_round(
-    workspace_root: Path,
-    *,
-    held_out_round_id: str,
-    selected_round_ids: tuple[str, ...],
-    model_name: str,
-    mode: str,
-    policy_name: str,
-    samples_per_round: int,
-    budget: int,
-    resolved_episode_seeds: tuple[int, ...] | None,
-) -> tuple[str, float, list[ModelSeedEvaluationContext]]:
-    paths = WorkspacePaths.from_root(workspace_root)
-    training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
-    evaluation_seeds = [None] if resolved_episode_seeds is None else list(resolved_episode_seeds)
-    round_seconds = 0.0
-    predictor_started_at = perf_counter()
-    online_predictor = (
-        None
-        if mode != "online_interactive"
-        else build_online_predictor(
-            model_name,
-            paths=paths,
-            historical_round_ids=training_round_ids,
-            policy_name=policy_name,
-            samples_per_round=samples_per_round,
-        )
-    )
-    round_seconds += perf_counter() - predictor_started_at
-    round_contexts: list[ModelSeedEvaluationContext] = []
-    for current_episode_seed in evaluation_seeds:
-        evaluation_started_at = perf_counter()
-        round_contexts.extend(
-            evaluate_model_on_round(
-                paths,
-                round_id=held_out_round_id,
-                model_name=model_name,
-                training_round_ids=training_round_ids,
-                mode=mode,
-                policy_name=policy_name if mode == "online_interactive" else None,
-                samples_per_round=samples_per_round,
-                budget=budget,
-                episode_seed=0 if current_episode_seed is None else current_episode_seed,
-                online_predictor=online_predictor,
-            ),
-        )
-        round_seconds += perf_counter() - evaluation_started_at
-    return held_out_round_id, round_seconds, round_contexts
-
-
 def run_historical_benchmark(
     paths: WorkspacePaths,
     *,
     model_name: str,
     round_ids: list[str] | None = None,
     mode: str = "prior_only",
-    policy_name: str = "coverage",
+    policy_name: str = "default",
     samples_per_round: int = 1,
     budget: int = 50,
     episode_seed: int = 0,
-    episode_seed_count: int = 1,
-    jobs: int = 1,
     visualization_policy: str = "top",
     benchmark_name: str | None = None,
 ) -> HistoricalBenchmarkResult:
     started_at = perf_counter()
-    if episode_seed_count < 1:
-        raise ValueError("episode_seed_count must be >= 1")
-    if jobs < 1:
-        raise ValueError("jobs must be >= 1")
     selected_round_ids = discover_historical_eval_round_ids(paths, round_ids)
-    resolved_jobs = min(jobs, len(selected_round_ids))
     if mode == "online_interactive":
         missing_replays = [
             round_id
@@ -259,99 +127,41 @@ def run_historical_benchmark(
             "historical_bucket_prior requires at least two analyzed rounds for holdout eval",
         )
     normalized_model_name = model_name.strip().lower()
-    uses_synthetic_live_dataset = (
-        normalized_model_name == "query_residual"
-        or hazard_posterior_k_neighbors_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_blend_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v2_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v2_blend_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v3_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v4_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v5_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v6_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v7_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v8_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v9_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v10_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v11_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v12_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v13_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v14_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v15_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v16_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v17_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v18_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v19_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v20_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v21_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v22_spec_for_model_name(normalized_model_name) is not None
-        or resolve_ffam_mode_config(normalized_model_name) is not None
-        or normalized_model_name == "hazard_posterior_v10_linear"
-    )
-    resolved_samples_per_round = samples_per_round if uses_synthetic_live_dataset else None
-    if normalized_model_name == "query_residual" and len(selected_round_ids) < 2:
+    if is_query_residual_model_name(model_name) and len(selected_round_ids) < 2:
         raise ValueError("query_residual requires at least two replay-backed analyzed rounds for holdout eval")
+    if mode == "prior_only" and normalized_model_name == "latent_regime":
+        raise ValueError("latent_regime requires mode=online_interactive for historical benchmark")
     if mode == "prior_only" and (
-        normalized_model_name == "latent_regime"
-        or hazard_posterior_k_neighbors_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_blend_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v2_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v2_blend_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v3_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v4_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v5_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v6_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v7_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v8_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v9_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v10_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v11_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v12_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v13_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v14_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v15_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v16_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v17_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v18_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v19_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v20_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v21_spec_for_model_name(normalized_model_name) is not None
-        or hazard_posterior_v22_spec_for_model_name(normalized_model_name) is not None
-        or resolve_ffam_mode_config(normalized_model_name) is not None
-        or normalized_model_name == "hazard_posterior_v10_linear"
+        is_ffam_model_name(model_name)
+        or is_ffam_mode_model_name(model_name)
+        or is_ffam_operator_model_name(model_name)
+        or is_ffam_knn_model_name(model_name)
+        or model_name.strip().lower().startswith("ffam_ensemble")
+        or model_name.strip().lower().startswith("ffam_pooled")
     ):
-        raise ValueError(f"{model_name} requires mode=online_interactive for historical benchmark")
+        raise ValueError("ffam retrieval requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":
         raise ValueError("static_semantic is only supported in mode=prior_only")
     if mode not in {"prior_only", "online_interactive"}:
         raise ValueError(f"unsupported historical benchmark mode: {mode}")
     resolved_policy_name = (
-        None if mode == "prior_only" else build_interactive_policy(policy_name).name
-    )
-    model_suffix = ""
-    if uses_synthetic_live_dataset:
-        model_suffix = f"__samples={samples_per_round}"
-    interactive_suffix = ""
-    resolved_episode_seeds = (
         None
         if mode == "prior_only"
-        else [episode_seed + offset for offset in range(episode_seed_count)]
+        else build_interactive_policy(
+            resolve_policy_name(policy_name, model_name=model_name),
+        ).name
     )
+    interactive_suffix = ""
     if mode != "prior_only":
-        episode_token = (
-            str(episode_seed)
-            if episode_seed_count == 1
-            else f"{resolved_episode_seeds[0]}..{resolved_episode_seeds[-1]}"
-        )
         interactive_suffix = (
             f"__policy={resolved_policy_name}"
+            f"__samples={samples_per_round}"
             f"__budget={budget}"
-            f"__episode_seed={episode_token}"
+            f"__episode_seed={episode_seed}"
         )
 
     run_name = benchmark_name or (
         f"historical__{mode}__{model_name}"
-        f"{model_suffix}"
         f"{interactive_suffix}"
         f"__rounds={len(selected_round_ids)}"
     )
@@ -361,68 +171,37 @@ def run_historical_benchmark(
     summary_jsonl_path = benchmark_dir / "summary.jsonl"
     summary_csv_path = benchmark_dir / "summary.csv"
 
-    contexts_by_key: dict[tuple[str, int, int | None], ModelSeedEvaluationContext] = {}
-    seed_results_by_key: dict[tuple[str, int, int | None], HistoricalBenchmarkSeedResult] = {}
-    per_round_keys: dict[str, list[tuple[str, int, int | None]]] = {}
+    contexts_by_key: dict[tuple[str, int], ModelSeedEvaluationContext] = {}
+    seed_results_by_key: dict[tuple[str, int], HistoricalBenchmarkSeedResult] = {}
+    per_round_keys: dict[str, list[tuple[str, int]]] = {}
     round_evaluation_seconds: dict[str, float] = {}
     round_visualization_seconds: dict[str, float] = {}
     round_mean_scores: list[float] = []
     round_mean_weighted_kls: list[float] = []
 
-    round_payloads: dict[str, tuple[float, list[ModelSeedEvaluationContext]]] = {}
-    selected_round_ids_tuple = tuple(selected_round_ids)
-    resolved_episode_seeds_tuple = (
-        None if resolved_episode_seeds is None else tuple(resolved_episode_seeds)
-    )
-    if resolved_jobs == 1:
-        for held_out_round_id in selected_round_ids:
-            round_id, round_seconds, round_contexts = _evaluate_historical_benchmark_round(
-                paths.root,
-                held_out_round_id=held_out_round_id,
-                selected_round_ids=selected_round_ids_tuple,
-                model_name=model_name,
-                mode=mode,
-                policy_name=policy_name,
-                samples_per_round=samples_per_round,
-                budget=budget,
-                resolved_episode_seeds=resolved_episode_seeds_tuple,
-            )
-            round_payloads[round_id] = (round_seconds, round_contexts)
-    else:
-        with ProcessPoolExecutor(
-            max_workers=resolved_jobs,
-            mp_context=_benchmark_mp_context(),
-        ) as executor:
-            future_by_round_id = {
-                executor.submit(
-                    _evaluate_historical_benchmark_round,
-                    paths.root,
-                    held_out_round_id=held_out_round_id,
-                    selected_round_ids=selected_round_ids_tuple,
-                    model_name=model_name,
-                    mode=mode,
-                    policy_name=policy_name,
-                    samples_per_round=samples_per_round,
-                    budget=budget,
-                    resolved_episode_seeds=resolved_episode_seeds_tuple,
-                ): held_out_round_id
-                for held_out_round_id in selected_round_ids
-            }
-            for future in as_completed(future_by_round_id):
-                round_id, round_seconds, round_contexts = future.result()
-                round_payloads[round_id] = (round_seconds, round_contexts)
-
     for held_out_round_id in selected_round_ids:
-        round_seconds, round_contexts = round_payloads.get(held_out_round_id, (0.0, []))
-        round_evaluation_seconds[held_out_round_id] = round_seconds
-        keys: list[tuple[str, int, int | None]] = []
-        for context in round_contexts:
-            key = (context.round_id, context.seed_index, context.episode_seed)
+        training_round_ids = [item for item in selected_round_ids if item != held_out_round_id]
+        evaluation_started_at = perf_counter()
+        contexts = evaluate_model_on_round(
+            paths,
+            round_id=held_out_round_id,
+            model_name=model_name,
+            training_round_ids=training_round_ids,
+            mode=mode,
+            policy_name=resolved_policy_name if mode == "online_interactive" else None,
+            samples_per_round=samples_per_round,
+            budget=budget,
+            episode_seed=episode_seed,
+        )
+        round_evaluation_seconds[held_out_round_id] = perf_counter() - evaluation_started_at
+        if not contexts:
+            continue
+        keys: list[tuple[str, int]] = []
+        for context in contexts:
+            key = (context.round_id, context.seed_index)
             keys.append(key)
             contexts_by_key[key] = context
             seed_results_by_key[key] = context.to_seed_result()
-        if not keys:
-            continue
         per_round_keys[held_out_round_id] = keys
         round_mean_scores.append(
             sum(seed_results_by_key[key].score for key in keys) / float(len(keys)),
@@ -439,16 +218,7 @@ def run_historical_benchmark(
         policy=visualization_policy,
     )
     for round_id, seed_index in sorted(visualization_keys):
-        matching_keys = [
-            key
-            for key in contexts_by_key
-            if key[0] == round_id and key[1] == seed_index
-        ]
-        if not matching_keys:
-            continue
-        matching_keys.sort(key=lambda item: (-1 if item[2] is None else int(item[2])))
-        key = matching_keys[0]
-        context = contexts_by_key[key]
+        context = contexts_by_key[(round_id, seed_index)]
         visualization_started_at = perf_counter()
         viz_result = write_model_evaluation_report(
             context,
@@ -467,7 +237,9 @@ def run_historical_benchmark(
         round_visualization_seconds[round_id] = (
             round_visualization_seconds.get(round_id, 0.0) + visualization_seconds
         )
-        seed_results_by_key[key] = seed_results_by_key[key].model_copy(
+        seed_results_by_key[(round_id, seed_index)] = seed_results_by_key[
+            (round_id, seed_index)
+        ].model_copy(
             update={
                 "report_path": viz_result.report_path,
                 "manifest_path": viz_result.manifest_path,
@@ -488,15 +260,7 @@ def run_historical_benchmark(
                 policy_name=round_seed_results[0].policy_name,
                 samples_per_round=round_seed_results[0].samples_per_round,
                 budget=round_seed_results[0].budget,
-                episode_seeds=None if resolved_episode_seeds is None else list(resolved_episode_seeds),
-                episode_seed=(
-                    round_seed_results[0].episode_seed
-                    if resolved_episode_seeds is None or len(resolved_episode_seeds) == 1
-                    else None
-                ),
-                evaluated_episode_count=(
-                    1 if resolved_episode_seeds is None else len(resolved_episode_seeds)
-                ),
+                episode_seed=round_seed_results[0].episode_seed,
                 executed_queries=round_seed_results[0].executed_queries,
                 evaluated_seed_count=len(round_seed_results),
                 visualized_seed_count=sum(
@@ -529,16 +293,10 @@ def run_historical_benchmark(
         benchmark_name=run_name,
         model_name=model_name,
         mode=mode,
-        jobs=resolved_jobs,
         policy_name=resolved_policy_name,
-        samples_per_round=resolved_samples_per_round,
+        samples_per_round=samples_per_round if mode == "online_interactive" else None,
         budget=None if mode == "prior_only" else budget,
-        episode_seeds=resolved_episode_seeds,
-        episode_seed=(
-            None
-            if mode == "prior_only" or resolved_episode_seeds is None or len(resolved_episode_seeds) != 1
-            else resolved_episode_seeds[0]
-        ),
+        episode_seed=None if mode == "prior_only" else episode_seed,
         round_ids=[item.round_id for item in round_results],
         aggregate=aggregate,
         rounds=round_results,
@@ -584,12 +342,9 @@ def run_historical_benchmark(
             artifact_path=artifact_path,
             payload_json={
                 "mode": mode,
-                "jobs": result.jobs,
                 "round_count": len(result.rounds),
                 "evaluated_seed_count": result.evaluated_seed_count,
                 "visualized_seed_count": result.visualized_seed_count,
-                "samples_per_round": result.samples_per_round,
-                "episode_seeds": result.episode_seeds,
                 "mean_score": result.aggregate.mean_score,
                 "mean_weighted_kl": result.aggregate.mean_weighted_kl,
                 "evaluation_seconds": result.evaluation_seconds,
