@@ -4319,6 +4319,32 @@ FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {
         beta_min=1.0,
         beta_scale=4.0,
     ),
+    "ffam_mode_v260": FFAMModeConfig(
+        model_name="ffam_mode_v260",
+        projected_mode_dim=5, posterior_input_source="summary_input", posterior_summary_variant="v3",
+        posterior_method="residual_mlp", posterior_residual_hidden_dim=48, posterior_residual_steps=800,
+        posterior_residual_learning_rate=0.015, posterior_residual_weight_decay=0.015, posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid", decoder_particle_blend=0.10, decoder_particle_ood_scale=0.25,
+        posterior_metric_method="supervised", cluster_count=3,
+        posterior_metric_dim=12, posterior_neighbor_count=28, posterior_bandwidth=1.2,
+        prior_blend=0.0, posterior_ood_prior_blend=0.0, operator_ridge_lambda=3.5, temperature=1.0,
+        posterior_ridge_lambda=0.04, probability_floor=0.0003, beta_min=5.0, beta_scale=20.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0), cells_per_seed=768,
+        spatial_smooth_sigma=0.4,
+    ),
+    "ffam_mode_v261": FFAMModeConfig(
+        model_name="ffam_mode_v261",
+        projected_mode_dim=6, posterior_input_source="summary_input", posterior_summary_variant="v3",
+        posterior_method="residual_mlp", posterior_residual_hidden_dim=32, posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02, posterior_residual_weight_decay=0.02, posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid", decoder_particle_blend=0.12, decoder_particle_ood_scale=0.30,
+        posterior_metric_method="supervised", cluster_count=2,
+        posterior_metric_dim=14, posterior_neighbor_count=24, posterior_bandwidth=1.0,
+        prior_blend=0.0, posterior_ood_prior_blend=0.0, operator_ridge_lambda=3.0, temperature=1.0,
+        posterior_ridge_lambda=0.03, probability_floor=0.0002, beta_min=7.0, beta_scale=28.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0), cells_per_seed=1024,
+        spatial_smooth_sigma=0.35,
+    ),
 }
 
 
