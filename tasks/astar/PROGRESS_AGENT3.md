@@ -5044,7 +5044,35 @@ Key techniques to incorporate from other agents:
 8. Obs-frequency blending (+0.1)
 9. Dual CatBoost ensemble (+0.1)
 
+542. Multi-seed data augmentation: HURTS (86.29 with 2 seeds, 85.97 with 5 seeds)
+543. Random seed diversity: no gain (86.63-86.69, all below seed=42's 86.75)
+
+544. EXHAUSTIVE LIST OF APPROACHES TRIED:
+   - CatBoost hyperparameters (iterations, depth, learning rate, L2)
+   - LightGBM comparison and optimization
+   - XGBoost comparison
+   - AutoGluon+TabPFN ensemble (best_quality preset)
+   - Multi-episode training (1-10 episodes)
+   - Multiple loss functions (RMSE, MAE, Huber, Quantile)
+   - QR teacher prediction features
+   - Cross-seed evidence aggregation
+   - Settlement proximity features
+   - Multi-scale activity heatmap features
+   - Exploration policy sweep (r1, r3, r5, r7, r10)
+   - Observation-frequency blending (temperature sweep)
+   - Dual CatBoost ensemble (geometric mean, weight sweep)
+   - Triple ensemble (CatBoost×2 + LGB)
+   - Multi-seed data augmentation (2, 3, 5 evidence seeds)
+   - Random seed diversity (seeds 1, 2, 3, 42)
+   - Logit-space training targets (catastrophic)
+   - Probability floor sweep (0.00005 to 0.001)
+   - Barren-round calibration (adaptive_ensemble family)
+   - Observation-likelihood mixture (fundamentally broken)
+   - Coefficient inverse problem (ill-conditioned)
+   - Spatial observation correction
+   - MLP stacking (catastrophic overfitting)
+
 ## Open Questions
 
-- Gap to Agent7 (0.27) may require their operator-manifold architecture
+- Gap to Agent7 (0.27) likely requires their operator-manifold architecture
 - Need to wire best model into live pipeline for next round
