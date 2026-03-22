@@ -1,0 +1,23 @@
+{
+  "weights": [
+    "runs/960_confcurr_s2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt",
+    "runs/1280_confcurr_s2_e18_img1280_b2_lr8e-05_mix0_cp0_seed123/weights/best.pt",
+    "/home/jorge/clank3/tasks/norgesgruppen-data/runs/960_confcurr_s2_final_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt",
+    "runs/s99_confcurr_s2_e20_img960_b4_lr6e-05_mix0_cp0_seed99/weights/best.pt"
+  ],
+  "scales": [
+    640,
+    960,
+    1280
+  ],
+  "flip": true,
+  "wbf_iou": 0.7,
+  "n_predictions": 75085,
+  "metrics": {
+    "detection_ap50": 0.9426000667701369,
+    "cls_present": 0.8236439801257524,
+    "cls_all": 0.6431826586375257,
+    "hybrid_present": 0.9069132407768214,
+    "hybrid_all": 0.8527748443303534
+  }
+}

@@ -26,11 +26,13 @@ Maximize hybrid score: `0.7 * detection_mAP@50 + 0.3 * classification_mAP@50`
 | Config | Hybrid(present) |
 |--------|----------------|
 | 960px single model | 0.8872 |
+| 960px seed-99 single model | 0.8910 |
 | 960px + TTA (3 scales, flip) | 0.8948 |
 | 1280px single model | 0.8876 |
 | 1280px + TTA | 0.9013 |
 | 2-model ensemble + TTA | 0.9037 |
-| **3-model ensemble + TTA** | **0.9054** |
+| 3-model ensemble + TTA | 0.9057 |
+| **4-model ensemble + TTA (with seed-99)** | **0.9069** |
 
 ## Single Model Baselines
 
