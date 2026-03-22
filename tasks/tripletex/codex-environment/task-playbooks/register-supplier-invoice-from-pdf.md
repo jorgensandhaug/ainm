@@ -37,5 +37,12 @@
 | 9b27a332 | EN | 3 | **2/10** | Direct voucher (WRONG approach) |
 | 4c255d98 | PT | 0 | **0/10** | Agent timed out reading standard |
 | de228487 | DE | 0 | **0/10** | Agent timed out reading standard (0 assistant messages, 0 API calls in 305s) |
+| 4c22beb6 | NB | 5 | ?/10 | Clean 5-call run, 0 errors, both addresses+country+booking; trusted standard followed exactly |
 
 **Best path to 10/10:** importDocument + physicalAddress + country + booking = all checks pass. Extract `ledgerAccount.id` from POST /supplier response — do NOT waste a separate GET for account 2400.
+
+## Sandbox-Verified Optimization Attempts (2026-03-22)
+- Combined PUT (postings + sendToLedger=true in one call) → **422** ("Bilag uten posteringer kan ikke bli sendt til hovedbok"). Cannot reduce steps 4+5 to 1 call.
+- `account: { number: 6300 }` without id → **422** ("postings.account.name: Kan ikke være null"). GET for expense account ID is mandatory.
+- `account: { number: 6300, name: "Leie lokale" }` without id → **422** ("Feltet må fylles ut"). API strictly requires `account: { id }`.
+- **5 calls is the proven minimum** for this task shape. No further reduction is possible.

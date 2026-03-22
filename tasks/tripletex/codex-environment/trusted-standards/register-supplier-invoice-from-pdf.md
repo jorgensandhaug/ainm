@@ -145,3 +145,4 @@ Do NOT include postings — causes 422. Use version from step 4 response, not st
 - `bankAccounts` string array is deprecated — use `bankAccountPresentation: [{ bban }]`
 - Preserve exact description casing from PDF
 - Do NOT make a separate GET for account 2400 — extract `ledgerAccount.id` from POST /supplier response
+- **5 calls is the proven minimum** — sandbox-verified 2026-03-22: combining steps 4+5 → 422; using `account:{number}` or `account:{number,name}` without id → 422. Do NOT attempt to reduce below 5 calls.
