@@ -65,6 +65,66 @@ export function buildTaskVerificationPlan(
     };
   }
 
+  if (taskId === "15") {
+    return {
+      schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
+      planId: "task-15.register-hours-project-invoice.v1",
+      taskId: "15",
+      checks: [
+        {
+          type: "object",
+          checkId: "timesheet-entry-readback",
+          description:
+            "Read the first created timesheet entry and confirm hours, project, and activity.",
+          pathTemplate: "/timesheet/entry/{{result.verification.timesheetEntryIds.0}}",
+          query: {
+            fields: "*",
+          },
+          responsePath: "value",
+          assertions: [
+            {
+              actualPath: "project.id",
+              equalsFromPath: "result.verification.projectId",
+            },
+            {
+              actualPath: "activity.id",
+              equalsFromPath: "result.verification.activityId",
+            },
+            {
+              actualPath: "hours",
+              equalsFromPath: "result.verification.registeredHours.0",
+            },
+          ],
+        },
+        {
+          type: "object",
+          checkId: "invoice-readback",
+          description:
+            "Read the created invoice and confirm customer, amount, and order linkage.",
+          pathTemplate: "/invoice/{{result.createdEntityIds.invoiceId}}",
+          query: {
+            fields: "*,customer(*),orders(*)",
+          },
+          responsePath: "value",
+          assertions: [
+            {
+              actualPath: "customer.id",
+              equalsFromPath: "result.verification.customerId",
+            },
+            {
+              actualPath: "amountExcludingVatCurrency",
+              equalsFromPath: "result.verification.amountExcludingVatCurrency",
+            },
+            {
+              actualPath: "invoiceNumber",
+              equalsFromPath: "result.verification.invoiceNumber",
+            },
+          ],
+        },
+      ],
+    };
+  }
+
   if (taskId === "11") {
     return {
       schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
