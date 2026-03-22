@@ -194,7 +194,8 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - update-needed + missing bank: `GET /project` -> parallel(`PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`) -> `PUT /ledger/account` -> `POST /invoice` for **3 writes**, `0` errors
   - invoice: `amountExcludingVatCurrency=244912.5`, `amountCurrencyOutstanding=306140.63`, outgoing VAT `25%` (id=3)
   - milestone arithmetic `326550 * 0.75 = 244912.5` — third production confirmation of 75% milestone
-  - this is the 13th update-needed run: 11/13 had missing bank accounts (85%); write-only stats: proactive hedge averages 2.85 writes + 0 errors
+  - this is the 15th update-needed run: 13/15 had missing bank accounts (87%); write-only stats: proactive hedge averages 2.87 writes + 0 errors
+  - 4th production run to use `POST /invoice?sendToCustomer=false` on correct entities (run 5d8bb344, `Greenfield Ltd` / `989358626` / `CRM Integration` / `daniel.johnson@example.org` / `135300` / `33%`); 3 writes, 0 errors; `amountExcludingVatCurrency=44649`, `amountCurrencyOutstanding=55811.25`, VAT 25% (id=3)
 
 ## Minimal Safe Flow
 
@@ -313,7 +314,7 @@ Resolve vatType via `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-dat
   6. `PUT /project/{id}` (or `POST /project`) + `GET /ledger/account` (parallel, 2 calls)
   7. if bank account missing: `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (0-1 calls)
   8. `POST /invoice?sendToCustomer=false` with embedded `orders[]` and resolved vatType from step 2's GET
-- on the update-needed branch, `PUT /project` + `GET /ledger/account` are parallelized; this is the default since production evidence (10/12 missing bank accounts, 83%) makes the proactive hedge clearly better
+- on the update-needed branch, `PUT /project` + `GET /ledger/account` are parallelized; this is the default since production evidence (13/15 missing bank accounts, 87%) makes the proactive hedge clearly better
 - canonical WRITE counts (only writes affect scoring): skip-PUT+configured = **1** (POST invoice → 4.0), skip-PUT+missing = **2** (PUT bank + POST invoice → 4.0), update-needed+configured = **2** (PUT project + POST invoice → 4.0), update-needed+missing = **3** (PUT project + PUT bank + POST invoice → 3.3333); GETs are free
 - do not add a default `GET /invoice/{id}` on the scored run just because the write response leaves `orders[0].project` sparse or null
 
