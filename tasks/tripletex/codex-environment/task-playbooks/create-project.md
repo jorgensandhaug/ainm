@@ -49,6 +49,7 @@ Production verification on 2026-03-20 additionally showed:
 - fourth Bokmål production run on 2026-03-21 for `Implementering Nordhav` / `Nordhav AS` / `957080138` / `silje.degard@example.org` also succeeded with the same 3-call path; 15 consecutive optimal runs confirm the standard is stable
 - fourth Nynorsk production run on 2026-03-21 for `Implementering Strandvik` / `Strandvik AS` / `935092957` / `hakon.berge@example.org` also succeeded with the same 3-call path; 16 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
 - fifth Nynorsk production run on 2026-03-22 for `Analyse Sjøbris` / `Sjøbris AS` / `883693329` / `steinar.berge@example.org` also succeeded with the same 3-call path; 18 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
+- English production run on 2026-03-22 for `Implementation Ridgepoint` / `Ridgepoint Ltd` / `948050927` / `edward.brown@example.org` also succeeded with the same 3-call path; 19 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
 
 ## Minimal Safe Flow
 
