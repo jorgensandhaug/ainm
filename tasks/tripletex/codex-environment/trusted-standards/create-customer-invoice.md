@@ -140,3 +140,10 @@
   - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them with explicit `vatType: { id: product.vatType.id }` produced correct totals `amountExcludingVatCurrency=26000` / `amountCurrency=28377.5`
   - no `/ledger/vatType` call was needed since the products already carried the intended VAT
   - third production run achieving the optimal 6-call path (3 core + 3 bank-account repair)
+- the 2026-03-22 production run for `Colline SARL` / `942447647` / products `Service réseau (1340)` + `Stockage cloud (9754)` + `Session de formation (7005)` / VAT `25%` + `15% alimentaire` + `0% exonéré` (French prompt) succeeded with the optimal 6 API calls and 0 avoidable errors:
+  - `GET /customer?organizationNumber=942447647&fields=*` -> `GET /product?number=1340,9754,7005&fields=*` -> `POST /invoice?sendToCustomer=false` (422 bank-account) -> `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` -> retry `POST /invoice?sendToCustomer=false` (201)
+  - fifth production confirmation of the comma-separated `number=X,Y,Z` product query approach (OR semantics); returned all 3 products in one call
+  - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them with explicit `vatType: { id: product.vatType.id }` produced correct totals `amountExcludingVatCurrency=27350` / `amountCurrency=31625`
+  - no `/ledger/vatType` call was needed since the products already carried the intended VAT
+  - fourth production run achieving the optimal 6-call path (3 core + 3 bank-account repair); first French-language confirmation for this task shape
+  - persistent sandbox re-proof on 2026-03-22 with products `1340`, `9754`, `7005` and comma-separated query confirmed the 3-call path; invoice returned `amountExcludingVatCurrency=27350` / `amountCurrency=34187.5` (sandbox 25% only on all products)
