@@ -4977,9 +4977,33 @@ Verified through code analysis:
    - Settlements derived from grid codes (1=settlement, 2=port, verified 100% match)
    - Created unified benchmark script: `scripts/agent3_catboost_v1.py`
 
-526. Running initial re-evaluation on expanded 16-round dataset (b0f9d1bf excluded, no replays):
-   - Testing CatBoost + coverage + obs-blend as first baseline
-   - Results pending...
+526. **ALL BENCHMARK RESULTS ON 16-ROUND DATASET:**
+
+| Model | Old (8r) | New (16r) | Delta | Notes |
+|-------|----------|-----------|-------|-------|
+| **LGB v5_d8 coverage no-blend** | 84.94 | **86.62** | +1.68 | **NEW BEST!** |
+| CatBoost coverage no-blend | 85.29 | 86.11 | +0.82 | |
+| CatBoost exploration blend | 86.32 | 84.52 | -1.80 | Blend hurts! |
+| CatBoost coverage blend | 85.38 | 84.16 | -1.22 | Blend hurts! |
+
+**KEY FINDINGS:**
+- Model ranking COMPLETELY CHANGED with more data
+- LGB now BEATS CatBoost (86.62 vs 86.11)
+- Obs-blend is COUNTERPRODUCTIVE with more data (~2 point penalty)
+- Exploration policy slightly hurts CatBoost
+- New worst round: 795bfb1f at ~55 (unknown behavior)
+- Old problem round 36e581f1 still worst of original rounds at ~74
+- f1dac9a9 (old barren problem) dramatically improved: 88.32 vs old 68-73
+
+Per-round analysis for LGB (best model):
+- 5 rounds above 92: 3eb0c25d(94.0), 7b4bda99(93.6), cc5442dd(93.3), 76909e29(92.6), 8e839974(92.0)
+- 4 rounds 89-92: 75e625c3(91.5), 324fde07(91.3), c5cdf100(90.0), 71451d74(89.2)
+- 3 rounds 85-89: f1dac9a9(88.3), 2a341ace(87.8), ae78003a(87.6), fd3c92ff(85.4)
+- 1 round 80-85: d0a2c894(80.5)
+- 1 round 70-75: 36e581f1(74.0)
+- 1 round <60: **795bfb1f(55.0)** - catastrophic failure
+
+527. LGB + exploration (no blend) - testing if exploration helps LGB too:
 
 ## Open Questions
 

@@ -227,7 +227,7 @@ def run_benchmark(
             pred = probs.reshape(h, w, CLASS_COUNT)
 
             if use_blend:
-                pred = obs_blend(pred, eval_obs, seed_index, h, w, temperature=blend_temp)
+                pred = obs_blend(pred, eval_obs, seed_index, h, w, temperature=blend_temperature)
                 pred = np.maximum(pred, probability_floor)
                 pred /= pred.sum(axis=-1, keepdims=True)
 
