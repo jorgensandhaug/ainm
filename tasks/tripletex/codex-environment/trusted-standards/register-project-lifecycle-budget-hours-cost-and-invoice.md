@@ -19,11 +19,14 @@
 
 Copy-paste the script below. Replace only the `// PROMPT VALUES` block with values from the prompt. Do NOT modify payload shapes.
 
-**CRITICAL rules (production-verified):**
+**CRITICAL rules (sandbox-verified 2026-03-22, production-confirmed 2026-03-22 run 4db584f1: 15 writes incl bank repair, 0 errors):**
 1. Invoice via `POST /order` → `PUT /order/{id}/:invoice` (produces isApproved=true, status=INVOICED)
 2. Supplier cost MUST have a `POST /ledger/voucher` with project+supplier linkage in postings — this is what the scorer checks (check 6, worth 2 points). The `POST /project/orderline` vendor field does NOT persist (reads back as null).
 3. Voucher postings MUST have explicit `row: 1` / `row: 2` — omitting row causes 422 (row 0 is system-reserved).
 4. VoucherType ID is environment-specific — always resolve via GET, never hardcode.
+5. **DO NOT set `isFixedPrice: true` on the project.** `isFixedPrice=true` suppresses hourly rates on ALL timesheet entries (hourlyRate=0, even with rates configured). The prompt says "budsjett" (budget), NOT "fastpris" (fixed price). Budget goes on the activity (`budgetFeeCurrency`), not on the project.
+6. **Activity MUST be `isChargeable: true`.** Non-chargeable activities prevent hourly rate assignment and timesheet entries show `chargeable=false, hourlyRate=0`.
+7. **Hourly rates MUST be set BEFORE timesheet entries.** Rate = `Math.round(BUDGET / TOTAL_HOURS)`. Use `TYPE_PROJECT_SPECIFIC_HOURLY_RATES` model + `POST /project/hourlyRates/projectSpecificRates` with `projectHourlyRate: { id: holderId }` (NOT `hourlyRateModel`).
 
 ```typescript
 // ── PROMPT VALUES (replace these from the prompt) ──────────────────
@@ -45,6 +48,7 @@ const SUPP_COST    = 56200;                            // from prompt
 // ── END PROMPT VALUES ──────────────────────────────────────────────
 
 const TOTAL_HOURS = PM_HOURS + CON_HOURS;
+const HOURLY_RATE = Math.round(BUDGET / TOTAL_HOURS);  // per-employee rate
 const TODAY = new Date().toISOString().slice(0, 10);
 const h = { "Content-Type": "application/json", Authorization: AUTH };
 
@@ -102,7 +106,7 @@ async function main() {
 
   // ═══════════════════════════════════════════════════════════════
   // STEP 2: Batch employees + project  (2-3 parallel)
-  //   CRITICAL: isFixedPrice + fixedprice on project
+  //   CRITICAL: NO isFixedPrice on project (suppresses hourly rates!)
   //   CRITICAL: NO employments[] on employees
   // ═══════════════════════════════════════════════════════════════
   const s2: Promise<any>[] = [
@@ -115,8 +119,7 @@ async function main() {
       startDate: TODAY,
       customer: { id: custId },
       projectManager: { id: pmAssId },
-      isFixedPrice: true,
-      fixedprice: BUDGET,
+      // NO isFixedPrice, NO fixedprice — budget goes on activity only
     }),
   ];
   if (a1920 && !a1920.bankAccountNumber) {
@@ -128,7 +131,7 @@ async function main() {
   const pId = proj.value.id;
 
   // ═══════════════════════════════════════════════════════════════
-  // STEP 3: Activity + participants  (2 parallel)
+  // STEP 3: Activity (CHARGEABLE) + participants  (2 parallel)
   // ═══════════════════════════════════════════════════════════════
   const [act, parts] = await Promise.all([
     post("/project/projectActivity", {
@@ -137,9 +140,9 @@ async function main() {
       budgetHours: TOTAL_HOURS,
       budgetFeeCurrency: BUDGET,
       activity: {
-        name: "Prosjektaktivitet",
+        name: "Prosjektarbeid",
         activityType: "PROJECT_SPECIFIC_ACTIVITY",
-        isChargeable: false,     // MUST be inside activity{}, NOT on root
+        isChargeable: true,      // MUST be true for hourly rates! MUST be inside activity{}, NOT on root
       },
     }),
     post("/project/participant/list", [
@@ -150,7 +153,35 @@ async function main() {
   const actId = act.value.activity.id;
 
   // ═══════════════════════════════════════════════════════════════
-  // STEP 4: Timesheet + supplier + orderline  (3 parallel)
+  // STEP 4: Set up hourly rates (MUST be before timesheet!)
+  //   Rate = BUDGET / TOTAL_HOURS for each employee
+  //   Model: TYPE_PROJECT_SPECIFIC_HOURLY_RATES
+  //   Field: projectHourlyRate (NOT hourlyRateModel)
+  // ═══════════════════════════════════════════════════════════════
+  const rh = await get(`/project/hourlyRates?projectId=${pId}&count=10&fields=*`);
+  const holder = rh.values[0];
+  await put(`/project/hourlyRates/${holder.id}`, {
+    project: { id: pId },
+    startDate: TODAY,
+    hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES",
+  });
+  const [rate1, rate2] = await Promise.all([
+    post("/project/hourlyRates/projectSpecificRates", {
+      projectHourlyRate: { id: holder.id },
+      employee: { id: e1 },
+      activity: { id: actId },
+      hourlyRate: HOURLY_RATE,
+    }),
+    post("/project/hourlyRates/projectSpecificRates", {
+      projectHourlyRate: { id: holder.id },
+      employee: { id: e2 },
+      activity: { id: actId },
+      hourlyRate: HOURLY_RATE,
+    }),
+  ]);
+
+  // ═══════════════════════════════════════════════════════════════
+  // STEP 5: Timesheet + supplier + orderline  (3 parallel)
   // ═══════════════════════════════════════════════════════════════
   const ts1 = splitHours(PM_HOURS, TODAY).map(e => ({
     employee: { id: e1 }, project: { id: pId }, activity: { id: actId }, date: e.date, hours: e.hours,
@@ -173,7 +204,7 @@ async function main() {
   const suppId = suppRes.value.id;
 
   // ═══════════════════════════════════════════════════════════════
-  // STEP 5+6: Supplier cost voucher + order  (2 parallel)
+  // STEP 6+7: Supplier cost voucher + order  (2 parallel)
   //   Voucher: CRITICAL for scorer check 6. Postings MUST have
   //   explicit row: 1 / row: 2. Project/supplier linkage required.
   //   Order: project goes on order root, NOT inside orderLines[].
@@ -224,7 +255,7 @@ async function main() {
   const ordId = ord.value.id;
 
   // ═══════════════════════════════════════════════════════════════
-  // STEP 7: Convert order → invoice  (sequential — needs ordId)
+  // STEP 8: Convert order → invoice  (sequential — needs ordId)
   //   PUT /order/:invoice → isApproved=true + order INVOICED
   // ═══════════════════════════════════════════════════════════════
   const inv = await put(`/order/${ordId}/:invoice?invoiceDate=${TODAY}&sendToCustomer=false`);
@@ -318,14 +349,27 @@ async function main() {
     email: emp2Full.value.email,
   }, null, 2));
 
-  // Timesheet summary
-  const tsFull = await get(`/timesheet/entry?projectId=${pId}&dateFrom=${TODAY}&dateTo=2027-01-01&fields=employee(id,firstName,lastName),hours,date&count=500`);
-  const byE: Record<string, number> = {};
+  // Timesheet summary — MUST log hourlyRate and chargeable
+  const tsFull = await get(`/timesheet/entry?projectId=${pId}&dateFrom=${TODAY}&dateTo=2027-01-01&fields=employee(id,firstName,lastName),hours,date,hourlyRate,chargeable&count=500`);
+  const byE: Record<string, { hours: number; hourlyRate: number; chargeable: boolean }> = {};
   for (const te of tsFull.values || []) {
     const key = `${te.employee?.firstName} ${te.employee?.lastName} (${te.employee?.id})`;
-    byE[key] = (byE[key] || 0) + te.hours;
+    if (!byE[key]) byE[key] = { hours: 0, hourlyRate: te.hourlyRate, chargeable: true };
+    byE[key].hours += te.hours;
+    if (!te.chargeable) byE[key].chargeable = false;
   }
   console.log("\nTIMESHEET:", JSON.stringify(byE, null, 2));
+
+  // Hourly rates readback
+  const ratesFull = await get(`/project/hourlyRates?projectId=${pId}&count=10&fields=*,projectSpecificRates(*,employee(id,firstName,lastName),activity(id,name))`);
+  console.log("\nHOURLY_RATES:", JSON.stringify({
+    model: ratesFull.values?.[0]?.hourlyRateModel,
+    rates: ratesFull.values?.[0]?.projectSpecificRates?.map((r: any) => ({
+      employee: `${r.employee?.firstName} ${r.employee?.lastName}`,
+      activity: r.activity?.name,
+      hourlyRate: r.hourlyRate,
+    })),
+  }, null, 2));
 
   // Voucher and postings
   const vchFull = await get(`/ledger/voucher/${voucher.value.id}?fields=*,postings(*)`);
@@ -378,6 +422,10 @@ If a step fails, handle these known cases:
 - order creation fails with `422 Ugyldig mva-kode` on vatType → already handled (dynamic lookup in step 1)
 
 ## Do NOT
+- set `isFixedPrice: true` or `fixedprice` on the project — **suppresses hourly rates on ALL timesheet entries** (hourlyRate=0, chargeable=false). The prompt says "budsjett", not "fastpris". Budget goes on the activity (`budgetFeeCurrency`) only.
+- set `isChargeable: false` on the activity — prevents hourly rate assignment and makes all timesheet entries non-chargeable. MUST be `true`.
+- skip hourly rate setup (Step 4) — without rates, timesheet entries have `hourlyRate=0` even with chargeable activity. Rate = `Math.round(BUDGET / TOTAL_HOURS)`. Must be set BEFORE timesheet entries.
+- use `hourlyRateModel: { id }` on projectSpecificRates — the field is `projectHourlyRate: { id: holderId }`. `hourlyRateModel` causes 422 "Feltet eksisterer ikke".
 - skip `POST /ledger/voucher` — this is what the scorer checks for supplier cost (check 6, worth 2 points)
 - rely on `POST /project/orderline` vendor field — it does NOT persist (reads back as null)
 - hardcode voucherType ID — it is environment-specific (sandbox=9744845, production varies)
