@@ -125,6 +125,9 @@ Set `rate` to the prompt's stated per-diem rate (e.g., 800). Set `count` to the 
 | "5 days, daily rate 800" | 5 | 800 | 4000 |
 | "3 days, dagssats 800" | 3 | 800 | 2400 |
 | "2 days, tarifa diaria 800" | 2 | 800 | 1600 |
+| "3 dias, taxa diária 800" | 3 | 800 | 2400 |
+| "3 Tage, Tagessatz 800" | 3 | 800 | 2400 |
+| "3 jours, indemnité journalière 800" | 3 | 800 | 2400 |
 
 ### 3. Per-diem count = DAYS from prompt (NOT overnights)
 - 5-day trip → `count: 5`
@@ -203,4 +206,5 @@ Full E2E with VAT-registered company:
 ## Production History
 - 22 prior runs: ALL only delivered (never approved/vouchered) → ALL scored 4.5/8 (checks 2,3,6 fail)
 - prod-2026-03-22-041342038Z-b57900d3: first run with approve but WITHOUT createVouchers — still scored 4.5/8 (approve alone insufficient)
+- prod-2026-03-22-051841634Z-b2f53ebc: Portuguese prompt, Bruno Silva / Conferência Bodø / 3 days taxa diária 800 / Fly 4900 + Taxi 450, 8 calls (incl company addr lookup) 0 errors, full chain deliver→approve→createVouchers completed, isCompleted=true voucher=609325576 — awaiting score
 - **Every run MUST include: deliver → approve → createVouchers. All three steps required.**

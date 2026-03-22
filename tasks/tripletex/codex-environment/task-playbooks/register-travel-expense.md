@@ -243,4 +243,5 @@ Full E2E sandbox tests with VAT-registered company:
 ## Production History
 - 22 prior runs: ALL used only deliver, NEVER called `:approve` or `:createVouchers` → ALL scored 4.5/8 (checks 2,3,6 fail)
 - prod-2026-03-22-041342038Z-b57900d3: first run with approve step but WITHOUT createVouchers — Norwegian prompt, Ingrid Larsen / Kundebesøk Trondheim / 2 days diett 800 / Fly 2500 + Taxi 600, 7 calls 0 errors, state=APPROVED isApproved=true — **still scored 4.5/8** (approve alone is insufficient)
+- prod-2026-03-22-051841634Z-b2f53ebc: Portuguese prompt, Bruno Silva / Conferência Bodø / 3 days taxa diária 800 / Fly 4900 + Taxi 450, 8 calls (incl company addr lookup) 0 errors, full chain deliver→approve→createVouchers completed, isCompleted=true voucher=609325576 — awaiting score
 - **Every run MUST include: deliver → approve → createVouchers. All three steps are required.**
