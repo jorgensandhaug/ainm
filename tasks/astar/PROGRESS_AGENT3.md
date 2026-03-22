@@ -4914,9 +4914,20 @@ Key techniques to incorporate from other agents:
    - Multi-episode (2ep) + exploration: 85.60 (hurts!)
    - Multi-episode (3ep) + exploration: 85.35 (hurts more!)
 
-524. AutoGluon experiment launched (separate venv with best_quality preset)
-   - Includes LightGBM, CatBoost, TabPFN, neural networks, stacking
-   - Results pending
+524. AutoGluon experiment (separate venv with best_quality preset):
+   - Fold 1 (hardest round): 71.14 (vs CatBoost 73.64 - WORSE)
+   - Remaining folds still running (very slow: ~22 min per fold)
+   - Includes LightGBM, CatBoost, neural networks, stacking
+
+525. **CRITICAL: Agent7 reached 87.12 with ffam_mode_v169!**
+   - Key calibration insights from Agent7:
+     - Probability floor 0.0003 (+5.6 pts from 0.01!)
+     - Higher exact-cell beta (8/32 vs 2/8) (+2.0 pts)
+     - Zero prior blend (+1.5 pts)
+     - Residual MLP posterior (+1.67 pts)
+   - Our floor sweep (0.00005 to 0.001) showed NO effect on CatBoost - all give 86.32
+   - CatBoost with 3000 iterations: 86.38 (marginal)
+   - The gap to Agent7 (87.12 vs 86.38) may require fundamentally different architecture
 
 ## Open Questions
 
