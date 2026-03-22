@@ -431,7 +431,17 @@ Carries through to triple blend: 83.46 (was 83.33, +0.13)
 
 PO ridge insensitive (0.001-1.0 all ~83.71). More DT_EW weight optimal.
 
-**Total improvement: 78.38 → 83.78 (+5.40 points, +18.00 on worst round)**
+**COVERAGE POLICY BREAKTHROUGH:**
+
+| Model | Exploration | Coverage | Delta |
+|-------|------------|---------|-------|
+| **v002 (20/50/30)** | 83.78 | **84.03** | **+0.25** |
+| v004 (15/55/30) | 83.75 | 84.01 | +0.27 |
+| v001 (25/45/30) | 83.77 | 83.99 | +0.22 |
+
+Coverage consistently adds +0.2 points because the triple blend benefits from wider map coverage for regime inference.
+
+**Total improvement: 78.38 → 84.03 (+5.65 points, +17.97 on worst round)**
 
 ## Final Summary
 
