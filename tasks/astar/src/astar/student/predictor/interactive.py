@@ -100,6 +100,10 @@ from astar.student.predictor.hazard_posterior_v21 import (
     HazardPosteriorV21Predictor,
     hazard_posterior_v21_spec_for_model_name,
 )
+from astar.student.predictor.hazard_posterior_v22 import (
+    HazardPosteriorV22Predictor,
+    hazard_posterior_v22_spec_for_model_name,
+)
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
@@ -643,6 +647,24 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    hazard_posterior_v22 = hazard_posterior_v22_spec_for_model_name(normalized)
+    if hazard_posterior_v22 is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        k_neighbors, latent_rank, ridge_alpha, mean_weight, observation_weight = hazard_posterior_v22
+        predictor = HazardPosteriorV22Predictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=(
+                list(historical_round_ids) if historical_round_ids is not None
+                else sorted(rd.name for rd in workspace_paths.raw_dir.joinpath("replays").glob("*") if rd.is_dir())
+            ),
+            policy_name=resolved_policy_name,
+            samples_per_round=max(samples_per_round, 4),  # MLP needs more data
+            k_neighbors=k_neighbors, latent_rank=latent_rank, ridge_alpha=ridge_alpha,
+            predicted_particle_weight=mean_weight, observation_weight=observation_weight,
+            model_name=f"hazard_posterior_v22__policy={resolved_policy_name}__k={k_neighbors}__r={latent_rank}",
+        )
+        return RoundPredictorAdapter(predictor=predictor, name=predictor.name)
     hazard_posterior_v21 = hazard_posterior_v21_spec_for_model_name(normalized)
     if hazard_posterior_v21 is not None:
         workspace_paths = paths or WorkspacePaths.from_root(".")
