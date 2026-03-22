@@ -31,6 +31,12 @@ from astar.student.predictor.ffam_operator_config import (
 from astar.student.predictor.ffam_retrieval import FFAMRetrievalPredictor
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
+from astar.student.predictor.ffam_ensemble import FFAMEnsemblePredictor
+from astar.student.predictor.ffam_ensemble import (
+    available_ffam_ensemble_model_names,
+    ffam_ensemble_checkpoint_name,
+    is_ffam_ensemble_model_name,
+)
 from astar.student.predictor.ffam_knn import FFAMKNNPredictor
 from astar.student.predictor.ffam_knn_config import (
     available_ffam_knn_model_names,
@@ -223,6 +229,40 @@ def build_online_predictor(
                 predictor = FFAMOperatorPredictor.load_checkpoint(checkpoint_path)
             else:
                 predictor = FFAMOperatorPredictor.fit_named_from_workspace(
+                    workspace_paths,
+                    model_name=model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                )
+                predictor.save_checkpoint(checkpoint_path)
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_ffam_ensemble_model_name(model_name):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
+        if historical_round_ids is not None:
+            predictor = FFAMEnsemblePredictor.fit_named_from_workspace(
+                workspace_paths,
+                model_name=model_name,
+                round_ids=list(historical_round_ids),
+                policy_name=resolved_policy_name,
+                samples_per_round=samples_per_round,
+            )
+        else:
+            checkpoint_dir = workspace_paths.model_dir(
+                ffam_ensemble_checkpoint_name(
+                    model_name,
+                    policy_name=resolved_policy_name,
+                    samples_per_round=samples_per_round,
+                ),
+            )
+            checkpoint_path = checkpoint_dir / "checkpoint.json"
+            if checkpoint_path.exists():
+                predictor = FFAMEnsemblePredictor.load_checkpoint(checkpoint_path)
+            else:
+                predictor = FFAMEnsemblePredictor.fit_named_from_workspace(
                     workspace_paths,
                     model_name=model_name,
                     policy_name=resolved_policy_name,

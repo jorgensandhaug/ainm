@@ -6,6 +6,12 @@ from astar.student.predictor.ffam_config import is_ffam_model_name
 from astar.student.predictor.ffam_knn_config import is_ffam_knn_model_name
 from astar.student.predictor.ffam_mode_config import is_ffam_mode_model_name
 from astar.student.predictor.query_residual_config import is_query_residual_model_name
+
+
+def _is_ffam_ensemble_model_name(model_name: str) -> bool:
+    """Lazy check to avoid circular imports."""
+    normalized = model_name.strip().lower()
+    return normalized == "ffam_ensemble" or normalized.startswith("ffam_ensemble_v")
 from astar.features.motifs import ViewportMotifScorer
 
 DEFAULT_POLICY_NAME = "coverage"
@@ -61,7 +67,7 @@ def _frontier_bias_scorer() -> ViewportMotifScorer:
 def default_policy_name_for_model(model_name: str | None = None) -> str:
     if model_name is not None and is_query_residual_model_name(model_name):
         return QUERY_RESIDUAL_DEFAULT_POLICY_NAME
-    if model_name is not None and (is_ffam_model_name(model_name) or is_ffam_mode_model_name(model_name) or is_ffam_knn_model_name(model_name)):
+    if model_name is not None and (is_ffam_model_name(model_name) or is_ffam_mode_model_name(model_name) or is_ffam_knn_model_name(model_name) or _is_ffam_ensemble_model_name(model_name)):
         return FFAM_DEFAULT_POLICY_NAME
     return DEFAULT_POLICY_NAME
 

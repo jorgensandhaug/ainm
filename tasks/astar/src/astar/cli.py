@@ -66,6 +66,7 @@ from astar.policy import build_interactive_policy, build_named_policy
 from astar.policy.registry import resolve_policy_name
 from astar.splits.synthetic_benchmark import build_default_benchmark_manifests
 from astar.student.predictor.ffam_config import available_ffam_model_names
+from astar.student.predictor.ffam_ensemble import available_ffam_ensemble_model_names
 from astar.student.predictor.ffam_knn_config import available_ffam_knn_model_names
 from astar.student.predictor.ffam_mode_config import available_ffam_mode_model_names
 from astar.student.predictor.ffam_operator_config import available_ffam_operator_model_names
@@ -120,6 +121,7 @@ def build_parser() -> argparse.ArgumentParser:
                 "historical_bucket_prior",
                 "latent_regime",
                 *available_ffam_model_names(),
+                *available_ffam_ensemble_model_names(),
                 *available_ffam_knn_model_names(),
                 *available_ffam_mode_model_names(),
                 *available_ffam_operator_model_names(),

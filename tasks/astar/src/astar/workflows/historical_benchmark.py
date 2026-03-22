@@ -136,6 +136,7 @@ def run_historical_benchmark(
         or is_ffam_mode_model_name(model_name)
         or is_ffam_operator_model_name(model_name)
         or is_ffam_knn_model_name(model_name)
+        or model_name.strip().lower().startswith("ffam_ensemble")
     ):
         raise ValueError("ffam retrieval requires mode=online_interactive for historical benchmark")
     if mode == "online_interactive" and normalized_model_name == "static_semantic":
