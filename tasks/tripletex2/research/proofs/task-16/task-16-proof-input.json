@@ -1,0 +1,9 @@
+{
+  "supplierName": "Sandbox Proof Supplier AS",
+  "organizationNumber": "910000004",
+  "invoiceNumber": "INV-SANDBOX-16-V2-001",
+  "lineDescription": "kontortjenester",
+  "grossAmountNok": 62500,
+  "expenseAccountNumber": 6500,
+  "vatRatePercent": 25
+}

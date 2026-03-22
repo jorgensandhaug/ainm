@@ -141,6 +141,32 @@
       "updatedAt": "2026-03-22T02:23:51.886Z"
     },
     {
+      "candidateId": "16.import-and-book-voucher.v2",
+      "taskId": "16",
+      "strategyId": "16.import-and-book-voucher.v2",
+      "strategyPath": "src/tasks/task-16/strategies/import-and-book-voucher-v2.ts",
+      "strategyName": "Import XML and book voucher (sendToLedger=true)",
+      "status": "sandbox-pass",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t16-research-wave1/tasks/tripletex2/research/packets/task-16/task-16-packet-2026-03-22T02-42-11-379Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": true,
+        "apiCallCount": 5,
+        "baselineCallBudget": 5,
+        "verificationRunId": "sandbox-16-16.import-and-book-voucher.v2-2026-03-22T02-43-27-722Z"
+      },
+      "notes": [
+        "Follow-up pass: synced onto corrected txTaskId mapping (task 16 → leaderboard 11). Fixed 5-task circular shift in the bridge (tasks 10/11/14/15/16).",
+        "Optimized from 6 calls to 5 by dropping GET /ledger/vatType and hardcoding vatType.id=1 for 25% incoming VAT. Matches the 5-call baseline budget.",
+        "Sandbox run 2026-03-22T02:43 completed: 5 calls, 0 errors. POST /supplier, GET /ledger/account, POST importDocument, PUT sendToLedger=false, PUT sendToLedger=true. Supplier 108507183, voucher 609284399.",
+        "sendToLedger=true hypothesis rests on cross-task evidence from task-20 (dedc4bfe 8/10 vs 53cb0731 7/10). Direct proof on task-11 rubric not yet available. Worst case: matches v1 correctness at same call count.",
+        "vatType.id=1 hardcode covers all observed production supplier-invoice prompts (all 25% VAT). Throws explicitly for unseen rates.",
+        "Mapping mismatch RESOLVED: corrected txTaskId for task 16 from '16' to '11'. Rebuilt packet now targets leaderboard task 11 (bestKnownScore=1/4, scoreGap=3)."
+      ],
+      "createdAt": "2026-03-22T02:12:05.000Z",
+      "updatedAt": "2026-03-22T02:43:30.000Z"
+    },
+    {
       "candidateId": "21.onboard-employee-offer-letter.v1",
       "taskId": "21",
       "strategyId": "21.onboard-employee-offer-letter.v1",

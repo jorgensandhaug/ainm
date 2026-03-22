@@ -87,7 +87,7 @@
     },
     {
       "taskId": "15",
-      "txTaskId": "15",
+      "txTaskId": "16",
       "taskSlug": "register-project-hours-and-create-project-invoice",
       "taskName": "Register project hours and create project invoice",
       "priority": 6,
@@ -105,7 +105,7 @@
     },
     {
       "taskId": "10",
-      "txTaskId": "10",
+      "txTaskId": "14",
       "taskSlug": "issue-full-credit-note",
       "taskName": "Issue full credit note",
       "priority": 7,
@@ -124,14 +124,14 @@
     },
     {
       "taskId": "16",
-      "txTaskId": "16",
+      "txTaskId": "11",
       "taskSlug": "register-supplier-invoice",
       "taskName": "Register supplier invoice",
       "priority": 8,
       "band": "focus",
       "queueEligibility": "ready",
       "researchLane": "execution-lane",
-      "bestKnownScore": 3,
+      "bestKnownScore": 1,
       "maxScore": 4,
       "notes": [
         "Execution-lane Tier 2 target."
@@ -184,7 +184,7 @@
     },
     {
       "taskId": "11",
-      "txTaskId": "11",
+      "txTaskId": "10",
       "taskSlug": "create-order-invoice-and-register-payment",
       "taskName": "Create order, invoice, and register payment",
       "priority": 12,
@@ -393,7 +393,7 @@
     },
     {
       "taskId": "14",
-      "txTaskId": "14",
+      "txTaskId": "15",
       "taskSlug": "set-project-fixed-price-and-invoice-milestone",
       "taskName": "Set project fixed price and invoice milestone",
       "priority": 26,
