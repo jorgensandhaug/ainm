@@ -16,17 +16,26 @@
 2. `1280_confcurr_s2` (1280px, batch=2) — 115 MB
 3. `960long_confcurr_s2` (960px, 120-epoch stage 2) — 115 MB
 
-### Best Scores (conf=0.0001, WBF IoU=0.60, +hflip)
+### Best Scores (ONNX submission, conf=0.001, WBF IoU=0.60, +hflip)
 
 | Metric | Value |
 |--------|-------|
-| det_AP50 | 0.9489 |
-| cls_mAP50_present (278) | 0.8290 |
-| cls_mAP50_all (356) | 0.6473 |
-| hybrid_present | 0.9129 |
-| **hybrid_all** | **0.8584** |
+| det_AP50 | 0.9550 |
+| cls_mAP50_present (278) | 0.8249 |
+| cls_mAP50_all (356) | 0.6441 |
+| hybrid_present | 0.9159 |
+| **hybrid_all** | **0.8617** |
+| Predictions | 35090 (limit 50000) |
 | Inference cost | 6x (3 models × 2 orientations) |
-| Total weight size | 345 MB |
+| Total weight size | 337 MB (FP16 ONNX) |
+
+### Key Improvements in ONNX Pipeline
+- Letterbox preprocessing (vs stretch) → matches training preprocessing
+- Per-class NMS via torchvision.batched_nms (vs class-agnostic)
+- 1280 model at native 1280px resolution (vs 960px) → +0.0026 hybrid_all
+- numpy array flip for TTA (vs re-letterboxing) → faster
+- WBF via ensemble_boxes library
+- 50k prediction cap with global score-based selection
 
 ### All Ensemble Variants
 
@@ -38,8 +47,8 @@
 | b4+b8+1280 (3m) | 0.9471 | 0.6429 | 0.8558 | 0.9099 | 3x | 345MB |
 | b4+b8+div+flip | 0.9477 | 0.6423 | 0.8561 | 0.9101 | 6x | 345MB |
 | b4+b8+1280+flip | 0.9483 | 0.6465 | 0.8578 | 0.9122 | 6x | 345MB |
-| **b8+1280+long+flip** | **0.9489** | **0.6473** | **0.8584** | **0.9129** | **6x** | **345MB** |
-| all4+flip (over limit) | 0.9500 | 0.6465 | 0.8590 | 0.9134 | 8x | 460MB |
+| b8+1280+long+flip (ultralytics) | 0.9489 | 0.6473 | 0.8584 | 0.9129 | 6x | 345MB |
+| **ONNX b8+1280@native+long** | **0.9550** | **0.6441** | **0.8617** | **0.9159** | **6x** | **337MB** |
 
 ### Model Locations
 - b8: `/home/jorge/clank3/tasks/norgesgruppen-data/runs/960b8_confcurr_s2_e18_img960_b8_lr8e-05_mix0_cp0_seed123/weights/best.pt`
