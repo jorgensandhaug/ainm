@@ -34,7 +34,7 @@ def main() -> None:
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
-    device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+    device = 3 if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     run_name = (
         f"{args.run_tag}_e{args.epochs}_img{args.imgsz}_b{args.batch}_"
         f"lr{args.lr0:g}_mix{args.mixup:g}_cp{args.copy_paste:g}_seed{args.seed}"
