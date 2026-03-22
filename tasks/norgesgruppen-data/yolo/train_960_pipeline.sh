@@ -5,6 +5,9 @@ cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 IMGSZ=960
 BATCH=4
+DEVICE="2"
+export PATH="$HOME/.local/bin:$PATH"
+export LD_LIBRARY_PATH=/nix/store/hh698a2nnpqr47lh52n26wi8fiah3hid-gcc-13.3.0-lib/lib:${LD_LIBRARY_PATH:-}
 
 echo "=== Stage 1/6: sweep_precision (30 epochs, from yolo26x.pt) ==="
 uv run python yolo/train.py \
@@ -14,7 +17,7 @@ uv run python yolo/train.py \
   --lr0 0.0035 --lrf 0.008 --weight-decay 0.0005 --warmup-epochs 3.0 \
   --optimizer AdamW --patience 20 --close-mosaic 12 \
   --mixup 0.0 --copy-paste 0.0 --scale 0.35 --translate 0.05 --fliplr 0.5 \
-  --seed 62 --run-tag 960_sweep_precision
+  --seed 62 --run-tag 960_sweep_precision --device $DEVICE
 
 STAGE1=$(ls -d runs/960_sweep_precision_*/weights/best.pt | tail -1)
 echo "Stage 1 best: $STAGE1"
@@ -27,7 +30,7 @@ uv run python yolo/train.py \
   --lr0 0.002 --lrf 0.008 --weight-decay 0.0005 --warmup-epochs 3.0 \
   --optimizer AdamW --patience 30 --close-mosaic 20 \
   --mixup 0.15 --copy-paste 0.15 --scale 0.5 --translate 0.1 --fliplr 0.5 \
-  --seed 77 --run-tag 960_hardopt
+  --seed 77 --run-tag 960_hardopt --device $DEVICE
 
 STAGE2=$(ls -d runs/960_hardopt_*/weights/best.pt | tail -1)
 echo "Stage 2 best: $STAGE2"
@@ -40,7 +43,7 @@ uv run python yolo/train.py \
   --lr0 0.0008 --lrf 0.008 --weight-decay 0.0005 --warmup-epochs 3.0 \
   --optimizer AdamW --patience 12 --close-mosaic 8 \
   --mixup 0.05 --copy-paste 0.1 --scale 0.5 --translate 0.1 --fliplr 0.5 \
-  --seed 91 --run-tag 960_rebalanceft
+  --seed 91 --run-tag 960_rebalanceft --device $DEVICE
 
 STAGE3=$(ls -d runs/960_rebalanceft_*/weights/best.pt | tail -1)
 echo "Stage 3 best: $STAGE3"
@@ -53,7 +56,7 @@ uv run python yolo/train.py \
   --lr0 0.0006 --lrf 0.008 --weight-decay 0.0005 --warmup-epochs 3.0 \
   --optimizer AdamW --patience 8 --close-mosaic 6 \
   --mixup 0.05 --copy-paste 0.1 --scale 0.5 --translate 0.1 --fliplr 0.5 \
-  --seed 123 --run-tag 960_finalfull
+  --seed 123 --run-tag 960_finalfull --device $DEVICE
 
 STAGE4=$(ls -d runs/960_finalfull_*/weights/best.pt | tail -1)
 echo "Stage 4 best: $STAGE4"
@@ -66,7 +69,7 @@ uv run python yolo/train.py \
   --lr0 0.0002 --lrf 0.05 --weight-decay 0.0004 --warmup-epochs 1.0 \
   --optimizer AdamW --patience 20 --close-mosaic 10 \
   --mixup 0.02 --copy-paste 0.03 --scale 0.25 --translate 0.06 --fliplr 0.5 \
-  --seed 123 --run-tag 960_confcurr_s1
+  --seed 123 --run-tag 960_confcurr_s1 --device $DEVICE
 
 STAGE5=$(ls -d runs/960_confcurr_s1_*/weights/best.pt | tail -1)
 echo "Stage 5 best: $STAGE5"
@@ -79,7 +82,7 @@ uv run python yolo/train.py \
   --lr0 8e-05 --lrf 0.03 --weight-decay 0.00035 --warmup-epochs 1.0 \
   --optimizer AdamW --patience 25 --close-mosaic 15 \
   --mixup 0.0 --copy-paste 0.0 --scale 0.18 --translate 0.04 --fliplr 0.5 \
-  --seed 123 --run-tag 960_confcurr_s2
+  --seed 123 --run-tag 960_confcurr_s2 --device $DEVICE
 
 STAGE6=$(ls -d runs/960_confcurr_s2_*/weights/best.pt | tail -1)
 echo "Stage 6 best: $STAGE6"

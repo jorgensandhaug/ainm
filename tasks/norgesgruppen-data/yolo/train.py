@@ -31,10 +31,15 @@ def main() -> None:
     parser.add_argument("--freeze", type=int, default=0, help="Number of model layers to freeze.")
     parser.add_argument("--run-tag", default="cls", help="Extra run name prefix for traceability.")
     parser.add_argument("--data", default="data/yolo/data.yaml", help="Path to YOLO data.yaml")
+    parser.add_argument("--device", default=None, help="Device(s), e.g. '0' or '0,1,2' for multi-GPU.")
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
-    device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+    if args.device is not None:
+        parts = args.device.split(",")
+        device = [int(p) for p in parts] if len(parts) > 1 else int(parts[0])
+    else:
+        device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     run_name = (
         f"{args.run_tag}_e{args.epochs}_img{args.imgsz}_b{args.batch}_"
         f"lr{args.lr0:g}_mix{args.mixup:g}_cp{args.copy_paste:g}_seed{args.seed}"
