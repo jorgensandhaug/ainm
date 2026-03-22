@@ -327,6 +327,12 @@ export const strategy = {
           }),
 
           // Row 7-8: Wrong amount correction
+          // vatType is copied from the original posting template. This is deliberate:
+          // if the original was booked with vatType=1, the correction must also use
+          // vatType=1 so Tripletex auto-splits the net/VAT adjustment correctly.
+          // All 5 production runs pass Check 4 with this approach (codex agent does the same).
+          // Risk: if the original posting has an unexpected vatType, the correction
+          // could mis-split. This has not been observed in production evidence.
           buildPostingFromTemplate({
             row: 7,
             date: CORRECTION_DATE,
@@ -422,7 +428,7 @@ function parsePrompt(prompt: string): PromptParameters {
     );
   }
 
-  return {
+  const params: PromptParameters = {
     wrongAccountSource: g1Nums[0],
     wrongAccountTarget: g1Nums[1],
     wrongAccountAmount: g1Nums[2],
@@ -434,6 +440,55 @@ function parsePrompt(prompt: string): PromptParameters {
     wrongAmountRecorded: g4Nums[1],
     wrongAmountCorrect: g4Nums[2],
   };
+
+  validatePromptParameters(params);
+  return params;
+}
+
+function validatePromptParameters(params: PromptParameters): void {
+  const accountFields: Array<[string, number]> = [
+    ["wrongAccountSource", params.wrongAccountSource],
+    ["wrongAccountTarget", params.wrongAccountTarget],
+    ["duplicateAccount", params.duplicateAccount],
+    ["missingVatAccount", params.missingVatAccount],
+    ["wrongAmountAccount", params.wrongAmountAccount],
+  ];
+
+  for (const [name, value] of accountFields) {
+    if (value < 1000 || value > 9999) {
+      throw new Error(
+        `Parsed ${name}=${value} is outside valid Norwegian account range (1000–9999). Prompt parsing may have extracted a non-account number.`,
+      );
+    }
+  }
+
+  const amountFields: Array<[string, number]> = [
+    ["wrongAccountAmount", params.wrongAccountAmount],
+    ["duplicateAmount", params.duplicateAmount],
+    ["missingVatNetAmount", params.missingVatNetAmount],
+    ["wrongAmountRecorded", params.wrongAmountRecorded],
+    ["wrongAmountCorrect", params.wrongAmountCorrect],
+  ];
+
+  for (const [name, value] of amountFields) {
+    if (value <= 0) {
+      throw new Error(
+        `Parsed ${name}=${value} must be a positive amount. Prompt parsing may have failed.`,
+      );
+    }
+  }
+
+  if (params.wrongAccountSource === params.wrongAccountTarget) {
+    throw new Error(
+      `wrongAccountSource (${params.wrongAccountSource}) and wrongAccountTarget (${params.wrongAccountTarget}) are identical — no reclassification possible.`,
+    );
+  }
+
+  if (params.wrongAmountRecorded <= params.wrongAmountCorrect) {
+    throw new Error(
+      `wrongAmountRecorded (${params.wrongAmountRecorded}) must be greater than wrongAmountCorrect (${params.wrongAmountCorrect}). Prompt says the recorded amount was too high.`,
+    );
+  }
 }
 
 function extractNumbers(text: string): number[] {
