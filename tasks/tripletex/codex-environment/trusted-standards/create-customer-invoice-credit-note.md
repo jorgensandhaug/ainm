@@ -45,6 +45,8 @@
 - for the exact prompt shape `organizationNumber=978503071`, `description="Licencia de software"`, `amountExcludingVatCurrency=25450`, that two-call path was the successful production path on 2026-03-22 (Spanish prompt); sandbox-verified on 2026-03-22
 - for the exact prompt shape `organizationNumber=866100829`, `description="Webdesign"`, `amountExcludingVatCurrency=9900`, that two-call path was the successful production path on 2026-03-22 (Norwegian prompt); sandbox-verified on 2026-03-22
 - for the exact prompt shape `organizationNumber=901668566`, `description="Webdesign"`, `amountExcludingVatCurrency=38800`, that two-call path was the successful production path on 2026-03-22 (German prompt); sandbox-verified on 2026-03-22
+- for the exact prompt shape `organizationNumber=949502619`, `description="Programvarelisens"`, `amountExcludingVatCurrency=11250`, that two-call path was the successful production path on 2026-03-22 (Norwegian prompt); this run had TWO identical invoices matching all criteria — the correct behavior is to pick the highest `id` (most recent) and credit it; the original agent wasted 1 extra GET by failing on the duplicate instead of handling it client-side; sandbox-verified on 2026-03-22 with duplicate-invoice setup confirming 2-call path works
+- **CRITICAL**: when multiple invoices match all criteria identically, the script MUST pick the highest `id` instead of exiting with an error; failing on duplicates and re-querying is the #1 source of wasted calls for this task shape
 
 ## Payload Rules
 - locate the invoice by prompt facts such as:
@@ -56,6 +58,7 @@
 - if the prompt gives no invoice date, prefer one wide but bounded invoice search window such as:
   - `invoiceDateFrom=2000-01-01`
   - `invoiceDateTo=<run-date-plus-one-day>`
+- if multiple invoices match all criteria identically (same customer, same amount, same description, both uncredited), pick the one with the highest `id` (most recently created) — do NOT fail or spend an extra resolver call; the production environment can have duplicate invoices and "the invoice" in the prompt refers to one of them
 - filter out:
   - `isCreditNote=true`
   - `isCredited=true`
@@ -78,7 +81,8 @@
   - `creditedInvoice=<original invoice id>`
 
 ## Known Recovery Branches
-- if the invoice locate step is ambiguous, add one extra targeted resolver such as `GET /customer?organizationNumber=...&fields=*`
+- if the invoice locate step returns multiple candidates with DIFFERENT customers, amounts, or descriptions, add one extra targeted resolver such as `GET /customer?organizationNumber=...&fields=*`
+- if multiple candidates are truly identical (same customer org number, same amount, same description), that is NOT ambiguity — pick the highest `id` and proceed; do NOT spend an extra call
 - if the prompt already gives the exact invoice id, skip the locate read and go straight to `PUT /invoice/{id}/:createCreditNote`
 
 ## OpenAPI / Sandbox Status
@@ -163,3 +167,9 @@
   - `PUT /invoice/2147652358/:createCreditNote?date=2026-03-22&sendToCustomer=false`
   - the run succeeded with 2 API calls, 0 errors
   - re-verified in persistent sandbox on 2026-03-22 with a disposable fixture matching `organizationNumber=901668566`, `description="Webdesign"`, `amountExcludingVatCurrency=38800`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+- production run on 2026-03-22 for the exact prompt shape `organizationNumber=949502619`, `description="Programvarelisens"`, `amountExcludingVatCurrency=11250` (Norwegian prompt):
+  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-23&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+  - `PUT /invoice/2147663977/:createCreditNote?date=2026-03-22&sendToCustomer=false`
+  - the run used 3 API calls (1 wasted GET) because the script failed when 2 identical invoices matched; the correct behavior is to pick the highest `id` and proceed in 2 calls
+  - re-verified in persistent sandbox on 2026-03-22 with TWO identical fixture invoices for same customer/amount/description; the 2-call path works when the script picks the highest `id` instead of failing on the duplicate
+  - 15 consecutive production runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable; duplicate-invoice handling is the only new pitfall discovered

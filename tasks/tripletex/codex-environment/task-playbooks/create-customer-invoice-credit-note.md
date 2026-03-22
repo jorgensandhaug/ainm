@@ -193,13 +193,14 @@ Verified on 2026-03-22:
 2. Locate the original invoice with one decisive read
    - usually `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
    - if the prompt gives no invoice date, default to one wide but bounded window such as `invoiceDateFrom=2000-01-01` and `invoiceDateTo=<run-date-plus-one-day>`
-3. Filter locally to the single correct invoice
+3. Filter locally to the correct invoice
    - exact customer organization number if provided
    - exact ex-VAT amount from `amountExcludingVatCurrency` or `amountExcludingVat`
    - exact prompt text match in `orderLines[].description` or `orders[].orderLines[].description`
    - if the same exact description appears in both arrays on one invoice, still count that as one invoice candidate
    - exclude `isCreditNote=true`
    - exclude `isCredited=true`
+   - if multiple invoices match all criteria identically (same customer, same amount, same description), pick the one with the highest `id` (most recently created) — do NOT fail or spend an extra resolver call
 4. Create the full credit note
    - `PUT /invoice/{id}/:createCreditNote?date=<date>&sendToCustomer=false`
 5. Verify from the write response
@@ -235,7 +236,8 @@ Verified on 2026-03-22:
 - if the same description appears in both top-level and nested line arrays on one invoice, dedupe at the invoice level
 - prefer exact string matching on the prompt’s description before broader fuzzy matching
 - preserve exact Unicode in the prompt description; do not ASCII-normalize strings such as `Conseil en données`
-- if the locate result is ambiguous, only then add one extra targeted resolver such as `GET /customer?organizationNumber=...&fields=*`
+- if the locate result returns multiple candidates with DIFFERENT customers, amounts, or descriptions, only then add one extra targeted resolver such as `GET /customer?organizationNumber=...&fields=*`
+- if multiple candidates are truly identical (same customer org number, same amount, same description), that is NOT ambiguity — pick the highest `id` and proceed; do NOT spend an extra call
 
 ## Send And Verification Rules
 
@@ -254,3 +256,5 @@ Verified on 2026-03-22:
 - do not use a voucher reversal for this task shape; voucher reversal belongs to payment-reversal workflows
 - do not create a manual negative invoice as a substitute for the built-in credit-note action
 - do not leave `sendToCustomer` at the default when the task only asks to issue the credit note, not send it
+- do not fail or exit when multiple invoices match all criteria identically — the production environment can have duplicate invoices; pick the highest `id` and proceed
+- do not spend an extra GET to "inspect" candidates that the first GET already returned; all candidate data is in the first response
