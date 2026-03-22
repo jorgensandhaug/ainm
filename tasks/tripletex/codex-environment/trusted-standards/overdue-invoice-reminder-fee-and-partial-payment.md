@@ -225,4 +225,11 @@ These verification GETs catch silent failures and provide diagnostic data for de
   - payment reduced outstanding from `22250` to `17250`
   - 11th production confirmation of the `6`-call path; second clean `de`+`70` combination
 - sandbox investigation on `2026-03-22` confirmed `paymentType` is NOT a valid field expansion on InvoiceDTO (400 on `fields=*,paymentType(*)`); the `GET /invoice/paymentType` call cannot be eliminated via the invoice response
-- the `6`-call path is confirmed across 11 clean production runs + 1 blocked run and multiple sandbox proofs on `2026-03-21` and `2026-03-22`; no `5`-call standalone path exists
+- production proof on `2026-03-22` (`prod-2026-03-22-105248929Z-7fdc0de6`) confirmed the `6`-call path for Nynorsk prompt with fee `65`, 0 errors, 0 wasted calls:
+  - overdue invoice `#3` (`id=2147696738`), customer `108585915` (Nordlys AS), outstanding `36812.5`, due `2026-02-15`
+  - voucher `#1` (`id=609405945`), accounts 1500 (id=499118395) / 3400 (id=499118591)
+  - fee invoice `#4` (`id=2147696827`, amount `65`)
+  - payment type `39752986`
+  - payment reduced outstanding from `36812.5` to `31812.5`
+  - 12th production confirmation of the `6`-call path; first `nn`+`65` combination; now verified across `nb`, `nn`, `en`, `es`, `pt`, `de`, and `fr` prompts with fee amounts `35`, `40`, `50`, `60`, `65`, `70`
+- the `6`-call path is confirmed across 12 clean production runs + 1 blocked run and multiple sandbox proofs on `2026-03-21` and `2026-03-22`; no `5`-call standalone path exists

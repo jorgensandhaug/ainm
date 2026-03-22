@@ -274,4 +274,10 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
   - payment type `39720744`
   - remaining outstanding `17250`
 - sandbox investigation on `2026-03-22` confirmed `paymentType` is NOT a valid field expansion on InvoiceDTO (400); the `GET /invoice/paymentType` call cannot be eliminated via the invoice response
-- the `6`-call path is confirmed across 11 clean production runs + 1 blocked run; no `5`-call standalone path exists
+- production run `prod-2026-03-22-105248929Z-7fdc0de6` matched the trusted `6`-call path exactly for a Nynorsk prompt with fee `65`, 0 errors:
+  - overdue invoice `#3` (`id=2147696738`), customer `108585915` (Nordlys AS), outstanding `36812.5`, due `2026-02-15`
+  - voucher `#1` (`id=609405945`)
+  - fee invoice `#4` (`id=2147696827`, amount `65`)
+  - payment type `39752986`
+  - remaining outstanding `31812.5`
+- the `6`-call path is confirmed across 12 clean production runs + 1 blocked run; first `nn` (Nynorsk) prompt; fee amounts now include `35`, `40`, `50`, `60`, `65`, `70`; no `5`-call standalone path exists
