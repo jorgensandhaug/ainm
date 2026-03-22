@@ -15,23 +15,14 @@ Do not use for:
 
 ## Verified Findings
 
-Production run `29c4733d` on 2026-03-22 (latest, Spanish prompt) achieved:
+Production run `ccafc2e3` on 2026-03-22 (latest, English prompt) achieved:
 - **3 calls, 0 errors, correct result** — the theoretical minimum for this task shape
 - used `POST /project/list` with inline `projectActivities` per project for batch create
 - same top 3 accounts as all prior runs
 
-Production run `2916e388` on 2026-03-21 (English prompt) achieved:
-- **3 calls, 0 errors, correct result** — the theoretical minimum for this task shape
-- used `POST /project/list` with inline `projectActivities` per project for batch create
-- top 3 accounts: `7100 Bilgodtgjørelse oppgavepliktig` (+7000), `6500 Motordrevet verktøy` (+5600), `5000 Lønn til ansatte` (+5000)
-
-Earlier production runs on 2026-03-21 achieved:
-- `454452ef` (Spanish): 3 calls, 0 errors — same path
-- `1c76136a` (Portuguese): 3 calls, 0 errors — same path
-- `3a21d463` (Spanish): 3 calls, 0 errors — same path
-- 1st run (English): 3 calls, 0 errors — same path
-
-6 consecutive optimal runs across en/es/pt prompts confirm this standard is stable and language-independent.
+7 consecutive optimal production runs (en/es/pt) confirm this standard is fully stable and language-independent:
+- `ccafc2e3` (English, 2026-03-22), `29c4733d` (Spanish, 2026-03-22), `2916e388` (English, 2026-03-21), `454452ef` (Spanish), `1c76136a` (Portuguese), `3a21d463` (Spanish), 1st run (English)
+- All: 3 calls, 0 errors, same top 3 accounts, same batch create path
 
 Persistent-sandbox verification on 2026-03-21 showed:
 - `POST /project/list` with inline `projectActivities` array per project successfully creates both the project and its activity in a single batch call

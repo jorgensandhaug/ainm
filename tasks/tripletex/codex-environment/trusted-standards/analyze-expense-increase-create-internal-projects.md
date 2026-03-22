@@ -113,4 +113,7 @@ Total: **3 API calls** (1 ledger read + 1 employee read + 1 batch project create
   - sandbox re-verified: `POST /project/list` without `projectManager` still returns `422`; `projectManager.id=0` also returns `422`; `/token/session/>whoAmI` returns the same `employeeId` as `assignableProjectManagers[0]` in fresh accounts but does not save a call
 - 6th production run `29c4733d` on `2026-03-22` (Spanish prompt) confirmed the identical 3-call path:
   - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls
-  - 6 consecutive optimal runs across en/es/pt prompts confirm this standard is fully stable
+- 7th production run `ccafc2e3` on `2026-03-22` (English prompt) confirmed the identical 3-call path:
+  - same top 3 accounts, same amounts, same batch create — 0 errors, 3 calls
+  - 7 consecutive optimal runs across en/es/pt prompts confirm this standard is fully stable
+  - sandbox re-verified 2026-03-22: `whoAmI` returns employeeId but costs 1 call same as assignableProjectManagers; ledger postings have no employee references to reuse; 3 calls remains provably minimal
