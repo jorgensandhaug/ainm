@@ -111,6 +111,19 @@ Maximize **Hybrid Score = 0.7 * detection_mAP@0.5 + 0.3 * classification_mAP@0.5
 - Classification improved: 0.633 vs 0.624
 - Random seed variance matters significantly on this small dataset
 
+### EXP-012: Pipeline v3 — More Seeds (2026-03-22)
+- Seeds: 7/23/47/71/97/113 (primes)
+- **Hybrid: 0.8436** — better than v1 but worse than v2
+- Confirms seed variance: v2 seeds 99/133/200/300/400/500 are the best so far
+
+## All Pipeline Comparisons
+
+| Pipeline | Seeds | Det AP | Cls mAP (all) | Hybrid |
+|----------|-------|--------|--------------|--------|
+| v1 | 62/77/91/123/123/123 | 0.931 | 0.624 | 0.839 |
+| **v2** | **99/133/200/300/400/500** | **0.943** | **0.633** | **0.850** |
+| v3 | 7/23/47/71/97/113 | 0.939 | 0.622 | 0.844 |
+
 ## Key Findings
 1. The 6-stage curriculum pipeline is the best training strategy
 2. Random seeds significantly impact results (0.849 vs 0.839)
