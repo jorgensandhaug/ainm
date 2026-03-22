@@ -5293,7 +5293,24 @@ Improvement trajectory:
 - Would a CNN/U-Net approach capture spatial patterns better than stacking?
 - Can we learn better features from temporal replay dynamics?
 
-544. Next experiments:
+544. Hard constraint enforcement: 90.41 (no change)
+   - Verified: ocean=always empty, mountain=always mountain, non-coast=never port
+   - Model already learned these perfectly from data
+   - Constraints don't help because the probability floor (0.0001) already handles them
+
+545. Comprehensive failed approaches:
+   - Spatial smoothing σ≥0.5: catastrophic
+   - Smart blend: catastrophic
+   - Obs-blend: hurts with more data
+   - Cross-entropy objective: -0.30
+   - Ensemble LGB+CB: -0.11
+   - Seed ensembles: no effect
+   - Regime features: helps hard rounds but hurts others
+   - Hard constraints: no effect (model already learns them)
+   - More trees beyond 800: no help
+   - Deeper than d10: no help (d12 overfits slightly)
+
+546. Next experiments:
 
 ## Open Questions
 
