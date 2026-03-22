@@ -133,6 +133,8 @@ TRIPLE_EW_R005_V001 = "triple_ew_r005_v001"  # best blend but DT ridge=0.005
 TRIPLE_EW_R0005_V001 = "triple_ew_r0005_v001"  # best blend but DT ridge=0.0005
 TRIPLE_EW_R0002_V001 = "triple_ew_r0002_v001"  # DT ridge=0.0002
 TRIPLE_EW_R0001_V001 = "triple_ew_r0001_v001"  # DT ridge=0.0001
+TRIPLE_EW_R00005_V001 = "triple_ew_r00005_v001"  # DT ridge=5e-5
+TRIPLE_EW_R00001_V001 = "triple_ew_r00001_v001"  # DT ridge=1e-5
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -2130,7 +2132,7 @@ def build_online_predictor(
             model_name=DIRECT_TERMINAL_Z2_EW_V003,
             fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.0005, "max_epochs": 200, "entropy_weighted": True},
         )
-    if normalized in (TRIPLE_EW_R005_V001, TRIPLE_EW_R0005_V001, TRIPLE_EW_R0002_V001, TRIPLE_EW_R0001_V001):
+    if normalized in (TRIPLE_EW_R005_V001, TRIPLE_EW_R0005_V001, TRIPLE_EW_R0002_V001, TRIPLE_EW_R0001_V001, TRIPLE_EW_R00005_V001, TRIPLE_EW_R00001_V001):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         glmm_adapter = _build_smh_glmm_latent_adapter(
             workspace_paths,
@@ -2144,6 +2146,8 @@ def build_online_predictor(
             TRIPLE_EW_R0005_V001: (0.0005, DIRECT_TERMINAL_Z2_EW_V003),
             TRIPLE_EW_R0002_V001: (0.0002, "direct_terminal_z2_ew_r0002"),
             TRIPLE_EW_R0001_V001: (0.0001, "direct_terminal_z2_ew_r0001"),
+            TRIPLE_EW_R00005_V001: (5e-5, "direct_terminal_z2_ew_r00005"),
+            TRIPLE_EW_R00001_V001: (1e-5, "direct_terminal_z2_ew_r00001"),
         }
         ridge_val, dt_stem = ridge_map[normalized]
         dt_adapter = _build_direct_terminal_adapter(

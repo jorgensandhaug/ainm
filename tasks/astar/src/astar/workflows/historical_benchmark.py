@@ -219,6 +219,8 @@ def run_historical_benchmark(
         "triple_ew_r0005_v001",
         "triple_ew_r0002_v001",
         "triple_ew_r0001_v001",
+        "triple_ew_r00005_v001",
+        "triple_ew_r00001_v001",
         "smh_resid_z12_h0_covbase_locgate_v001",
         "smh_coeffbank_z0_h0_covlike_calbase_v001",
         "smh_coeffbank_z0_h0_covmarkpostw06_v001",
