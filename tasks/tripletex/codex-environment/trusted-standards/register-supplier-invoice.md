@@ -24,7 +24,7 @@
 1. `POST /supplier` (with address + bank data if present in prompt) — response is `.value` (singular); extract `supplier.id` AND `supplier.ledgerAccount.id` (this IS account 2400's id — no extra GET needed)
 2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*` — response is `.values` (plural); extract `.values[0].id`
 3. `POST /ledger/voucher/importDocument` with a valid minimal EHF/UBL XML invoice — **response is `.values` (plural, NOT `.value`)** — extract `.values[0].id` and `.values[0].version`
-4. `GET /supplierInvoice?voucherId={voucherId}&fields=*` — **verification**: confirm SI entity was created; log `id`, `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`, `invoiceDueDate`
+4. `GET /supplierInvoice?voucherId={voucherId}&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31&fields=*` — **verification**: confirm SI entity was created; log `id`, `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`, `invoiceDueDate`. **CRITICAL**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED — omitting them returns 422 "Kan ikke være null"
 5. `PUT /ledger/voucher/{id}?sendToLedger=false` with `version` (from step 3) + `postings` (set correct accounts, amounts, VAT) — response is `.value` (singular); extract `.value.version`
 6. `PUT /ledger/voucher/{id}?sendToLedger=true` with `version` (from step 5 response) + `voucherType: { name: "Leverandørfaktura" }` — this BOOKS the voucher — response is `.value` (singular)
 7. `GET /ledger/voucher/{id}?fields=*` — **verification**: confirm `number > 0` (booked), log postings, description, voucherType
@@ -82,7 +82,7 @@ The correct sequence is:
   - `cbc:InvoiceTypeCode = 380`
   - `cbc:DocumentCurrencyCode = NOK`
   - `cac:AccountingSupplierParty` with endpoint id, legal entity, tax scheme, and postal address
-  - `cac:AccountingCustomerParty` with a buyer block (use company org number from whoAmI or a placeholder)
+  - `cac:AccountingCustomerParty` with a buyer block — **hard-code buyer org number `987654325`** (valid mod11); do NOT use `000000000` (fails PEPPOL-COMMON-R041 mod11 validation → 422) and do NOT try `GET /company/whoAmI` (proxy returns 422 "Expected number")
   - `cac:TaxTotal` with correct VAT amounts
   - `cac:LegalMonetaryTotal` with net, gross, and payable amounts
   - one `cac:InvoiceLine` with item name = prompt description, classified tax category, line extension amount, and price
@@ -141,7 +141,8 @@ The correct sequence is:
 
 GETs do NOT count against scoring. ALWAYS verify after writes:
 
-1. **After importDocument** (step 4): `GET /supplierInvoice?voucherId={id}&fields=*`
+1. **After importDocument** (step 4): `GET /supplierInvoice?voucherId={id}&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31&fields=*`
+   - **CRITICAL**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED params — without them, GET returns 422
    - Confirm: `count > 0`, SI entity exists
    - Log: `id`, `amount` (should be -gross), `amountExcludingVat` (should be -net), `invoiceNumber`, `kidOrReceiverReference`, `invoiceDueDate`, `outstandingAmount`
    - If count=0: importDocument failed silently — STOP, do not proceed
@@ -170,6 +171,8 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
 **Prevention**: The script MUST handle the importDocument response correctly on the first attempt. There is no safe retry path — the orphaned SI entity cannot be deleted via API.
 
 ## Known Pitfalls
+- **CRITICAL buyer org in XML**: the `AccountingCustomerParty` `EndpointID` MUST be a valid 9-digit Norwegian org number passing mod11 check — hard-code `987654325`. Using `000000000` triggers PEPPOL-COMMON-R041 validation → 422 on importDocument. Do NOT try `GET /company/whoAmI` — the proxy interprets "whoAmI" as a numeric company ID → 422 "Expected number". Sandbox-verified 2026-03-22.
+- **CRITICAL supplierInvoice GET date params**: `GET /supplierInvoice` REQUIRES `invoiceDateFrom` and `invoiceDateTo` query params — omitting them returns 422 "Kan ikke være null". Always include `&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31`. Sandbox-verified 2026-03-22.
 - **CRITICAL response shape**: `POST /ledger/voucher/importDocument` returns `{ values: [...] }` (plural), NOT `{ value: {...} }` — use `.values[0].id` and `.values[0].version`; all other endpoints (POST /supplier, PUT /ledger/voucher) return `{ value: {...} }` (singular). Getting this wrong crashes the script and creates orphaned state.
 - do NOT waste a GET call on account 2400 — `POST /supplier` response includes `ledgerAccount.id` which IS account 2400's id
 - do NOT use direct `POST /ledger/voucher` — it does NOT create a supplierInvoice entity; the scorer requires one
@@ -223,6 +226,17 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
 - voucher 609322643 booked as number 1 (retry's voucher, not the orphaned one)
 - **LESSON**: importDocument is not idempotent — crash-then-retry creates duplicates that cannot be cleaned up
 - FIX: documented response shapes + non-idempotency warning in this standard
+
+### 2026-03-22 prod-6b159167 (Portuguese prompt, importDocument + booked, 3 avoidable errors) — scored TBD
+- `Solmar Lda` / `974178680` / `INV-2026-6556` / gross `50750` / account `6500` / `25%`
+- 11 calls total: 4 writes + 4 reads + 3 errors
+- **Error 1**: importDocument 422 — buyer org `000000000` failed PEPPOL mod11 validation; fixed with `987654325`
+- **Error 2**: `GET /company/whoAmI` 422 — proxy interprets "whoAmI" as numeric company ID; eliminated entirely
+- **Error 3**: `GET /supplierInvoice` 422 — missing required `invoiceDateFrom`/`invoiceDateTo` params; fixed with date range
+- After fixing all 3: full flow succeeded, voucher 609407276 booked as number 1-2026
+- SI entity: amount=-50750, amountExcludingVat=-40600, kidOrReceiverReference=INV-2026-6556
+- **LESSON**: buyer org must pass mod11, supplierInvoice GET needs date params, whoAmI doesn't work on proxy
+- FIX: all three pitfalls documented in this standard + playbook
 
 ### 2026-03-22 direct-voucher runs (scored 0/8 or 1/8)
 - direct `POST /ledger/voucher` creates NO supplierInvoice entity

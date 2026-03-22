@@ -21,7 +21,7 @@ Do not use for:
 1. `POST /supplier` (with address + bank data from prompt if present) — response: `.value`; extract `.value.id` AND `.value.ledgerAccount.id` (= account 2400, free)
 2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*` — response: `.values`; for expense account only
 3. `POST /ledger/voucher/importDocument` with EHF/UBL XML — **response: `.values` (plural, NOT `.value`)** — extract `.values[0].id` and `.values[0].version`
-4. `GET /supplierInvoice?voucherId={id}&fields=*` — **verify** SI entity created; log `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`
+4. `GET /supplierInvoice?voucherId={id}&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31&fields=*` — **verify** SI entity created; log `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`. **CRITICAL**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED — omitting them returns 422
 5. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings (version from step 3) — response: `.value`
 6. `PUT /ledger/voucher/{id}?sendToLedger=true` — book the voucher (version from step 5) — response: `.value`
 7. `GET /ledger/voucher/{id}?fields=*` — **verify** booked (`number > 0`); log postings, description, voucherType
@@ -51,6 +51,7 @@ Build a valid EHF/UBL XML with these prompt values:
 - `cbc:IssueDate` = invoice date (or run date)
 - `cbc:DueDate` = due date (or run date + 30 days, or run date)
 - Supplier name, org number, address in `cac:AccountingSupplierParty`
+- **Buyer org number in `cac:AccountingCustomerParty`**: hard-code `987654325` (valid mod11). Do NOT use `000000000` (fails PEPPOL-COMMON-R041 → 422). Do NOT try `GET /company/whoAmI` (proxy returns 422).
 - Line item name = prompt description exactly
 - Amounts: net in line/totals, gross in TaxInclusiveAmount/PayableAmount, VAT in TaxAmount
 
@@ -133,6 +134,8 @@ If the script crashes AFTER `importDocument` succeeds but BEFORE booking, retryi
 
 ## Known Pitfalls
 
+- **CRITICAL buyer org in XML**: `AccountingCustomerParty` `EndpointID` MUST be a valid Norwegian org number passing mod11 — hard-code `987654325`. Using `000000000` triggers PEPPOL-COMMON-R041 → 422 on importDocument. Do NOT try `GET /company/whoAmI` — proxy returns 422 "Expected number". Sandbox-verified 2026-03-22.
+- **CRITICAL supplierInvoice GET**: REQUIRES `invoiceDateFrom` and `invoiceDateTo` query params — omitting them returns 422 "Kan ikke være null". Always include `&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31`. Sandbox-verified 2026-03-22.
 - **CRITICAL**: `importDocument` returns `.values[0]` (plural), NOT `.value` — accessing `.value.id` CRASHES and creates orphaned state; all other endpoints return `.value` (singular)
 - do NOT waste a GET on account 2400 — `POST /supplier` response includes `.value.ledgerAccount.id` which IS account 2400's id
 - do NOT use direct `POST /ledger/voucher` — NO supplierInvoice entity created
@@ -150,3 +153,4 @@ If the script crashes AFTER `importDocument` succeeds but BEFORE booking, retryi
 - **0b6fe5b8** (importDocument, NOT booked): scored 1/8 (2/4 passed) — ONLY T11 run above 0
 - direct-voucher runs: peaked at 1/8 despite correct description + auto-booking — NO SI entity
 - **FIX**: added booking step → expected improvement to 3/4 checks
+- **6b159167** (Portuguese prompt, importDocument + booked): 11 calls (4W+4R+3 errors); buyer org 422 + whoAmI 422 + SI GET 422; after fixing: voucher booked as 1-2026, SI correct; all 3 pitfalls documented
