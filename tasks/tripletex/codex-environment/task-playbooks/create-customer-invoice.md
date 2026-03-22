@@ -132,6 +132,12 @@ Do not use for:
   - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them with explicit `vatType: { id: product.vatType.id }` produced correct totals `amountExcludingVatCurrency=27350` / `amountCurrency=31625`
   - no `/ledger/vatType` call was needed since the products already carried the intended VAT
   - fourth optimal 6-call path (3 core + 3 bank-account repair); first French-language confirmation for this task shape
+- the 2026-03-22 production run for `Sierra SL` / `861379760` / products `Mantenimiento (2109)` + `Horas de consultoría (1175)` + `Informe de análisis (9974)` / VAT `25%` + `15% alimentos` + `0% exento` (Spanish prompt) succeeded with the optimal 6 API calls and 0 avoidable errors:
+  - `GET /customer?organizationNumber=861379760&fields=*` -> `GET /product?number=2109,1175,9974&fields=*` -> `POST /invoice?sendToCustomer=false` (422 bank-account) -> `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` -> retry `POST /invoice?sendToCustomer=false` (201)
+  - sixth production confirmation of the comma-separated `number=X,Y,Z` product query approach; returned all 3 products in one call
+  - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them with explicit `vatType: { id: product.vatType.id }` produced correct totals `amountExcludingVatCurrency=34800` / `amountCurrency=42260`
+  - no `/ledger/vatType` call was needed since the products already carried the intended VAT
+  - fifth optimal 6-call path (3 core + 3 bank-account repair); second Spanish-language confirmation for this task shape
 
 ## Minimal Flow
 

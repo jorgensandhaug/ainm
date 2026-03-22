@@ -147,3 +147,11 @@
   - no `/ledger/vatType` call was needed since the products already carried the intended VAT
   - fourth production run achieving the optimal 6-call path (3 core + 3 bank-account repair); first French-language confirmation for this task shape
   - persistent sandbox re-proof on 2026-03-22 with products `1340`, `9754`, `7005` and comma-separated query confirmed the 3-call path; invoice returned `amountExcludingVatCurrency=27350` / `amountCurrency=34187.5` (sandbox 25% only on all products)
+- the 2026-03-22 production run for `Sierra SL` / `861379760` / products `Mantenimiento (2109)` + `Horas de consultoría (1175)` + `Informe de análisis (9974)` / VAT `25%` + `15% alimentos` + `0% exento` (Spanish prompt) succeeded with the optimal 6 API calls and 0 avoidable errors:
+  - `GET /customer?organizationNumber=861379760&fields=*` -> `GET /product?number=2109,1175,9974&fields=*` -> `POST /invoice?sendToCustomer=false` (422 bank-account) -> `GET /ledger/account?isBankAccount=true&fields=*` -> `PUT /ledger/account/{id}` -> retry `POST /invoice?sendToCustomer=false` (201)
+  - sixth production confirmation of the comma-separated `number=X,Y,Z` product query approach (OR semantics); returned all 3 products in one call
+  - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them with explicit `vatType: { id: product.vatType.id }` produced correct totals `amountExcludingVatCurrency=34800` / `amountCurrency=42260`
+  - no `/ledger/vatType` call was needed since the products already carried the intended VAT
+  - fifth production run achieving the optimal 6-call path (3 core + 3 bank-account repair); second Spanish-language confirmation for this task shape
+  - this is the second production run with the exact customer/product combination `861379760` + `2109/1175/9974` — the first (2026-03-20) used a suboptimal path with extra `/ledger/vatType`; this run achieved the optimal path
+  - persistent sandbox re-proof on 2026-03-22 with same products `2109`, `1175`, `9974` and comma-separated query confirmed the 3-call core path; invoice returned `amountExcludingVatCurrency=34800` / `amountCurrency=34800` (sandbox 0% only); readback confirmed all products linked with correct numbers, descriptions, and unit prices
