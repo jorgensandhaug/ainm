@@ -523,6 +523,43 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_scale=2.0,
         blend_space="logodds",
     ),
+    # Fine sweep around a6_v19 (v24 + 85/15 + scale=2.0 = 87.8662)
+    "ffam_ensemble_a6_v21": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v21",
+        mode_model="ffam_mode_a6_v24",  # v19+4c
+        knn_model="ffam_knn_v1",
+        mode_weight=0.84,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    "ffam_ensemble_a6_v22": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v22",
+        mode_model="ffam_mode_a6_v24",  # v19+4c
+        knn_model="ffam_knn_v1",
+        mode_weight=0.86,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    "ffam_ensemble_a6_v23": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v23",
+        mode_model="ffam_mode_a6_v24",  # v19+4c
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=1.8,
+        blend_space="logodds",
+    ),
+    "ffam_ensemble_a6_v24": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v24",
+        mode_model="ffam_mode_a6_v24",  # v19+4c
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.2,
+        blend_space="logodds",
+    ),
 }
 
 
