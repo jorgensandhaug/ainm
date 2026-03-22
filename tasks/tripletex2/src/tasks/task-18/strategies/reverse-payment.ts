@@ -421,14 +421,11 @@ function requireNumber(value: unknown, label: string): number {
   return parsed;
 }
 
-function normalizeText(value: string | null | undefined): string {
-  return (value ?? "").trim().toLowerCase();
+function normalizeText(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
 }
 
-function sameText(
-  left: string | null | undefined,
-  right: string | null | undefined,
-): boolean {
+function sameText(left: unknown, right: unknown): boolean {
   return normalizeText(left) === normalizeText(right);
 }
 
@@ -452,8 +449,9 @@ function buildCustomerNameNotes(
   ];
 }
 
-function assertPositiveNumber(value: number, fieldName: string): void {
-  if (!Number.isFinite(value) || value <= 0) {
+function assertPositiveNumber(value: unknown, fieldName: string): void {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) {
     throw new Error(`${fieldName} must be a positive number.`);
   }
 }

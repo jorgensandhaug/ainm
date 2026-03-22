@@ -84,8 +84,8 @@ export const strategy = {
   },
 } satisfies CreateSupplierStrategy;
 
-function assertNonEmptyText(value: string, fieldName: string): string {
-  const normalizedValue = value.trim();
+function assertNonEmptyText(value: unknown, fieldName: string): string {
+  const normalizedValue = String(value ?? "").trim();
   if (normalizedValue.length === 0) {
     throw new Error(`${fieldName} must be a non-empty string.`);
   }
@@ -93,17 +93,13 @@ function assertNonEmptyText(value: string, fieldName: string): string {
   return normalizedValue;
 }
 
-function normalizeOptionalText(value: string | undefined): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  const normalizedValue = value.trim();
-  return normalizedValue.length > 0 ? normalizedValue : undefined;
+function normalizeOptionalText(value: unknown): string | undefined {
+  const str = String(value ?? "").trim();
+  return str.length > 0 ? str : undefined;
 }
 
-function normalizeOrganizationNumber(value: string): string {
-  const normalizedValue = value.replace(/\s+/g, "");
+function normalizeOrganizationNumber(value: unknown): string {
+  const normalizedValue = String(value ?? "").replace(/\s+/g, "");
   if (normalizedValue.length === 0) {
     throw new Error("organizationNumber must be a non-empty string.");
   }
@@ -111,9 +107,9 @@ function normalizeOrganizationNumber(value: string): string {
   return normalizedValue;
 }
 
-function looksLikeInvoiceEmail(value: string): boolean {
+function looksLikeInvoiceEmail(value: unknown): boolean {
   return /(^|[^a-z])(invoice|faktura|fakturor|fakturering|ehf)([^a-z]|$)/i.test(
-    value,
+    String(value ?? ""),
   );
 }
 

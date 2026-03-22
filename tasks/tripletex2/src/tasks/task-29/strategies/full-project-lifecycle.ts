@@ -1172,16 +1172,16 @@ function requireNonEmptyString(value: string | undefined, fieldName: string): st
   return normalized;
 }
 
-function normalizeOptionalString(value: string | null | undefined): string | undefined {
-  const normalized = value?.trim();
-  return normalized ? normalized : undefined;
+function normalizeOptionalString(value: unknown): string | undefined {
+  const normalized = String(value ?? "").trim();
+  return normalized.length > 0 ? normalized : undefined;
 }
 
-function normalizeOrganizationNumber(value: string | null | undefined): string {
-  return (value ?? "").replace(/\s+/g, "");
+function normalizeOrganizationNumber(value: unknown): string {
+  return String(value ?? "").replace(/\s+/g, "");
 }
 
-function normalizeEmail(value: string | null | undefined): string {
+function normalizeEmail(value: unknown): string {
   let normalized = normalizeOptionalString(value) ?? "";
   normalized = normalized.replace(/^mailto:/i, "");
 
@@ -1198,12 +1198,13 @@ function normalizeEmail(value: string | null | undefined): string {
   return normalized;
 }
 
-function assertPositiveNumber(value: number, fieldName: string): number {
-  if (!Number.isFinite(value) || value <= 0) {
+function assertPositiveNumber(value: unknown, fieldName: string): number {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) {
     throw new Error(`${fieldName} must be a positive number.`);
   }
 
-  return value;
+  return num;
 }
 
 function assertApproxNumber(
@@ -1222,8 +1223,8 @@ function assertApproxNumber(
   }
 }
 
-function sameText(left: string, right: string): boolean {
-  return left.localeCompare(right, undefined, { sensitivity: "base" }) === 0;
+function sameText(left: unknown, right: unknown): boolean {
+  return String(left ?? "").localeCompare(String(right ?? ""), undefined, { sensitivity: "base" }) === 0;
 }
 
 function sameNumber(
