@@ -471,6 +471,47 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         blend_space="logodds",
         probability_floor=0.0001,
     ),
+    # === Round 3: Ensembles with best new modes ===
+    # a5_e13: Moderate beta mode (a5_v8) + 15% kNN — best new standalone
+    "ffam_ensemble_a5_e13": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e13",
+        mode_model="ffam_mode_a5_v8",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e14: Moderate beta mode (a5_v8) + 16% kNN
+    "ffam_ensemble_a5_e14": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e14",
+        mode_model="ffam_mode_a5_v8",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.84,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e15: Moderate beta (a5_v8) + 12% kNN
+    "ffam_ensemble_a5_e15": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e15",
+        mode_model="ffam_mode_a5_v8",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e16: Higher samples mode (a5_v10) + 15% kNN
+    "ffam_ensemble_a5_e16": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e16",
+        mode_model="ffam_mode_a5_v10",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
 }
 
 
