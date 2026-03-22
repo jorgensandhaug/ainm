@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-request.v1",
+  "createdAt": "2026-03-22T02:23:28.187Z",
+  "mode": "sandbox",
+  "runId": "verify-10-10.issue-full-credit-note.v1-2026-03-22T02-23-28-177Z",
+  "request": {
+    "prompt": "Research OS verifier run for task 10 (Issue full credit note). Strategy under test: 10.issue-full-credit-note.v1. Task understanding is pinned manually for this run. This prompt exists only to give the deterministic runtime a stable request fingerprint.",
+    "files": [],
+    "tripletexCredentials": {
+      "baseUrl": "https://kkpqfuj-amager.tripletex.dev/v2",
+      "credentialSource": "tripletex2.sandbox-env"
+    }
+  }
+}

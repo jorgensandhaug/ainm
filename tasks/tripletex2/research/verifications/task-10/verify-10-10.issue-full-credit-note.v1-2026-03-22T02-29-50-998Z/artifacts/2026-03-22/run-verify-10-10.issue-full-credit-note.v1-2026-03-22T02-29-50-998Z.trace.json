@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z",
+  "sidecarId": "trace-1",
+  "kind": "sanitized-trace",
+  "createdAt": "2026-03-22T02:29:51.001Z",
+  "payload": {
+    "notes": [
+      "Captured 2 Tripletex API calls."
+    ],
+    "trace": [
+      {
+        "durationMs": 992,
+        "index": 1,
+        "method": "GET",
+        "path": "/invoice",
+        "query": {
+          "count": 1000,
+          "fields": "*,customer(*),orderLines(*),orders(*,orderLines(*))",
+          "invoiceDateFrom": "2000-01-01",
+          "invoiceDateTo": "2026-03-23",
+          "sorting": "-invoiceDate"
+        },
+        "requestSummary": "lookup invoice by invoiceDateFrom, invoiceDateTo, count, sorting, fields",
+        "responseSummary": "invoice list 470 items",
+        "status": 200
+      },
+      {
+        "durationMs": 2731,
+        "entityIds": {
+          "createCreditNoteId": 2147668991
+        },
+        "index": 2,
+        "method": "PUT",
+        "path": "/invoice/2147648832/:createCreditNote",
+        "query": {
+          "date": "2026-03-22",
+          "sendToCustomer": false
+        },
+        "requestSummary": "update createCreditNote by date, sendToCustomer",
+        "responseSummary": "createCreditNoteId 2147668991",
+        "status": 200
+      }
+    ]
+  }
+}

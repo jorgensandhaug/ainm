@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "verify-10-10.issue-full-credit-note.v1-2026-03-22T02-23-28-177Z",
+  "createdAt": "2026-03-22T02:23:28.187Z",
+  "mode": "sandbox",
+  "task": {
+    "taskId": "10",
+    "taskName": "Issue full credit note",
+    "taskSource": "manual-label"
+  },
+  "strategy": {
+    "strategyId": "10.issue-full-credit-note.v1",
+    "strategyName": "Issue exact full credit note",
+    "strategyPath": "src/tasks/task-10/strategies/issue-full-credit-note.ts",
+    "strategyStatus": "active"
+  },
+  "selection": {
+    "selectionConfigId": "active-strategies-2026-03-21-tier3-fallback-a.verify.10.10.issue-full-credit-note.v1",
+    "selectionConfigPath": "inline-override",
+    "requestedTaskId": "10"
+  },
+  "request": {
+    "requestFingerprint": "req:4848fb4646f52d0ab98b05fc0659f804a76d5a82becfc3ac2b51b38ee0cb9c89",
+    "promptText": "Research OS verifier run for task 10 (Issue full credit note). Strategy under test: 10.issue-full-credit-note.v1. Task understanding is pinned manually for this run. This prompt exists only to give the deterministic runtime a stable request fingerprint.",
+    "promptSummary": "Research OS verifier run for task 10 (Issue full credit note). Strategy under test: 10.issue-full-credit-note.v1. Task understanding is pinned manually for t...",
+    "files": [],
+    "credentialSource": "tripletex2.sandbox-env"
+  },
+  "input": {
+    "inputSchemaId": "10.v1",
+    "status": "resolved",
+    "source": "manual",
+    "value": {
+      "amountExcludingVatNok": 13100,
+      "creditNoteDate": "2026-03-22",
+      "customerOrganizationNumber": "991882502",
+      "lineDescription": "Opplæring"
+    }
+  },
+  "execution": {
+    "startedAt": "2026-03-22T02:23:28.277Z",
+    "completedAt": "2026-03-22T02:23:30.548Z",
+    "durationMs": 2271,
+    "deadlineMs": 300000,
+    "runtimeStatus": "failed",
+    "apiCallCount": 1,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [
+      {
+        "index": 1,
+        "method": "GET",
+        "path": "/invoice",
+        "query": {
+          "count": 1000,
+          "fields": "*,customer(*),orderLines(*),orders(*,orderLines(*))",
+          "invoiceDateFrom": "2000-01-01",
+          "invoiceDateTo": "2026-03-23",
+          "sorting": "-invoiceDate"
+        },
+        "requestSummary": "lookup invoice by invoiceDateFrom, invoiceDateTo, count, sorting, fields",
+        "responseSummary": "invoice list 463 items",
+        "status": 200,
+        "durationMs": 652
+      }
+    ],
+    "error": {
+      "code": "Error",
+      "message": "Expected one invoice for organization number 991882502, description \"opplæring\", and amount 13100, but none matched."
+    }
+  },
+  "attribution": {
+    "status": "not-needed"
+  },
+  "evaluation": {
+    "status": "not-available",
+    "rawNotes": [
+      "Sandbox and dry-run executions do not have live competition scoring in this wave."
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "trace-1",
+      "kind": "sanitized-trace",
+      "path": "run-verify-10-10.issue-full-credit-note.v1-2026-03-22T02-23-28-177Z.trace.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-22T02:23:28.187Z",
+      "sha256": "sha256:b5a8a6cfc24fe61e8f34d39db7eeae4464461d954163b1fd1b2cc6a99d9cc47c",
+      "summary": "Sanitized trace for 10.issue-full-credit-note.v1."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Research OS verifier ran one explicit challenger strategy (10.issue-full-credit-note.v1) in a reset sandbox.",
+      "Deterministic runtime started only after the task-understanding handoff."
+    ]
+  }
+}

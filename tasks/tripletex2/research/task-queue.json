@@ -111,8 +111,12 @@
       "researchLane": "execution-lane",
       "bestKnownScore": 3,
       "maxScore": 4,
+      "baselineCallBudget": 2,
+      "proofInputPath": "research/proofs/task-10/task-10-proof-input.json",
+      "verificationPlanId": "task-10.issue-full-credit-note.v1",
       "notes": [
-        "Execution-lane Tier 2 target."
+        "Execution-lane Tier 2 target.",
+        "HAZARD: tx_task_id 10 in leaderboard is order/invoice/payment, NOT credit notes. Real credit note evidence is under tx_task_id 14. bestKnownScore of 3 is from wrong leaderboard task; actual credit note score is 4/4."
       ]
     },
     {

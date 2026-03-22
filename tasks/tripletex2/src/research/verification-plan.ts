@@ -146,6 +146,33 @@ export function buildTaskVerificationPlan(
             {
               actualPath: "hoursPerDay",
               equalsFromPath: "result.verification.standardHoursPerDay",
+||||||| e4eb2030
+=======
+  if (taskId === "10") {
+    return {
+      schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
+      planId: "task-10.issue-full-credit-note.v1",
+      taskId: "10",
+      checks: [
+        {
+          type: "object",
+          checkId: "credit-note-readback",
+          description:
+            "Read the created credit note and confirm it links back to the original invoice.",
+          pathTemplate: "/invoice/{{result.createdEntityIds.creditNoteId}}",
+          query: {
+            fields: "*,customer(*)",
+          },
+          responsePath: "value",
+          assertions: [
+            {
+              actualPath: "creditedInvoice",
+              equalsFromPath: "result.createdEntityIds.originalInvoiceId",
+            },
+            {
+              actualPath: "invoiceNumber",
+              equalsFromPath: "result.verification.creditNoteNumber",
+>>>>>>> feat/tripletex-t10-research-wave1
             },
           ],
         },

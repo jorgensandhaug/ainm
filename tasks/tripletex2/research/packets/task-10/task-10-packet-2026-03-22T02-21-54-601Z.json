@@ -1,0 +1,229 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-10-packet-2026-03-22T02-21-54-601Z",
+  "createdAt": "2026-03-22T02:21:54.601Z",
+  "taskId": "10",
+  "txTaskId": "10",
+  "taskSlug": "issue-full-credit-note",
+  "taskName": "Issue full credit note",
+  "queueEntry": {
+    "taskId": "10",
+    "txTaskId": "10",
+    "taskSlug": "issue-full-credit-note",
+    "taskName": "Issue full credit note",
+    "priority": 7,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "researchLane": "execution-lane",
+    "bestKnownScore": 3,
+    "maxScore": 4,
+    "baselineCallBudget": 2,
+    "proofInputPath": "research/proofs/task-10/task-10-proof-input.json",
+    "verificationPlanId": "task-10.issue-full-credit-note.v1",
+    "notes": [
+      "Execution-lane Tier 2 target.",
+      "HAZARD: tx_task_id 10 in leaderboard is order/invoice/payment, NOT credit notes. Real credit note evidence is under tx_task_id 14. bestKnownScore of 3 is from wrong leaderboard task; actual credit note score is 4/4."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "10.issue-full-credit-note.v1",
+    "strategyPath": "src/tasks/task-10/strategies/issue-full-credit-note.ts",
+    "strategyStatus": "active",
+    "strategyName": "Issue exact full credit note",
+    "summary": "Locates the exact original invoice from prompt keys and creates one unsent full credit note in the proven two-call flow.",
+    "hypothesis": "A single decisive invoice read followed by PUT /invoice/{id}/:createCreditNote is the minimum reliable public path for this exact task shape.",
+    "expectedCallProfile": {
+      "targetCalls": 2,
+      "maxCalls": 2
+    },
+    "stepOutline": [
+      "API call 1: GET /invoice with a wide bounded date range and expanded customer plus order-line fields.",
+      "API call 2: PUT /invoice/{id}/:createCreditNote with the requested date and sendToCustomer=false."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "10.issue-full-credit-note.v1",
+      "strategyPath": "src/tasks/task-10/strategies/issue-full-credit-note.ts",
+      "strategyStatus": "active",
+      "strategyName": "Issue exact full credit note",
+      "summary": "Locates the exact original invoice from prompt keys and creates one unsent full credit note in the proven two-call flow.",
+      "hypothesis": "A single decisive invoice read followed by PUT /invoice/{id}/:createCreditNote is the minimum reliable public path for this exact task shape.",
+      "expectedCallProfile": {
+        "targetCalls": 2,
+        "maxCalls": 2
+      },
+      "stepOutline": [
+        "API call 1: GET /invoice with a wide bounded date range and expanded customer plus order-line fields.",
+        "API call 2: PUT /invoice/{id}/:createCreditNote with the requested date and sendToCustomer=false."
+      ]
+    }
+  ],
+  "baselineCallBudget": 2,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Issue full credit note. Current best known score is 3/4, leaving a gap of 1. Known call frontier is 2 calls when correctness matches the current best evidence. The active pinned strategy to beat is 10.issue-full-credit-note.v1 with target 2 calls.",
+    "currentBestKnownScore": 3,
+    "maxScore": 4,
+    "scoreGap": 1,
+    "bestKnownCallBudget": 2,
+    "baselineCallBudget": 2,
+    "activeStrategyToBeat": {
+      "strategyId": "10.issue-full-credit-note.v1",
+      "strategyPath": "src/tasks/task-10/strategies/issue-full-credit-note.ts",
+      "strategyStatus": "active",
+      "strategyName": "Issue exact full credit note",
+      "summary": "Locates the exact original invoice from prompt keys and creates one unsent full credit note in the proven two-call flow.",
+      "hypothesis": "A single decisive invoice read followed by PUT /invoice/{id}/:createCreditNote is the minimum reliable public path for this exact task shape.",
+      "expectedCallProfile": {
+        "targetCalls": 2,
+        "maxCalls": 2
+      },
+      "stepOutline": [
+        "API call 1: GET /invoice with a wide bounded date range and expanded customer plus order-line fields.",
+        "API call 2: PUT /invoice/{id}/:createCreditNote with the requested date and sendToCustomer=false."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 3/4, or match the current correctness and score at 2 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 10.issue-full-credit-note.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 3/4.",
+      "If score does not improve, match correctness at 2 API calls or fewer.",
+      "Compare against the active pinned strategy 10.issue-full-credit-note.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/src/tasks/task-10",
+      "taskReadmePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/src/tasks/task-10/README.md",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/src/tasks/task-10/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/src/tasks/task-10/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/src/tasks/task-10/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/src/tasks/task-10/strategies/issue-full-credit-note.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/src/tasks/task-10/strategies/issue-full-credit-note.ts"
+      ]
+    },
+    "proof": {
+      "inputPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/proofs/task-10/task-10-proof-input.json",
+      "verificationPlanId": "task-10.issue-full-credit-note.v1",
+      "verificationPlanSourcePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/src/research/verification-plan.ts",
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/packets/task-10/task-10-packet-2026-03-22T02-21-54-601Z.json --strategy <strategy-id> --input-file /home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/proofs/task-10/task-10-proof-input.json"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": []
+    },
+    "offlineEvidence": {
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 0,
+    "recentArtifacts": []
+  },
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 3,
+        "totalAttempts": 20,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 3,
+        "totalAttempts": 20,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 3,
+        "totalAttempts": 20,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 3,
+        "totalAttempts": 20,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 3,
+        "totalAttempts": 20,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-222435205Z-dd7f6755",
+      "prod-2026-03-21-204051670Z-cc819daa",
+      "prod-2026-03-21-194143438Z-8e978a3e",
+      "prod-2026-03-21-180354595Z-419dbb16",
+      "prod-2026-03-21-171446078Z-7315b8b8"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "readmeText": "# Issue full credit note\n\nTyped task surface and draft runtime stub for `issue-full-credit-note`.\n\nThe intended deterministic solve path should follow `codex-environment/trusted-standards/create-customer-invoice-credit-note.md` when this task gets a real strategy implementation.\n",
+    "knownFailureModes": []
+  },
+  "proof": {
+    "inputPath": "research/proofs/task-10/task-10-proof-input.json",
+    "verificationPlan": {
+      "schemaVersion": "tripletex2.research-verification-plan.v1",
+      "planId": "task-10.issue-full-credit-note.v1",
+      "taskId": "10",
+      "checks": [
+        {
+          "type": "object",
+          "checkId": "credit-note-readback",
+          "description": "Read the created credit note and confirm it links back to the original invoice.",
+          "pathTemplate": "/invoice/{{result.createdEntityIds.creditNoteId}}",
+          "query": {
+            "fields": "*,customer(*)"
+          },
+          "responsePath": "value",
+          "assertions": [
+            {
+              "actualPath": "creditedInvoice",
+              "equalsFromPath": "result.createdEntityIds.originalInvoiceId"
+            },
+            {
+              "actualPath": "invoiceNumber",
+              "equalsFromPath": "result.verification.creditNoteNumber"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "operatorNotes": [
+    "Execution-lane Tier 2 target.",
+    "HAZARD: tx_task_id 10 in leaderboard is order/invoice/payment, NOT credit notes. Real credit note evidence is under tx_task_id 14. bestKnownScore of 3 is from wrong leaderboard task; actual credit note score is 4/4.",
+    "Task packet built from checked-in repo evidence for task 10.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 10.issue-full-credit-note.v1."
+  ]
+}
