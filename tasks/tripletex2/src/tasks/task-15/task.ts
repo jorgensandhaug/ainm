@@ -88,9 +88,12 @@ export async function loadTaskModule(): Promise<RegisterProjectHoursAndCreatePro
   const { strategy } = await import(
     "./strategies/register-hours-then-project-order-invoice"
   );
+  const { strategy: directInvoiceStrategy } = await import(
+    "./strategies/register-hours-direct-invoice"
+  );
   return {
     task,
-    strategies: [strategy],
+    strategies: [strategy, directInvoiceStrategy],
   };
 }
 export const taskRegistration = {
