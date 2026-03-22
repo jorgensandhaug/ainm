@@ -1,20 +1,21 @@
 # Clank3 Progress — Norgesgruppen Object Detection
 
 ## Current Best Score
-- **Hybrid (all 356 classes): 0.8689** (ONNX FP16 + letterbox + batched_nms + flip TTA)
-- ONNX no flip: 0.8659
-- PyTorch eval: 0.8658 (with flip TTA via ultralytics)
+- **Hybrid (all 356 classes): 0.8756** (V7 ONNX FP16 + letterbox + batched_nms + flip TTA)
+- V7 PyTorch + flip TTA: 0.8734
+- V6 ONNX + flip TTA: 0.8689
 - V1 baseline: 0.8389
 - Target: ~0.93
 
 ## Best Model & Submission
 - Architecture: YOLO26x (59.6M params, 213 GFLOPs)
-- PT checkpoint: `runs/v6_polish_e20_img960_b4_lr6e-05_mix0_cp0_seed1777/weights/best.pt` (115MB)
+- PT checkpoint: `runs/v7_polish_e25_img960_b4_lr5e-05_mix0_cp0_seed2441/weights/best.pt`
 - ONNX submission: `submission/model.onnx` (108MB FP16, opset 17, raw logits)
 - Submission zip: `submission_v6_fp16_fliptta.zip` (99MB compressed)
-- Training: V6 5-stage pipeline (`yolo/train_v6_pipeline.sh`)
-- Key innovation: 150-epoch Stage 2 with cosine LR
+- Training: V7 5-stage pipeline (`yolo/train_v7_pipeline.sh`)
+- Key innovation: 250-epoch Stage 2 with cosine LR + label smoothing 0.05
 - Inference: letterbox + per-class NMS (torchvision.batched_nms) + flip TTA
+- GPU timing: 30.8s on A100 for 49 images
 
 ## Submission Compliance
 - No `import os` (uses pathlib) ✓
@@ -130,10 +131,13 @@
 - Both detection AND classification improved significantly
 - Script: `yolo/train_v6_pipeline.sh`
 
-### Exp 17: V7 Pipeline (250 epochs + label smoothing 0.05) — IN PROGRESS
-- Stage 2 at epoch ~177/250, mAP50=0.734 (behind V6's 0.738 at same point)
-- Label smoothing appears to slightly hurt convergence
+### Exp 17: V7 Pipeline (250 epochs + label smoothing 0.05) — NEW BEST
+- **hybrid_all=0.8756 ONNX** (PyTorch: 0.8734 with flip TTA, 0.8688 standalone)
+- det=0.9578 (+0.7% vs V6), cls_present=0.8465 (+0.9%), cls_all=0.6611 (+0.7%)
+- Label smoothing hurt early convergence but final model is better than V6
+- 250 epochs > 150 epochs: more training helps with label smoothing
 - Pipeline: `yolo/train_v7_pipeline.sh`
+- Seeds: 2001→2111→2221→2331→2441
 
 ### Submission Engineering: ONNX + Letterbox + Flip TTA
 - **Letterbox preprocessing was worth +2% over stretch resize**
