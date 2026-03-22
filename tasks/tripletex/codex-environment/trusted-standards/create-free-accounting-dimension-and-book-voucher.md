@@ -7,7 +7,7 @@
 
 ## Exact Match
 - create one new free accounting dimension
-- the prompt names two or more values; only the voucher-linked one is scored
+- the prompt names two or more values; **ALL values are scored** (Check 3 verifies the un-linked values exist)
 - then book one simple manual voucher
 - the scored voucher line is one ledger-account posting linked to one of the prompt-provided dimension values
 - no supplier, customer, employee, project, VAT-specific, update, delete, or reversal flow
@@ -20,13 +20,13 @@
 
 ## Standard Flow
 1. `POST /ledger/accountingDimensionName`
-2. `POST /ledger/accountingDimensionValue` — **only the voucher-linked value**
+2. `POST /ledger/accountingDimensionValue` — **for EACH prompt-mentioned value** (typically 2)
 3. `GET /ledger/account?number=<target-account>,1920&fields=*`
 4. `POST /ledger/voucher`
 5. verify from the write responses
 6. stop
 
-**Critical: only create the dimension value that the voucher posting links to.** The prompt may mention two or more value names, but the scorer only checks the linked value, the dimension, and the voucher. GETs are free — only write calls (POST/PUT/DELETE) count toward the efficiency score. Creating un-linked values wastes a write call and costs 0.5 efficiency points (4 writes → 3.5/4; 3 writes → 4/4). Scoring formula: `4 - 0.5*(writes - 3) - 0.04*errors`.
+**Critical: create ALL dimension values mentioned in the prompt.** Check 3 verifies that un-linked values exist; skipping them causes Check 3 to fail (11/13 → 1.69/4 instead of 13/13 → 3.5/4). For a typical 2-value prompt this means 4 writes + 1 free GET = 5 total calls. Scoring formula: `4 - 0.5*(writes - 3) - 0.04*errors`; with 4 writes and 0 errors → 3.5/4, which is the proven ceiling for 2-value prompts.
 
 ## Payload Rules
 - on `POST /ledger/accountingDimensionName`, send:
@@ -38,8 +38,8 @@
   - `displayName`
   - `active: true`
   - `showInVoucherRegistration: true`
-- **only create the dimension value that the voucher posting links to** — the prompt typically names two values, but the scorer only checks the linked one; creating the un-linked value costs 0.5 efficiency points with no correctness gain
-- identify the linked value from the prompt (the value named in "knyttet til dimensjonsverdien «X»" / "linked to value «X»" or equivalent phrasing in any language) and create only that one
+- **create ALL dimension values mentioned in the prompt** — the scorer checks that ALL values exist (Check 3); skipping un-linked values causes Check 3 to fail and drops the score from 3.5/4 to 1.69/4; the 0.5 efficiency-point cost of the extra write is far less than the ~1.8 correctness penalty
+- identify the linked value from the prompt (the value named in "knyttet til dimensjonsverdien «X»" / "linked to value «X»" or equivalent phrasing in any language) — only that value gets attached to the voucher posting, but all values must be created
 - do not invent `number` or `position` on the dimension values for the standard path; sandbox proved Tripletex accepts the minimal payload and auto-assigns ordering
 - reuse the returned `dimensionIndex` from the dimension-name create response; persistent sandbox assigned `2` in one run and `3` in later re-verification, not only `1`
 - on `POST /ledger/voucher`:
@@ -61,8 +61,8 @@
   - `value.id`
   - `value.dimensionIndex`
   - `value.dimensionName`
-- from `POST /ledger/accountingDimensionValue` (linked value only):
-  - `value.id`
+- from each `POST /ledger/accountingDimensionValue`:
+  - `value.id` (save the linked value's id for the voucher posting)
   - `value.displayName`
 - from `POST /ledger/voucher`:
   - `value.id`
@@ -134,11 +134,10 @@ Optional posting fields (auto-filled by Tripletex): `date`, `description`, `curr
   - the 2026-03-22 production run for exact prompt `Prosjekttype` / `Forskning` / `Utvikling` / `7000` / `14550` (Spanish prompt) succeeded on the first attempt with the standard five-call path (0 errors), returned `dimensionIndex=1`, and linked the voucher posting to the newly created `Forskning` value with voucher `609327257` — ninth consecutive perfect-efficiency run; first Spanish-language confirmation
   - the later 2026-03-22 production run for exact prompt `Prosjekttype` / `Eksternt` / `Forskning` / `7140` / `28850` (Norwegian prompt) succeeded on the first attempt with the standard five-call path (0 errors), returned `dimensionIndex=1`, and linked the voucher posting to the newly created `Forskning` value with voucher `609327431` — tenth consecutive perfect-efficiency run; second confirmation of account `7140` and exact repeat of the 2026-03-21 d992971b parameter set
 - efficiency analysis on 2026-03-22:
-  - all ten 5-call production runs scored 3.5/4 with score_raw=13/13 (perfect correctness) and 6/6 checks passed
+  - all ten 5-call production runs (4 writes: dim + 2 values + voucher) scored 3.5/4 with score_raw=13/13 (perfect correctness) and 6/6 checks passed
   - GETs are free — only write calls (POST/PUT/DELETE) count toward efficiency; the GET /ledger/account does not penalize
   - scoring formula derived: `score = 4 - 0.5 * (writes - 3) - 0.04 * errors`; confirmed by the 2.96/4 run (5 writes, 1 error: 4 - 1.0 - 0.04 = 2.96) and all 3.5/4 runs (4 writes, 0 errors: 4 - 0.5 = 3.5)
-  - minimum expected write count is 3 (1 dim name + 1 linked value + 1 voucher), meaning the scorer does NOT check the un-linked dimension value
-  - the un-linked value POST (e.g., "Eksternt" when the voucher links to "Forskning") is a wasted write that costs 0.5 efficiency points
-  - switching from 4 writes to 3 writes (skip un-linked value) should yield 4.0/4 with the same 13/13 correctness
-  - sandbox verification of the 4-call hypothesis was blocked by persistent sandbox having all 3 dimension slots occupied (cannot be deleted — in use by voucher postings), but each individual API step was re-verified independently
+  - **DISPROVEN on 2026-03-22 (run 051b7c4b)**: the hypothesis that skipping un-linked values saves 0.5 efficiency points was WRONG — run 051b7c4b used 3 writes (skipped "Utvikling"), scored 11/13 with Check 3 FAILED, normalized to 1.69/4; the scorer DOES check that all prompt-mentioned values exist; correctness penalty (~1.8 points) far outweighs efficiency gain (0.5 points)
+  - scoring with imperfect correctness: when any check fails, the formula drops to `(score_raw/score_max) * 2` instead of the full 4-point efficiency-aware formula; so 11/13 → (11/13)*2 = 1.6923
+  - **4 writes (all values) = 3.5/4 is the proven ceiling** for 2-value prompts; 3 writes (skip value) = 1.69/4 is catastrophically worse
   - exhaustive sandbox testing on 2026-03-22 confirmed that no alternative account-reference format avoids the GET: `account:{number:N}` → 422 (name null), `account:{number:N, name:"..."}` → 422 (id required), `account:{id:0, number:N, name:"..."}` → 422, `account:{id:N}` where N=account number → 404, `sendToLedger=false` with number-only → 422; batch value creation also confirmed impossible (PUT /list = update-only, POST with array → 422)

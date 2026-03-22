@@ -71,6 +71,7 @@ Verified in persistent sandbox on 2026-03-20:
 - the later 2026-03-21 production run for exact prompt `Region` / `Vestlandet` / `Midt-Norge` / `6860` / `47500` (Portuguese prompt) succeeded on the first attempt with the standard five-call path (0 errors), returned `dimensionIndex=1`, and linked the voucher posting to the newly created `Midt-Norge` value with voucher `609207641` — eighth consecutive perfect-efficiency run
 - the 2026-03-22 production run for exact prompt `Prosjekttype` / `Forskning` / `Utvikling` / `7000` / `14550` (Spanish prompt) succeeded on the first attempt with the standard five-call path (0 errors), returned `dimensionIndex=1`, and linked the voucher posting to the newly created `Forskning` value with voucher `609327257` — ninth consecutive perfect-efficiency run; first Spanish-language confirmation
 - the later 2026-03-22 production run for exact prompt `Prosjekttype` / `Eksternt` / `Forskning` / `7140` / `28850` (Norwegian prompt) succeeded on the first attempt with the standard five-call path (0 errors), returned `dimensionIndex=1`, and linked the voucher posting to the newly created `Forskning` value with voucher `609327431` — tenth consecutive perfect-efficiency run; second confirmation of account `7140` and exact repeat of the 2026-03-21 d992971b parameter set
+- **DISPROVEN optimization on 2026-03-22 (run 051b7c4b)**: the 3-write hypothesis (skip un-linked value "Utvikling") was tested in production with prompt `Prosjekttype` / `Forskning` / `Utvikling` / `6590` / `10800`; result: 11/13, Check 3 FAILED, normalized 1.69/4; the scorer DOES check that all prompt-mentioned values exist; correctness penalty (~1.8 points) far outweighs efficiency gain (0.5 points); **always create ALL values → 4 writes → 3.5/4 is the correct ceiling**
 
 ## Minimal Safe Flow
 
@@ -100,13 +101,13 @@ Verified in persistent sandbox on 2026-03-20:
   - then asks for one plain voucher posting on one ledger account tied to one of those new values
 - the winning path is:
   1. `POST /ledger/accountingDimensionName`
-  2. `POST /ledger/accountingDimensionValue` — **only the voucher-linked value** (skip un-linked values)
+  2. `POST /ledger/accountingDimensionValue` — **for EACH value** mentioned in the prompt (typically 2)
   3. `GET /ledger/account?number=<target-account>,1920&fields=*`
   4. `POST /ledger/voucher`
-- **3 writes total → 4/4 score** (was 4 writes → 3.5/4 when creating both values); GETs are free
-- the scorer checks the dimension, the linked value, and the voucher; it does NOT check un-linked dimension values
+- **4 writes total → 3.5/4 score** (proven ceiling for 2-value prompts); GETs are free
+- **the scorer checks ALL prompt-mentioned values** (Check 3 verifies un-linked values exist); skipping un-linked values → Check 3 FAILS → 11/13 → 1.69/4 (DISPROVEN in run 051b7c4b on 2026-03-22)
 - scoring formula: `4 - 0.5*(writes - 3) - 0.04*errors`; the GET /ledger/account is free and should still be used
-- identify the linked value from the prompt phrasing: "knyttet til dimensjonsverdien «X»" (Norwegian), "linked to value «X»", "vinculado ao valor «X»" (Portuguese), "verknüpft mit «X»" (German), "vinculado al valor «X»" (Spanish), etc.
+- identify the linked value from the prompt phrasing: "knyttet til dimensjonsverdien «X»" (Norwegian), "linked to value «X»", "vinculado ao valor «X»" (Portuguese), "verknüpft mit «X»" (German), "vinculado al valor «X»" (Spanish), etc. — only this value is attached to the voucher posting, but ALL values must be created
 - do not spend a pre-read of existing dimensions in a scored create task
 - do not try `account.number` directly on voucher postings; sandbox confirmed `422` on all account-number-only variants (number, number+name, number+name+id=null, number-as-id=404, even with sendToLedger=false)
 - do not chase `/ledger/accountingDimensionValue/list` as a multi-value create optimization; it is update-only
@@ -124,7 +125,7 @@ Dimension create:
 }
 ```
 
-Dimension value create (**only the voucher-linked value** — e.g., "Internt" if the prompt says "linked to Internt"; skip "Utvikling"):
+Dimension value create (**create for EACH prompt-mentioned value** — e.g., both "Internt" and "Utvikling"; save the linked value's id for the voucher):
 
 ```json
 {
@@ -168,7 +169,7 @@ Replace the ids and amounts with the values resolved in the current account. The
 
 ## Validation Traps
 
-- do not create dimension values that the voucher does not link to; the scorer does not check un-linked values, and each unnecessary `POST /ledger/accountingDimensionValue` is a wasted write costing 0.5 efficiency points (GETs are free, writes are not)
+- **ALWAYS create ALL dimension values mentioned in the prompt** — the scorer checks that all values exist (Check 3); skipping un-linked values causes Check 3 to fail and drops score from 3.5/4 to 1.69/4; the correctness penalty (~1.8 points) far outweighs the efficiency gain (0.5 points); DISPROVEN in production run 051b7c4b on 2026-03-22
 - do not send voucher posting accounts only as `account.number`; sandbox returned `422 postings.account.name: Kan ikke være null.`
 - do not compare `/ledger/account` response `account.number` as a string; Tripletex returns it as an integer, and a string comparison can trigger a false missing-account branch after a correct lookup
 - do not spend a speculative `GET /ledger/accountingDimensionName` in a pure create task; the create response already gives the needed `dimensionIndex`
@@ -186,7 +187,7 @@ Replace the ids and amounts with the values resolved in the current account. The
   - `dimensionName`
   - assigned `dimensionIndex`
   - active state
-- `POST /ledger/accountingDimensionValue` (linked value only) proves:
+- each `POST /ledger/accountingDimensionValue` proves:
   - `displayName`
   - `dimensionIndex`
   - `showInVoucherRegistration`
