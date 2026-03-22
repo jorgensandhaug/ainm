@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const ISSUE_FULL_CREDIT_NOTE_TASK_ID = "10";
-export const ISSUE_FULL_CREDIT_NOTE_TX_TASK_ID = "10";
+export const ISSUE_FULL_CREDIT_NOTE_TX_TASK_ID = "14";
 export const ISSUE_FULL_CREDIT_NOTE_INPUT_SCHEMA_ID = "10.v1";
 export interface IssueFullCreditNoteInput {
   customerOrganizationNumber: string;
