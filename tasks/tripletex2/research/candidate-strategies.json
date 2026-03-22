@@ -1,6 +1,6 @@
 {
   "schemaVersion": "tripletex2.research-candidate-store.v1",
-  "updatedAt": "2026-03-21T21:38:12.930Z",
+  "updatedAt": "2026-03-22T02:30:33.703Z",
   "entries": [
     {
       "candidateId": "06.create-employee.v1",
@@ -41,6 +41,51 @@
       ],
       "createdAt": "2026-03-21T20:20:44Z",
       "updatedAt": "2026-03-21T20:21:01Z"
+    },
+    {
+      "candidateId": "15.register-hours-direct-invoice.v2",
+      "taskId": "15",
+      "strategyId": "15.register-hours-direct-invoice.v2",
+      "strategyPath": "src/tasks/task-15/strategies/register-hours-direct-invoice.ts",
+      "strategyName": "Register hours then direct invoice",
+      "status": "sandbox-pass",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/packets/task-15/task-15-packet-2026-03-22T02-30-29-646Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-30-33-703Z/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-30-33-703Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": true,
+        "apiCallCount": 6,
+        "baselineCallBudget": 7,
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-30-33-703Z/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-30-33-703Z.json"
+      },
+      "notes": [
+        "Challenger produced the expected sandbox state within the current baseline call budget."
+      ],
+      "createdAt": "2026-03-22T02:30:33.703Z",
+      "updatedAt": "2026-03-22T02:30:33.703Z"
+    },
+    {
+      "candidateId": "15.register-hours-then-project-order-invoice.v1",
+      "taskId": "15",
+      "strategyId": "15.register-hours-then-project-order-invoice.v1",
+      "strategyPath": "src/tasks/task-15/strategies/register-hours-then-project-order-invoice.ts",
+      "strategyName": "Register hours then project order invoice",
+      "status": "sandbox-pass",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/packets/task-15/task-15-packet-2026-03-22T02-22-31-113Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-then-project-order-invoice.v1-2026-03-22T02-23-51-886Z/verify-15-15.register-hours-then-project-order-invoice.v1-2026-03-22T02-23-51-886Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": true,
+        "apiCallCount": 7,
+        "baselineCallBudget": 7,
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-then-project-order-invoice.v1-2026-03-22T02-23-51-886Z/verify-15-15.register-hours-then-project-order-invoice.v1-2026-03-22T02-23-51-886Z.json"
+      },
+      "notes": [
+        "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 15 --strategy 15.register-hours-then-project-order-invoice.v1\nExit code: 1\nDuration: 13861ms\nresearch sandbox reset summary: {\"taskId\":\"15\",\"strategyId\":\"15.register-hours-then-project-order-invoice.v1\",\"scannedFiles\":21,\"discoveredRefs\":6,\"completed\":3,\"failed\":3,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-22-39-577Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet.",
+        "Challenger produced the expected sandbox state within the current baseline call budget."
+      ],
+      "createdAt": "2026-03-22T02:22:39.576Z",
+      "updatedAt": "2026-03-22T02:23:51.886Z"
     },
     {
       "candidateId": "23.reconcile-bank-statement.v1",
