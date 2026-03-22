@@ -3260,3 +3260,17 @@ Components:
 - From starting point (v44): 77.76 → 87.73 = **+9.97 (+12.8%)**
 - 300+ variants, 4 architectures, 10+ scientific findings
 - All committed and pushed to origin/agent7
+
+
+### 2026-03-22T05:45Z approx
+
+## Spatial Gradient Features: HURT (-0.17 to -0.23)
+- v254 (26 spatial gradients, ridge=4): 87.48 → WORSE
+- v255 (26 spatial gradients, ridge=8): 87.42 → WORSE
+- Spatial gradients add noise, not signal, for the linear operator
+- Feature count 31→57 causes mild overfitting even with higher ridge
+
+## Log-odds blending results (v31-v32): PENDING
+Still running when interrupted for live submission.
+
+## Continuing exploration with more radical approaches...
