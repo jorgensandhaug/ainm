@@ -407,6 +407,62 @@ _ENSEMBLE_SPECS: dict[str, EnsembleModelSpec] = {
         ),
         component_weights=(0.5, 0.25, 0.25),
     ),
+    # ===== FFAM_MODE ENSEMBLES =====
+    # 95% ffam_mode + 5% old best ensemble (agent7 found 95/5 optimal)
+    "f1_ensemble_ffam_hv2sx_95_5_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_ffam_hv2sx_95_5_v01",
+        component_model_names=(
+            "ffam_mode_v214",
+            "f1_ensemble_hv2f0001_sxf0001_50_obs20_v01",
+        ),
+        component_weights=(0.95, 0.05),
+        probability_floor=0.0003,
+        policy_name="exploration_r3",
+    ),
+    # 90% ffam_mode + 10% old best
+    "f1_ensemble_ffam_hv2sx_90_10_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_ffam_hv2sx_90_10_v01",
+        component_model_names=(
+            "ffam_mode_v214",
+            "f1_ensemble_hv2f0001_sxf0001_50_obs20_v01",
+        ),
+        component_weights=(0.9, 0.1),
+        probability_floor=0.0003,
+        policy_name="exploration_r3",
+    ),
+    # 80% ffam_mode + 20% old best
+    "f1_ensemble_ffam_hv2sx_80_20_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_ffam_hv2sx_80_20_v01",
+        component_model_names=(
+            "ffam_mode_v214",
+            "f1_ensemble_hv2f0001_sxf0001_50_obs20_v01",
+        ),
+        component_weights=(0.8, 0.2),
+        probability_floor=0.0003,
+        policy_name="exploration_r3",
+    ),
+    # 95% ffam_mode + 5% hazard_v2 directly
+    "f1_ensemble_ffam_hv2_95_5_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_ffam_hv2_95_5_v01",
+        component_model_names=(
+            "ffam_mode_v214",
+            "f1_hazard_posterior_v2_k5_r3_f0001_v01",
+        ),
+        component_weights=(0.95, 0.05),
+        probability_floor=0.0003,
+        policy_name="exploration_r3",
+    ),
+    # 95% ffam_mode + 5% query_residual directly
+    "f1_ensemble_ffam_qr_95_5_v01": EnsembleModelSpec(
+        model_name="f1_ensemble_ffam_qr_95_5_v01",
+        component_model_names=(
+            "ffam_mode_v214",
+            "f1_student_query_residual_supportx_f0001_v01",
+        ),
+        component_weights=(0.95, 0.05),
+        probability_floor=0.0003,
+        policy_name="exploration_r3",
+    ),
 }
 
 
