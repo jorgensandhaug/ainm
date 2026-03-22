@@ -54,8 +54,9 @@ For EUR invoices, the `:payment` endpoint auto-books FX gain (8060) and loss (81
 
 ## Minimal Flow (3 calls)
 
-1. `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=<run-date+1>&fields=*,currency(*)`
-   - Filter locally: `currency.code !== "NOK"` AND `amountCurrencyOutstanding > 0`
+1. `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=<run-date+1>&fields=*,currency(*),customer(*)`
+   - `customer(*)` expansion is REQUIRED — without it, `customer.organizationNumber` is `undefined` (sandbox-proven 2026-03-22)
+   - Filter locally: `customer.organizationNumber` matches prompt, `currency.code !== "NOK"` AND `amountCurrencyOutstanding > 0`
    - Validate: `amount !== amountCurrency` (proves genuine foreign-currency invoice)
    - Match prompt ex-VAT amount against `amountExcludingVatCurrency`; full outstanding = `promptAmount * 1.25`
 
@@ -135,6 +136,7 @@ If the invoice is NOK despite the prompt describing a foreign-currency payment:
 - Prompt amount is typically ex-VAT → multiply by 1.25 for full outstanding
 
 ## Production Confirmations
+- prod-2026-03-22-112740476Z-07f71ed1: NOK fallback, 5 calls, 0 errors — Estrela Lda / 808808773 / 2336 EUR, rate 11.17→12.13, agio 2242.56 NOK on 8060 (8th consecutive full-score NOK-fallback, 7th agio, third Portuguese prompt; confirmed `customer(*)` needed in fields expansion)
 - prod-2026-03-22-105704259Z-019858d3: NOK fallback, 5 calls, 0 errors — Forêt SARL / 832101389 / 11764 EUR, rate 10.90→11.19, agio 3411.56 NOK on 8060 (7th consecutive full-score NOK-fallback, 6th agio, second French prompt)
 - prod-2026-03-22-104700125Z-54534b47: NOK fallback, 5 calls, 0 errors — Sierra SL / 925302899 / 7045 EUR, rate 11.32→11.99, agio 4720.15 NOK on 8060 (6th consecutive full-score NOK-fallback, 5th agio, first Spanish prompt)
 - prod-2026-03-21-222220279Z-507de3ea: NOK fallback, 5 calls, 0 errors — Dalheim AS / 847589930 / 8387 EUR, rate 11.99→12.84, agio 7128.95 NOK on 8060 (5th consecutive full-score NOK-fallback, 4th agio)

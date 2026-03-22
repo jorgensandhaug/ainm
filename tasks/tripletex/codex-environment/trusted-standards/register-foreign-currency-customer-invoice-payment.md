@@ -25,20 +25,22 @@ You MUST `cat` or read this entire file before writing any script. Do NOT write 
 
 ### Call 1: Locate the invoice
 ```
-GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=<run-date-plus-one-day>&fields=*,currency(*)
+GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=<run-date-plus-one-day>&fields=*,currency(*),customer(*)
 ```
 
 MANDATORY rules for this call:
 - `invoiceDateFrom` and `invoiceDateTo` are REQUIRED — omitting them returns `422`
-- `fields=*,currency(*)` is REQUIRED — plain `fields=*` returns `currency` as `{ id, url }` with no `code` field, making currency detection impossible
+- `fields=*,currency(*),customer(*)` is REQUIRED — plain `fields=*` returns `currency` as `{ id, url }` with no `code` field (making currency detection impossible) AND returns `customer` as `{ id, url }` with no `organizationNumber` (making customer matching impossible)
+- `customer(*)` expansion is needed for both EUR and NOK paths: the NOK fallback filters by `customer.organizationNumber` + `amountExcludingVat`; sandbox-proven 2026-03-22: `fields=*,currency(*)` returns `customer.organizationNumber: undefined`
 - DO NOT use `customerOrganizationNumber` as a query param — it is SILENTLY IGNORED (sandbox-proven: `customerOrganizationNumber=000000000` returns identical results to no filter)
 - DO NOT use `currency=EUR` as a query param — it is SILENTLY IGNORED (sandbox-proven: `currency=DOESNOTEXIST` returns identical results to no filter)
 - The ONLY valid customer filter is `customerId` (internal ID), but in fresh production accounts with few invoices, fetching all and filtering locally is simpler and avoids a preliminary `GET /customer`
 
 After the response, filter locally:
-1. `currency.code !== "NOK"` (must be foreign currency)
-2. `amountCurrencyOutstanding > 0` (must be unpaid)
-3. Match prompt amount: the prompt typically gives an ex-VAT amount, so match `amountExcludingVatCurrency`; the full outstanding incl. 25% VAT is `promptAmount * 1.25`
+1. `customer.organizationNumber` matches prompt (requires `customer(*)` expansion)
+2. `currency.code !== "NOK"` (must be foreign currency)
+3. `amountCurrencyOutstanding > 0` (must be unpaid)
+4. Match prompt amount: the prompt typically gives an ex-VAT amount, so match `amountExcludingVatCurrency`; the full outstanding incl. 25% VAT is `promptAmount * 1.25`
 
 ### MANDATORY: Validate the invoice is actually foreign currency
 Before proceeding, you MUST check:
@@ -197,6 +199,14 @@ The script pattern:
 
 ## Production Confirmation History
 
+### prod-2026-03-22-112740476Z-07f71ed1 (Portuguese prompt, Estrela Lda / 808808773 / 2336 EUR, rate 11.17→12.13 agio):
+- NOK fallback path: invoice `2147700242` had `amountExcludingVat=2336`, `amountOutstanding=2920`, `amount===amountCurrency` (NOK)
+- 5 calls, 0 errors: invoice lookup → paymentType → simple payment → accountLookup(8060) → manual agio voucher
+- Agio: 2336 × (12.13 − 11.17) = 2336 × 0.96 = 2242.56 NOK booked on 8060 (voucher `609421887`)
+- Payment type `39894695` ("Betalt til bank", debitAccount 1920, id=500647972)
+- 8th consecutive full-score NOK-fallback production confirmation; 7th agio confirmation; third Portuguese-language prompt
+- Script used `fields=*,currency(*),customer(*)` on Call 1 — `customer(*)` confirmed required for org number matching (sandbox-verified: `fields=*,currency(*)` returns `customer.organizationNumber: undefined`)
+
 ### prod-2026-03-22-105704259Z-019858d3 (French prompt, Forêt SARL / 832101389 / 11764 EUR, rate 10.90→11.19 agio):
 - NOK fallback path: invoice `2147697319` had `amountExcludingVat=11764`, `amountOutstanding=14705`, `amount===amountCurrency` (NOK)
 - 5 calls, 0 errors: invoice lookup → paymentType → simple payment → accountLookup(8060) → manual agio voucher
@@ -295,3 +305,4 @@ The script pattern:
 - 2026-03-21 sandbox proof: `POST /ledger/voucher` with 8160/1500 (no customer) → 422 "Kunde mangler" — account 1500 (Kundefordringer) requires `customer: { id }` on the posting; the manual voucher approach uses 1920 (bank) instead to avoid this dependency
 - 2026-03-21 sandbox proof: `POST /ledger/voucher` with 8160/1500 and `customer: { id }` → 201 (voucher `609127910`) — 1500 with customer DOES work, but 1920 is simpler and production-confirmed
 - 2026-03-21 sandbox proof: paymentType `debitAccount.id` from `GET /invoice/paymentType?fields=*,debitAccount(*)` can be reused directly in `POST /ledger/voucher` postings as the bank account (vouchers `609133621`, `609134241`, `609134244`); this means `GET /ledger/account` only needs to look up the agio/disagio account (8060 or 8160), not the bank account — the bank account ID is already available from Call 2; call count stays at 5 but the approach is more correct (uses the actual payment bank account rather than hardcoded 1920)
+- 2026-03-22 sandbox proof: `fields=*,currency(*)` on `GET /invoice` returns `customer` as `{ id, url }` stub — `customer.organizationNumber` is `undefined`; `fields=*,currency(*),customer(*)` returns fully expanded customer with `organizationNumber` — confirms `customer(*)` expansion is REQUIRED for org number matching in both EUR and NOK paths
