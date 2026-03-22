@@ -68,19 +68,38 @@ Key classification issues:
 
 ### EXP-004: Train 1280px model (higher resolution for classification)
 - Date: 2026-03-22
-- Status: Starting
-- Goal: Train at 1280px to get finer detail for classification
+- Status: TRAINING (Stage 2 epoch ~30/70)
+- Config: Same 6-stage pipeline as 960px but at 1280px, batch=2
+
+### EXP-005: MobileNetV3 crop classifier + fusion
+- Date: 2026-03-22
+- Status: DONE — no improvement
+- Classifier: MobileNetV3-Large, 224px crops, 87.15% val acc (18MB)
+- Fusion result: WORSE than YOLO alone at all blend values
+  - blend=0.0 (always reclassify): cls_mAP drops 0.79→0.73
+  - blend=0.5: cls_mAP = 0.7846 (still below YOLO's 0.7885)
+  - blend≥0.7: essentially keeps YOLO classes = no change
+- Conclusion: MobileNetV3 at 224px is weaker than YOLO26x at 960px for classification.
+  YOLO uses contextual shelf information that the crop classifier misses.
+  Need a much stronger classifier (>93% on GT crops) OR different fusion strategy.
+
+### Class analysis (from baseline)
+- 27 classes have 0.0 AP50 (complete failure, mostly 1-3 GT instances)
+- 35 classes < 0.5 AP, 54 < 0.7, 149 ≥ 0.9
+- Mean class AP: 0.788, median: 0.917 — long tail of bad classes
+- Worst failures: rare classes, knekkebrød confusion, egg variants
 
 ## IMPORTANT
 - Git remote branch: **clank2** (not clank4!)
 - GPU assignment: device 1
 
-## Ideas Queue
+## Ideas Queue (revised priority)
 1. ~~Threshold sweep~~ — no gain
-2. TTA (multi-scale, flip) — moderate effort
-3. Higher resolution (1280px) training — moderate effort
-4. Ensemble (960 + 1280 models via WBF) — moderate effort
-5. Two-stage: YOLO detector + separate classifier on crops — high effort, high potential
-6. Better augmentation (more aggressive mosaic, mixup variations)
-7. Class-frequency-weighted loss
-8. Knowledge distillation from larger model
+2. ~~MobileNetV3 classifier fusion~~ — no gain (YOLO context > crop classifier)
+3. **1280px model** (training now) — pending
+4. **Ensemble 960+1280 via WBF** — next after 1280 finishes
+5. **TTA on ensemble** — combine TTA with model ensemble
+6. Stronger classifier (EfficientNet-B4, ConvNeXt, or ViT) at 384px crops
+7. Score-fusion: multiply YOLO cls conf by classifier agreement
+8. Train YOLO with focal loss / class-balanced loss
+9. Use product reference images for few-shot class recovery
