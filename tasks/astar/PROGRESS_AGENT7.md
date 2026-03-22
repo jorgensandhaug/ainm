@@ -3274,3 +3274,28 @@ Components:
 Still running when interrupted for live submission.
 
 ## Continuing exploration with more radical approaches...
+
+
+### 2026-03-22T10:45Z approx
+
+## NEW CHAMPION: ensemble_v50 = 88.06 (+0.23 BREAKTHROUGH)
+
+**ffam_ensemble_v50**: settle_heavy policy + log-odds adaptive ensemble
+- Score: **88.0593**
+- R7: 73.6 (best ever, was 72.0)
+- Policy: exploration_r3_settle_heavy (10x settlement weight for repeats)
+- Blend: log-odds space, mode_weight=0.88, adaptive_scale=1.5
+
+### Settlement-heavy motif scorer discovery
+Repeating viewports with HIGH SETTLEMENT DENSITY instead of default motif scoring
+gives +0.18 points standalone and +0.23 with ensemble.
+
+Settlements are where round dynamics manifest most clearly.
+Default scorer underweighted settlement density.
+
+### Score trajectory
+77.76 → 87.65 (calibration) → 87.83 (logodds ensemble) → **88.06 (settle_heavy policy)**
+
+### For live rounds: ./run_live.sh uses ffam_ensemble_v31 (87.83)
+If we want to use v50, need to update the script to use settle_heavy policy.
+But first need more validation that settle_heavy generalizes to live rounds.
