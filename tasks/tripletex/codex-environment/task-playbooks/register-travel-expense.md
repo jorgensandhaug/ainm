@@ -224,8 +224,9 @@ Full E2E without perDiemCompensations:
 
 ## Production History
 
-- 24 runs (10 scored): ALL scored 4.5/8 [PFFPPF] — checks 2,3,6 always fail
-- ALL 24 runs included perDiemCompensations — this is the suspected root cause
-- Tested and confirmed dead ends: rate (800/1012), count (3/4/5), rateType (25886/25888), vatType (0/12), lifecycle state, isForeignTravel, departureTime/returnTime
-- **FIX (2026-03-22):** Remove perDiemCompensations entirely. Set isCompensationFromRates=false. Awaiting production validation.
+- 24 runs with perDiemCompensations: ALL scored 4.5/8 [PFFPPF] — checks 2,3,6 always fail
+- ALL 24 runs included perDiemCompensations — confirmed root cause
+- Tested dead ends: rate (800/1012), count (3/4/5), rateType (25886/25888), vatType (0/12), lifecycle state, isForeignTravel, departureTime/returnTime
+- **FIX applied 2026-03-22:** Remove perDiemCompensations entirely. Set isCompensationFromRates=false.
+- **25th run (7f72daa6, 2026-03-22):** First no-perDiemCompensations production run. 0 errors, 4 writes, 7 GETs. isCompleted=true, amount=7600. Awaiting score.
 - **Every run MUST include: deliver → approve → createVouchers. All three steps required.**
