@@ -3181,3 +3181,28 @@ The curve is extremely flat - we are at the ceiling for this approach.
 - ensemble_v5 (fixed blend): 87.70 (+9.94)
 - ensemble_v15 (adaptive): 87.72 (+9.96)
 - **ensemble_v22 (optimized): 87.73 (+9.97)**
+
+
+### 2026-03-22T04:45Z approx
+
+## kNN Improvement Sweep
+| Model | Score | k | bandwidth |
+|-------|-------|---|-----------|
+| knn_v7 | **77.58** | 150 | 1.5 |
+| knn_v1 | 77.47 | 100 | 1.0 |
+| knn_v8 | 77.16 | 100 | 0.5 |
+| knn_v6 | 77.10 | 50 | 2.0 |
+
+Better kNN (v7) does NOT improve ensemble (v28=87.73 vs v22=87.73).
+The ensemble benefit comes from DIVERSITY, not kNN quality.
+
+## Ensemble is fully converged at 87.73-87.74
+
+All experiments in this session:
+- 28 ensemble variants tested
+- 250+ ffam_mode variants tested  
+- 9 kNN variants tested
+- 4 pooled regression variants tested
+- **Total: 290+ variants across 4 architectures**
+
+Current champion: **ensemble_v22 = 87.7340**
