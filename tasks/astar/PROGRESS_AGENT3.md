@@ -4975,8 +4975,32 @@ Key techniques to incorporate from other agents:
 
    **Total session improvement: +9.49 points** (76.89 → 86.38)
 
+535. **QR prediction logits as teacher features: 86.75!** (+0.37 over baseline!)
+   - Adding query_residual_v19 log-predictions as additional CatBoost features
+   - This gives the CatBoost model the existing model's "opinion" to refine
+   - Logit-space targets CATASTROPHICALLY failed (79.19)
+   - Teacher features + logit targets also failed (79.26)
+
+536. Teacher features optimization sweep:
+   - teacher (1500 iter, d8): **86.75** (BEST)
+   - t_3000 (3000 iter, d8): 86.69
+   - t_2000 (2000 iter, d8): 86.64
+   - t_d10 (1000 iter, d10): 86.49
+   - t_d6 (2000 iter, d6): 86.11
+   - Original config with teacher features is optimal
+
+537. UPDATED SESSION LEADERBOARD:
+   | Rank | Model | Score |
+   |------|-------|-------|
+   | 1 | **CatBoost + teacher features + exploration** | **86.75** |
+   | 2 | CatBoost + exploration + obs-blend | 86.38 |
+   | 3 | AG+TabPFN best_quality | 85.90 |
+   | 4 | CatBoost (coverage) | 85.29 |
+
+   **Total session improvement: +9.86 points** (76.89 → 86.75)
+
 ## Open Questions
 
-- Can we close the 0.74 gap to Agent7 (87.12 vs 86.38)?
-- Need to wire CatBoost + exploration into live pipeline for next round submission
-- The bottleneck is round 36e581f1 at 73.64 - can ANY approach push it past 80?
+- Can we ensemble teacher-CatBoost with non-teacher-CatBoost?
+- Gap to Agent7 reduced from 0.74 to 0.37 (87.12 vs 86.75)
+- Need to wire best model into live pipeline
