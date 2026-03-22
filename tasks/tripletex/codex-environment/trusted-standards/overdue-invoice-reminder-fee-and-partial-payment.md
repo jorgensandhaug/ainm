@@ -217,4 +217,12 @@ These verification GETs catch silent failures and provide diagnostic data for de
   - payment reduced outstanding from `36875` to `31875`
   - 10th production confirmation of the `6`-call path; first clean `de`+`40` combination; now verified across `nb`, `en`, `es`, `pt`, `de`, and `fr` prompts with fee amounts `35`, `40`, `50`, `60`, `70`
 - sandbox investigation on `2026-03-22` confirmed `isSent` is NOT a valid InvoiceDTO field; verification GET template updated to remove it; InvoiceDTO has no send-status field at all
-- the `6`-call path is confirmed across 10 clean production runs + 1 blocked run and multiple sandbox proofs on `2026-03-21` and `2026-03-22`; no `5`-call standalone path exists
+- production proof on `2026-03-22` (`prod-2026-03-22-104436709Z-4bc23ff8`) confirmed the `6`-call path for German prompt with fee `70`, 0 errors, 0 wasted calls:
+  - overdue invoice `#3` (`id=2147695773`), customer `108583745` (Grünfeld GmbH), outstanding `22250`, due `2026-01-04`
+  - voucher `#1` (`id=609401593`), accounts 1500 (id=498769747) / 3400 (id=498769943)
+  - fee invoice `#4` (`id=2147695895`, amount `70`)
+  - payment type `39720744`
+  - payment reduced outstanding from `22250` to `17250`
+  - 11th production confirmation of the `6`-call path; second clean `de`+`70` combination
+- sandbox investigation on `2026-03-22` confirmed `paymentType` is NOT a valid field expansion on InvoiceDTO (400 on `fields=*,paymentType(*)`); the `GET /invoice/paymentType` call cannot be eliminated via the invoice response
+- the `6`-call path is confirmed across 11 clean production runs + 1 blocked run and multiple sandbox proofs on `2026-03-21` and `2026-03-22`; no `5`-call standalone path exists

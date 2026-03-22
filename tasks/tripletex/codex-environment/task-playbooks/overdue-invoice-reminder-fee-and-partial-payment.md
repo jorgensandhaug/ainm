@@ -267,4 +267,11 @@ Replace the literal `35` values with the prompt's exact reminder-fee amount.
   - payment type `39639943`
   - remaining outstanding `31875`
 - sandbox investigation on `2026-03-22` confirmed `isSent` is NOT a valid InvoiceDTO field; trusted standard verification template corrected
-- the `6`-call path is confirmed across 10 clean production runs + 1 blocked run; no `5`-call standalone path exists
+- production run `prod-2026-03-22-104436709Z-4bc23ff8` matched the trusted `6`-call path exactly for a German prompt with fee `70`, 0 errors:
+  - overdue invoice `#3` (`id=2147695773`), customer `108583745` (Grünfeld GmbH), outstanding `22250`, due `2026-01-04`
+  - voucher `#1` (`id=609401593`)
+  - fee invoice `#4` (`id=2147695895`, amount `70`)
+  - payment type `39720744`
+  - remaining outstanding `17250`
+- sandbox investigation on `2026-03-22` confirmed `paymentType` is NOT a valid field expansion on InvoiceDTO (400); the `GET /invoice/paymentType` call cannot be eliminated via the invoice response
+- the `6`-call path is confirmed across 11 clean production runs + 1 blocked run; no `5`-call standalone path exists
