@@ -348,6 +348,34 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_scale=1.5,
         blend_space="logodds",
     ),
+    # Agent6 novel: use our a6_v19 (slower MLP) with kNN
+    "ffam_ensemble_a6_v1": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v1",
+        mode_model="ffam_mode_a6_v19",  # slower MLP training
+        knn_model="ffam_knn_v1",
+        mode_weight=0.95,
+    ),
+    # Agent6 novel: a6_v23 (v19 + 3 clusters) with kNN
+    "ffam_ensemble_a6_v2": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v2",
+        mode_model="ffam_mode_a6_v23",  # v19 + 3 clusters
+        knn_model="ffam_knn_v1",
+        mode_weight=0.95,
+    ),
+    # Agent6 novel: a6_v24 (v19 + 4 clusters) with kNN
+    "ffam_ensemble_a6_v3": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v3",
+        mode_model="ffam_mode_a6_v24",  # v19 + 4 clusters
+        knn_model="ffam_knn_v1",
+        mode_weight=0.95,
+    ),
+    # Agent6 novel: a6_v25 (3-seed MLP ensemble) with kNN
+    "ffam_ensemble_a6_v4": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v4",
+        mode_model="ffam_mode_a6_v25",  # 3-seed MLP ensemble
+        knn_model="ffam_knn_v1",
+        mode_weight=0.95,
+    ),
 }
 
 
