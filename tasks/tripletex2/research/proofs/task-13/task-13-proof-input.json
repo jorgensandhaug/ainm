@@ -1,27 +1,14 @@
 {
-  "employeeEmail": "ingrid.larsen@example.org",
-  "title": "Kundebesøk Trondheim",
-  "purpose": "Kundebesøk Trondheim",
-  "departureDate": "2026-03-20",
-  "returnDate": "2026-03-21",
+  "employeeEmail": "simen.sandhaug@gmail.com",
+  "employeeName": "Simen Sandhaug",
+  "title": "Kundebesøk Stavanger",
+  "purpose": "Kundebesøk Stavanger",
+  "tripDurationDays": 3,
   "costs": [
-    {
-      "categoryName": "Fly",
-      "amountNokInclVat": 2500,
-      "comment": "Flybillett"
-    },
-    {
-      "categoryName": "Taxi",
-      "amountNokInclVat": 600,
-      "comment": "Taxi"
-    }
+    { "categoryName": "Fly", "amountNokInclVat": 3900, "comment": "Flybillett" },
+    { "categoryName": "Taxi", "amountNokInclVat": 350, "comment": "Taxi" }
   ],
   "perDiemCompensations": [
-    {
-      "count": 2,
-      "rateNok": 800,
-      "amountNok": 1600,
-      "overnightAccommodation": "HOTEL"
-    }
+    { "count": 3, "rateNok": 800, "amountNok": 2400 }
   ]
 }

@@ -1,0 +1,325 @@
+{
+  "schemaVersion": "tripletex2.sandbox-reset-report.v1",
+  "reportId": "sandbox-reset-2026-03-22T09-04-13-578Z",
+  "createdAt": "2026-03-22T09:04:13.578Z",
+  "dryRun": false,
+  "scannedFiles": 941,
+  "discoveredRefs": [
+    {
+      "entityType": "creditNote",
+      "entityId": 2147668991,
+      "source": "verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z:research/verifications/task-10/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z/artifacts/2026-03-22/run-verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z.json",
+      "runId": "verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z",
+      "taskId": "10",
+      "strategyId": "10.issue-full-credit-note.v1"
+    },
+    {
+      "entityType": "department",
+      "entityId": 1010058,
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z.json",
+      "runId": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z",
+      "taskId": "21",
+      "strategyId": "21.onboard-employee-offer-letter.v1"
+    },
+    {
+      "entityType": "department",
+      "entityId": 1011716,
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z.json",
+      "runId": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z",
+      "taskId": "21",
+      "strategyId": "21.onboard-employee-offer-letter.v1"
+    },
+    {
+      "entityType": "employee",
+      "entityId": 18667403,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employee",
+      "entityId": 18667476,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employee",
+      "entityId": 18667507,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employee",
+      "entityId": 18725409,
+      "source": "verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z:research/verifications/task-06/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z/artifacts/2026-03-22/run-verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z.json",
+      "runId": "verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v2"
+    },
+    {
+      "entityType": "employee",
+      "entityId": 18768565,
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z.json",
+      "runId": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z",
+      "taskId": "21",
+      "strategyId": "21.onboard-employee-offer-letter.v1"
+    },
+    {
+      "entityType": "employee",
+      "entityId": 18771787,
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z.json",
+      "runId": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z",
+      "taskId": "21",
+      "strategyId": "21.onboard-employee-offer-letter.v1"
+    },
+    {
+      "entityType": "employment",
+      "entityId": 2836302,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employment",
+      "entityId": 2836335,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employment",
+      "entityId": 2836353,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employment",
+      "entityId": 2863745,
+      "source": "verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z:research/verifications/task-06/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z/artifacts/2026-03-22/run-verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z.json",
+      "runId": "verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v2"
+    },
+    {
+      "entityType": "invoice",
+      "entityId": 2147685127,
+      "source": "verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z:research/verifications/task-11/verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.json",
+      "runId": "verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z",
+      "taskId": "11",
+      "strategyId": "11.order-invoice-combined-payment.v1"
+    },
+    {
+      "entityType": "standardTime",
+      "entityId": 45193,
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z.json",
+      "runId": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z",
+      "taskId": "21",
+      "strategyId": "21.onboard-employee-offer-letter.v1"
+    },
+    {
+      "entityType": "standardTime",
+      "entityId": 45254,
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z.json",
+      "runId": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z",
+      "taskId": "21",
+      "strategyId": "21.onboard-employee-offer-letter.v1"
+    },
+    {
+      "entityType": "timesheetEntry",
+      "entityId": 175914950,
+      "source": "verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z:research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/artifacts/2026-03-22/run-verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.json",
+      "runId": "verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z",
+      "taskId": "15",
+      "strategyId": "15.register-hours-direct-invoice.v2"
+    },
+    {
+      "entityType": "timesheetEntry",
+      "entityId": 175914952,
+      "source": "verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z:research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/artifacts/2026-03-22/run-verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.json",
+      "runId": "verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z",
+      "taskId": "15",
+      "strategyId": "15.register-hours-direct-invoice.v2"
+    }
+  ],
+  "actionResults": [
+    {
+      "actionId": "creditNote-2147668991",
+      "entityType": "creditNote",
+      "entityId": 2147668991,
+      "operation": "neutralize",
+      "status": "skipped",
+      "source": "verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z:research/verifications/task-10/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z/artifacts/2026-03-22/run-verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z.json",
+      "details": "Credit notes cannot be safely removed through the current API surface."
+    },
+    {
+      "actionId": "department-1010058",
+      "entityType": "department",
+      "entityId": 1010058,
+      "operation": "delete",
+      "status": "failed",
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z.json",
+      "errorMessage": "Validering feilet."
+    },
+    {
+      "actionId": "department-1011716",
+      "entityType": "department",
+      "entityId": 1011716,
+      "operation": "delete",
+      "status": "failed",
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z.json",
+      "errorMessage": "Validering feilet."
+    },
+    {
+      "actionId": "employee-18667403",
+      "entityType": "employee",
+      "entityId": 18667403,
+      "operation": "neutralize",
+      "status": "failed",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json",
+      "errorMessage": "Validering feilet."
+    },
+    {
+      "actionId": "employee-18667476",
+      "entityType": "employee",
+      "entityId": 18667476,
+      "operation": "neutralize",
+      "status": "failed",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json",
+      "errorMessage": "Validering feilet."
+    },
+    {
+      "actionId": "employee-18667507",
+      "entityType": "employee",
+      "entityId": 18667507,
+      "operation": "neutralize",
+      "status": "failed",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json",
+      "errorMessage": "Validering feilet."
+    },
+    {
+      "actionId": "employee-18725409",
+      "entityType": "employee",
+      "entityId": 18725409,
+      "operation": "neutralize",
+      "status": "failed",
+      "source": "verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z:research/verifications/task-06/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z/artifacts/2026-03-22/run-verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z.json",
+      "errorMessage": "Validering feilet."
+    },
+    {
+      "actionId": "employee-18768565",
+      "entityType": "employee",
+      "entityId": 18768565,
+      "operation": "neutralize",
+      "status": "completed",
+      "path": "/employee/18768565",
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z.json",
+      "details": "userType -> NO_ACCESS"
+    },
+    {
+      "actionId": "employee-18771787",
+      "entityType": "employee",
+      "entityId": 18771787,
+      "operation": "neutralize",
+      "status": "completed",
+      "path": "/employee/18771787",
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z.json",
+      "details": "userType -> NO_ACCESS"
+    },
+    {
+      "actionId": "employment-2836302",
+      "entityType": "employment",
+      "entityId": 2836302,
+      "operation": "neutralize",
+      "status": "completed",
+      "path": "/employee/employment/2836302",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json"
+    },
+    {
+      "actionId": "employment-2836335",
+      "entityType": "employment",
+      "entityId": 2836335,
+      "operation": "neutralize",
+      "status": "completed",
+      "path": "/employee/employment/2836335",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json"
+    },
+    {
+      "actionId": "employment-2836353",
+      "entityType": "employment",
+      "entityId": 2836353,
+      "operation": "neutralize",
+      "status": "completed",
+      "path": "/employee/employment/2836353",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json"
+    },
+    {
+      "actionId": "employment-2863745",
+      "entityType": "employment",
+      "entityId": 2863745,
+      "operation": "neutralize",
+      "status": "completed",
+      "path": "/employee/employment/2863745",
+      "source": "verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z:research/verifications/task-06/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z/artifacts/2026-03-22/run-verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z.json"
+    },
+    {
+      "actionId": "invoice-2147685127",
+      "entityType": "invoice",
+      "entityId": 2147685127,
+      "operation": "credit-note",
+      "status": "failed",
+      "source": "verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z:research/verifications/task-11/verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.json",
+      "errorMessage": "Validering feilet."
+    },
+    {
+      "actionId": "standardTime-45193",
+      "entityType": "standardTime",
+      "entityId": 45193,
+      "operation": "neutralize",
+      "status": "skipped",
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z.json",
+      "details": "Standard time entries are left in place once the employee has been ended and email-neutralized."
+    },
+    {
+      "actionId": "standardTime-45254",
+      "entityType": "standardTime",
+      "entityId": 45254,
+      "operation": "neutralize",
+      "status": "skipped",
+      "source": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z:research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z.json",
+      "details": "Standard time entries are left in place once the employee has been ended and email-neutralized."
+    },
+    {
+      "actionId": "timesheetEntry-175914950",
+      "entityType": "timesheetEntry",
+      "entityId": 175914950,
+      "operation": "delete",
+      "status": "completed",
+      "path": "/timesheet/entry/175914950",
+      "source": "verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z:research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/artifacts/2026-03-22/run-verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.json"
+    },
+    {
+      "actionId": "timesheetEntry-175914952",
+      "entityType": "timesheetEntry",
+      "entityId": 175914952,
+      "operation": "delete",
+      "status": "completed",
+      "path": "/timesheet/entry/175914952",
+      "source": "verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z:research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/artifacts/2026-03-22/run-verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.json"
+    }
+  ],
+  "summary": {
+    "completed": 8,
+    "failed": 7,
+    "skipped": 3,
+    "alreadyClean": 0
+  }
+}

@@ -1,86 +1,67 @@
 # Task 13 — Register travel expense Research Memory
 
-This file is the task-local research memory for improving agents.
-Read it together with `task.ts`, the generated packet, and `research/AGENTS.md`.
-Update it after any meaningful frontier import, sandbox verification, promotion decision, or blocker discovery.
+Read together with `task.ts`, the generated packet, and `research/AGENTS.md`.
 
 ## Current Runtime Surface
 
 - Canonical task id: `13`
-- Active strategy pin: `13.create-and-deliver-travel-expense.v1`
-- Task implementation: `task.ts`
+- Active strategy pin: `13.create-and-deliver-travel-expense.v3`
+- Fallback: v1
+- Proof input: `research/proofs/task-13/task-13-proof-input.json`
 
-## Current Research Queue Snapshot
+## Best Known Score: `1.125` / `4`
 
-- Priority: `11`
-- Band: `focus`
-- Queue eligibility: `ready`
-- Research lane: `hard-research`
-- Best known score: `1.125` / `4`
-- Baseline call budget: `8`
+- Priority: `11`, Band: `focus`, Lane: `hard-research`
+- 4.5/8 raw = 0.5625 correctness, 22 production attempts
+- Checks 1+4+5 pass, checks 2+3+6 consistently fail
 
-## Frontier Summary
+## The createVouchers Hypothesis (STRONGEST — unscored)
 
-### Strongest verified branch: `13.create-and-deliver-travel-expense.v1`
+ALL 22 production runs omitted PUT /travelExpense/:createVouchers.
+Run b57900d3 proved approve alone does NOT help (still 4.5/8).
+The b57900d3 reflection identifies "missing ledger booking" as #1 hypothesis.
 
-- **Sandbox completed** on 2026-03-22 at 09:03:04Z
-- **9 API calls** (8 within budget + 1 best-effort createVouchers)
-- Travel expense state: **APPROVED**
-- createVouchers: fails with 422 in sandbox (caught gracefully, strategy still completes)
-- Sandbox run: `sandbox-13-13.create-and-deliver-travel-expense.v1-2026-03-22T09-03-04-159Z`
+After createVouchers: `voucher != null`, `isCompleted=true`, 7 accounting postings.
+Without createVouchers: `voucher=null`, no ledger postings.
 
-### Call profile (happy path with company address fallback)
+| Run | approve? | createVouchers? | Score | Checks 2,3,6 |
+|-----|----------|-----------------|-------|--------------|
+| 20 legacy runs | NO | NO | 4.5/8 | all fail |
+| b57900d3 | YES | NO | 4.5/8 | all fail |
+| v3 sandbox | YES | YES | untested | untested |
 
-1. GET /employee — resolve employee by email
-2. GET /company/{companyId}?fields=*,address(*) — conditional departureFrom fallback
-3. GET /travelExpense/costCategory — resolve categories (parallel with 4+5)
-4. GET /travelExpense/paymentType — resolve payment type (parallel with 3+5)
-5. GET /travelExpense/rate — resolve per-diem rates (parallel with 3+4)
-6. POST /travelExpense — create with embedded costs and per-diem
-7. PUT /travelExpense/:deliver — deliver (state=DELIVERED)
-8. PUT /travelExpense/:approve — best-effort approve (state=APPROVED)
-9. PUT /travelExpense/:createVouchers — best-effort voucher creation
+**createVouchers has never been production-scored.**
 
-## Bugs Fixed (2026-03-22)
+## Strategies
 
-1. **TDZ crash**: `resolveTravelDates` call passed uninitialized variables. Fixed to use `input.departureDate`/`input.returnDate`.
-2. **Date propagation**: Rate lookup, POST body, per-diem payload, cost dates, and createVouchers all used optional `input.departureDate`/`input.returnDate` instead of resolved values.
-3. **Best-effort approve/createVouchers**: Wrapped in try/catch so strategy completes on DELIVERED/APPROVED path.
-4. **Bidirectional category matching**: Added reverse substring so "Flybillett" matches category "Fly".
-5. **Merge conflicts**: Fixed conflicts in verification-plan.ts, task-06/task.ts, verifier.ts, task-24/ files.
+### v3 (ACTIVE — 2026-03-22)
+- Computes dates from `tripDurationDays` (returnDate=ctx.clock.today(), departureDate=today-N+1)
+- Full lifecycle: deliver → approve → createVouchers (both best-effort)
+- Per-diem rateType: prefers highest available rate
+- `konferanse` in NON_DESTINATION_TOKENS
+- vatType: `{ id: 0 }` per trusted standard
+- Sandbox runs: 4 successful (tripDurationDays=2, 3, 4), all 9 calls 200/201, vouchers created
+- Run D (no explicit dates, tripDurationDays=4): dates computed 2026-03-19→2026-03-22 via ctx.clock.today(), amount=8600, voucher=609367679, APPROVED
 
-## Anti-Patterns
+### v2 (superseded by v3)
+- Same core logic as v3 but uses `new Date()` instead of `ctx.clock.today()`
+- Timezone-fragile; replaced by v3's clock-based approach
 
-- Do not crash on `:approve` or `:createVouchers` — bonus steps that fail in many contexts
-- Do not assume explicit dates in input — prompts often only say "X dagar"
-- Cost category matching must be bidirectional
-- Merge conflicts block ALL sandbox runs — fix immediately
+### v1 (fallback)
+- Requires explicit dates, no createVouchers in original version
+- Production ceiling: 4.5/8 across 20 runs
 
-## Sandbox Verification — 2026-03-22 (detailed, run C)
+## Proven Dead Ends (NO effect on score)
 
-Full end-to-end test after sandbox reset, matching production prompt pattern:
+1. vatType (0 vs 12)
+2. Per-diem count (3/4/5)
+3. isForeignTravel
+4. rateType (25886 vs 25888)
+5. departureTime/returnTime
+6. approve alone (without createVouchers) — proven by b57900d3
 
-| Field | Value |
-|-------|-------|
-| Employee | simen.sandhaug@gmail.com (id=18441996) |
-| Title | Kundebesok Bergen |
-| Dates | 2026-03-18 to 2026-03-22 (5 days) |
-| Per-diem | count=5, rate=800, amount=4000, rateType=25888, HOTEL |
-| Costs | Fly 7900 (departure), Taxi 250 (return) |
-| DepartureFrom | Oslo (company fallback) |
-| Destination | Bergen |
-| isDayTrip | false |
-| State | APPROVED |
-| Voucher | id=609366142, number=823 |
-| createVouchers | SUCCESS (200) |
+## Next Steps
 
-**Key findings:**
-- Per-diem rate 800 accepted despite rateType.id=25888 having rate=1012 — Tripletex stores our value
-- All 9 API calls succeed: GET employee, GET company, GET categories+paymentType+rate (parallel), POST, :deliver, :approve, :createVouchers
-- Voucher created successfully — this was previously identified as a critical failing check
-
-## Next Hypotheses
-
-1. Production validation needed to test date-resolution + best-effort flow
-2. When employee has address, skip company read (save 1 call)
-3. Consider: should rateType match the rate=800 exactly? Available rates: 397, 736, 1012
+1. **Get v3 production-scored** — createVouchers is the strongest untested hypothesis
+2. If it fixes it: optimize call count, investigate if rate GET can be skipped
+3. If it doesn't: investigate per-diem overnightAccommodation values, rate override, or account mapping
