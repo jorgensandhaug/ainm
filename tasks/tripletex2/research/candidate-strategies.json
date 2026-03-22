@@ -1,6 +1,6 @@
 {
   "schemaVersion": "tripletex2.research-candidate-store.v1",
-  "updatedAt": "2026-03-21T21:38:12.930Z",
+  "updatedAt": "2026-03-22T02:12:00.000Z",
   "entries": [
     {
       "candidateId": "06.create-employee.v1",
@@ -41,6 +41,26 @@
       ],
       "createdAt": "2026-03-21T20:20:44Z",
       "updatedAt": "2026-03-21T20:21:01Z"
+    },
+    {
+      "candidateId": "22.receipt-expense-booking.v1",
+      "taskId": "22",
+      "strategyId": "22.receipt-expense-booking.v1",
+      "strategyPath": "src/tasks/task-22/strategies/receipt-expense-booking.ts",
+      "strategyName": "Receipt expense booking with department",
+      "status": "needs-review",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/research/packets/task-22/task-22-packet-2026-03-22T02-11-58-196Z.json",
+      "notes": [
+        "NET-to-GROSS conversion added: receipt line prices are NET; strategy now computes actualGross = NET × (1 + vatRate/100) using statutory rate per expense category. For Togbillett: 8750 × 1.12 = 9800, vatType=12.",
+        "VAT rate inference already fixed: looksLikeTravel() checked before receipt text regex, so transport items get 12% regardless of receipt's blended 'MVA 25%' label.",
+        "Added overnatting/hotell to looksLikeTravel pattern.",
+        "Extraction notes updated to instruct LLM to pass receipt line price as-is without VAT multiplication.",
+        "BLOCKER: Sandbox verification cannot run — (1) packet has no proof.verificationPlan for task 22, (2) verifier hardcodes files:[] so requirePdfAttachment throws for attachment-dependent tasks.",
+        "Proof input file created at research/proofs/task-22/task-22-proof-input.json for future verification once the verifier supports file attachments.",
+        "Evidence base: production run 3373fbc9 (7/10, Check 3 failed on amountGross=10937.50/vatType=1 — should be 9800/vatType=12); RESEARCH.md sandbox-verified amountGross=9800 with vatType=12 produces correct NET=8750 and VAT=1050."
+      ],
+      "createdAt": "2026-03-22T02:12:00.000Z",
+      "updatedAt": "2026-03-22T02:12:00.000Z"
     },
     {
       "candidateId": "23.reconcile-bank-statement.v1",
