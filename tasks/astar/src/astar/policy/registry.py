@@ -172,5 +172,48 @@ def build_named_policy(name: str) -> QueryPlanPolicy:
             replicate_budget=4,
             probe_first=True,
         )
+    if normalized in {"exploration_r5", "exploration_v2_r5"}:
+        return CoverageThenReplicatePolicy(
+            name="exploration_r5",
+            replicate_budget=5,
+            probe_first=True,
+        )
+    if normalized == "exploration_r5_global":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r5_global",
+            replicate_budget=5,
+            probe_first=True,
+            selection_mode="global_top",
+        )
+    if normalized == "exploration_r5_port":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r5_port",
+            replicate_budget=5,
+            probe_first=True,
+            motif_scorer=_port_bias_scorer(),
+        )
+    if normalized == "exploration_r5_frontier":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r5_frontier",
+            replicate_budget=5,
+            probe_first=True,
+            motif_scorer=_frontier_bias_scorer(),
+        )
+    if normalized == "exploration_hybrid_r5":
+        return CoverageThenReplicatePolicy(
+            name="exploration_hybrid_r5",
+            replicate_budget=3,
+            late_replicate_budget=2,
+            probe_first=True,
+            motif_scorer=_port_bias_scorer(),
+            late_motif_scorer=_frontier_bias_scorer(),
+        )
+    if normalized == "exploration_r5_entropy":
+        return CoverageThenReplicatePolicy(
+            name="exploration_r5_entropy",
+            replicate_budget=5,
+            probe_first=True,
+            motif_scorer=_entropy_bias_scorer(),
+        )
     msg = f"unsupported policy: {name}"
     raise ValueError(msg)
