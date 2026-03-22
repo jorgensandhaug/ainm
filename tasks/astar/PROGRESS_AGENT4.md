@@ -3682,3 +3682,46 @@ Crossseed ensemble baseline: still computing (expected ~60-90 min for 16 folds)
 - With `--submit`: queries viewports for year-50 evidence, adds cross-seed features
 - This should score between ev1 (86.13) and ev15 (90.40) depending on query quality
 - At 10 queries per seed (full coverage), likely closer to ev15
+
+### 2026-03-22T06:00Z — Live submission attempt for round 20
+
+**Round 20 (fd82f643-15e2-40e7-9866-8d8f5157081c):**
+- Initial map-only prior submitted (baseline, budget=0, no queries)
+- query_residual_v11 with 50 coverage queries launched (budget=50)
+- Round closed while model was still training (~50min compute time)
+- Submission still in progress - will submit when model finishes
+
+**Critical train/serve gap analysis:**
+- LOO backtests use FULL 40x40 year-50 replay grids as evidence
+- Live uses 15x15 viewport observations from /simulate
+- With 9 coverage queries per seed: full-map coverage, ~equivalent to serve_ev=1
+- Scores achievable in live: approximately evidence ev1 level (~86)
+- LOO backtests at ev15 (90.40) are NOT achievable in live
+
+**For future rounds:**
+- Train model BEFORE round opens (pre-train on all historical data)
+- Submit quickly with coverage queries (9 per seed for full coverage)
+- The pre-trained model should already be ready to predict
+
+### 2026-03-22T06:30Z — Round 20 submission result
+
+**Only map-only prior was submitted** (model=gbx_prior_maponly_bucket_v1)
+query_residual_v11 training took 60+ min and didn't complete before round closed.
+
+**Root causes:**
+1. query_residual model training is too slow (>60min with 16 training rounds + full synthetic dataset build)
+2. Model needs to be PRE-TRAINED before round opens
+3. Live round closes before slow model can finish training
+
+**Lessons for next round:**
+1. Pre-train ALL models offline before round opens
+2. At round time, only query + predict + submit (no training)
+3. Use simpler/faster model if training-at-serve-time is necessary
+4. Save trained model checkpoints for instant serving
+
+**Critical train/serve parity issues to fix:**
+1. Evidence feature mismatch: training uses full 40x40 replays, live gets 15x15 viewports
+2. Cross-seed features mismatch: training uses full replay data, live uses viewport observations
+3. Need to either train with viewport-like data, or assemble viewports to match training distribution
+
+### STILL RUNNING: focused and combined model LOO evaluations
