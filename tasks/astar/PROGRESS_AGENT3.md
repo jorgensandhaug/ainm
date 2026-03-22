@@ -5072,7 +5072,16 @@ Key techniques to incorporate from other agents:
    - Spatial observation correction
    - MLP stacking (catastrophic overfitting)
 
+545. Final obs-blend temperature sweep on teacher-CatBoost:
+   - t=100: 86.77 | t=50: 86.75 | t=40: 86.72 | t=0 (none): 86.70 | t=20: 86.40
+
+546. Dual ensemble with t=100: **86.86** (marginal +0.01 over t=50)
+
+547. **ABSOLUTE FINAL BEST: 86.86** (dual CatBoost ensemble, w=0.6, obs-blend t=100)
+   - **Total improvement: +9.97 points** (76.89 → 86.86)
+   - **Gap to Agent7: 0.26 points** (87.12 vs 86.86)
+
 ## Open Questions
 
-- Gap to Agent7 (0.27) likely requires their operator-manifold architecture
+- Gap to Agent7 (0.26) requires their operator-manifold architecture
 - Need to wire best model into live pipeline for next round
