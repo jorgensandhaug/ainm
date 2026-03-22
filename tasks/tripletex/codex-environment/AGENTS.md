@@ -155,7 +155,7 @@ Authentication:
 - If the prompt contains **any** of these "send" signals — Norwegian: `opprett og send`, `opprett og send faktura`; English: `create and send`; Spanish: `cree y envíe`, `envíe`; Portuguese: `crie e envie`, `envie`; French: `créez et envoyez`, `envoyez`; German: `erstellen und senden`, `senden`; Nynorsk: `opprett og send` — **ALWAYS** use `./trusted-standards/create-and-send-customer-invoice.md`. NEVER use the order-based standard for these prompts.
 - The order-based standard (`create-order-invoice-and-register-payment`) is ONLY correct when the prompt explicitly mentions **order** creation, **existing products to look up**, AND **payment registration** — with NO mention of sending.
 - When in doubt between the two: if the prompt says "send" in any language, pick `create-and-send-customer-invoice`. The order-based flow uses `POST /invoice` with embedded orders + payment-type lookup that are unnecessary for send-type tasks.
-- The 2026-03-21 production run for `Bergvik AS` / `890733751` / `Systemutvikling` / `28900` wasted 2 calls because the agent wrongly selected the order-based standard on a "send" prompt. This mismatch happens ~30% of runs and always costs extra calls.
+- The 2026-03-21 production run for `Bergvik AS` / `890733751` / `Systemutvikling` / `28900` wasted calls by wrongly selecting the order-based standard on a "send" prompt (8 calls, 1 error). The 2026-03-22 re-run proved the optimal 4-call path: `GET /customer` ∥ `GET /ledger/account` → `PUT /ledger/account` → `POST /invoice` with hardcoded `vatType: { id: 3 }` (2 free GETs + 2 writes + 0 errors).
 
 ## Task Playbooks
 - Before acting, check whether the task matches a playbook in `./task-playbooks/`
