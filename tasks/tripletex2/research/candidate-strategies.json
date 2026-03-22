@@ -259,6 +259,26 @@
       ],
       "createdAt": "2026-03-21T21:38:12.930Z",
       "updatedAt": "2026-03-21T21:38:12.930Z"
+    },
+    {
+      "candidateId": "24.correct-ledger-errors.v3",
+      "taskId": "24",
+      "strategyId": "24.correct-ledger-errors.v3",
+      "strategyPath": "src/tasks/task-24/strategies/correct-ledger-errors-v3.ts",
+      "strategyName": "Dynamic prompt-driven ledger error correction with direct VAT posting",
+      "status": "draft",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/research/packets/task-24/task-24-packet-2026-03-22T02-12-00-869Z.json",
+      "notes": [
+        "NEVER EXECUTED END-TO-END. Strategy has never completed a single API call against any Tripletex environment. All evidence is offline (prompt parsing, type-checking, production script analysis).",
+        "BLOCKER: Sandbox reset fails due to 3 stale task-06 employee records. Even with --skip-reset, sandbox has 118 vouchers from previous experiments causing pickSingle collisions.",
+        "VERIFICATION REQUIRES --prompt-file: The verifier's synthetic prompt lacks parenthesized error groups. You MUST pass --prompt-file with a real production prompt for the strategy to parse parameters. See research/proof-inputs/task-24/prompt.txt.",
+        "OFFLINE EVIDENCE: Prompt parsing + validation verified against 5 production prompts (EN/DE/PT). Strategy compiles clean. Two root-cause fixes: (1) dynamic prompt extraction replaces hardcoded values, (2) direct 2710 posting replaces broken expense+vatType=1 approach.",
+        "VATTYPE RISK (wrong-amount rows 7-8): vatType is copied from the original posting template, matching the codex agent approach that passes Check 4 in all production runs. If original has unexpected vatType, correction could mis-split. Not observed in evidence but unverified in sandbox.",
+        "NEXT: Sandbox cleanup or fresh provisioning needed before any real execution.",
+        "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 24 --strategy 24.correct-ledger-errors.v3\nExit code: 1\nDuration: 5953ms\nresearch sandbox reset summary: {\"taskId\":\"24\",\"strategyId\":\"24.correct-ledger-errors.v3\",\"scannedFiles\":21,\"discoveredRefs\":6,\"completed\":3,\"failed\":3,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-32-22-210Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet."
+      ],
+      "createdAt": "2026-03-22T02:32:22.210Z",
+      "updatedAt": "2026-03-22T02:32:22.210Z"
     }
   ]
 }

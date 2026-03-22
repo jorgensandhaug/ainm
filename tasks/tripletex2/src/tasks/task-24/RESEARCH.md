@@ -136,62 +136,118 @@ The codex agent used 4-6 calls in production runs:
 
 With the correct strategy, 3 calls is achievable.
 
-## v3 Strategy Implementation (2026-03-22)
+## Required Fixes (Priority Order)
 
-### What changed
+### Fix 1: Add prompt extraction to CorrectLedgerErrorsInput (HIGHEST PRIORITY)
 
-Created `strategies/correct-ledger-errors-v3.ts` (strategyId: `24.correct-ledger-errors.v3`) addressing all identified root causes:
+Change `CorrectLedgerErrorsInput` from `{}` to:
+```typescript
+interface CorrectLedgerErrorsInput {
+  wrongAccountSource: number;
+  wrongAccountTarget: number;
+  wrongAccountAmount: number;
+  duplicateAccount: number;
+  duplicateAmount: number;
+  missingVatAccount: number;
+  missingVatNetAmount: number;
+  wrongAmountAccount: number;
+  wrongAmountRecorded: number;
+  wrongAmountCorrect: number;
+}
+```
 
-1. **Dynamic prompt parsing** — Extracts the 10 error parameters (accounts + amounts) directly from `ctx.request.prompt` at runtime using positional regex on the 4 parenthesized error blocks. Verified against all 4 production languages (EN, DE, PT, FR). No classifier/extractor changes needed — the strategy self-extracts.
+Update `task.ts` requiredFields and extractionNotes.
+Update the classifier prompt / codex task understanding to extract these 10 fields from the multi-language prompt.
 
-2. **Missing-VAT detection priority** — `selectMissingVatVoucher()` implements a 3-tier cascade:
-   - Tier 1: exact account+amount match, voucher has NO 2710 posting (Case A — the actual error)
-   - Tier 2: account-only match, voucher has NO 2710 posting (broader fallback)
-   - Tier 3: exact account+amount match regardless of 2710 (Case B last resort)
+### Fix 2: Use direct 2710 posting for missing VAT correction
 
-3. **Direct 2710 posting** — VAT correction posts amount = `postedAmount * 0.25` directly on account 2710 with no vatType (clean posting), counterpart carries supplier from original voucher template.
+Replace lines 282-298 in the strategy. Instead of:
+```
+{ 6500: +vatAmount, vatType=1 }  // WRONG: auto-generates partial 2710
+{ counterpart: -vatAmount }
+```
+Use:
+```
+{ 2710: +vatAmount }             // CORRECT: direct control
+{ counterpart: -vatAmount, supplier: {...} }
+```
 
-4. **vatType handling** — All non-VAT corrections copy vatType from original posting template via `buildPostingFromTemplate`. The 2710 posting has no template → no vatType set → Tripletex uses account default.
+Copy the approach from task 21's strategy (lines 213-251) which already does this correctly.
 
-5. **Counterpart finding** — Uses largest-absolute-value approach (like task 21) instead of pickSingle for robustness with multi-posting vouchers.
+### Fix 3: Copy vatType from original posting, don't hardcode
 
-### What did NOT change
+Some accounts (7xxx) are locked to vatType=0. The strategy should copy vatType from the original posting's template, not hardcode vatType=1.
 
-- `CorrectLedgerErrorsInput` remains `{}` — no classifier/extractor refactor needed
-- task.ts updated to load v3 first, v1 as fallback
-- 3-call budget preserved (GET accounts, GET vouchers, POST correction)
-- v1 strategy file kept intact for reference
+### Fix 4: Differentiate task 21 from task 24 in classifier
 
-### Prompt parser validation
+The classifier needs a way to distinguish these two identical-looking tasks. Options:
+- Add a distinguishing field to the task spec (e.g. different summaries that reference different account ranges)
+- Use the leaderboard's txTaskId routing rather than classifier inference
+- Merge the two into one task with dynamic extraction
 
-All 7 unique production prompt variants verified (4 shown below):
-| Language | Wrong acct | Dup | VAT | Wrong amt |
-|----------|-----------|-----|-----|----------|
-| German | 6340→6390/3050 ✓ | 6860/1650 ✓ | 4500/22900 ✓ | 6860/24450→10850 ✓ |
-| Portuguese | 7140→7100/2250 ✓ | 7000/4400 ✓ | 6500/14100 ✓ | 6590/13150→11650 ✓ |
-| English | 6500→6540/7350 ✓ | 7100/3200 ✓ | 6540/11450 ✓ | 6300/8200→5800 ✓ |
-| French | 6540→6860/4800 ✓ | 7100/2000 ✓ | 4500/14500 ✓ | 7100/21650→17900 ✓ |
+## v3 Challenger Implementation (2026-03-22)
 
-### Remaining risk
+### Strategy: `24.correct-ledger-errors.v3`
 
-- v3 requires `ctx.request.prompt` — sandbox runs with synthetic prompts won't work unless the sandbox provides a real task prompt
-- If the competition ever changes the prompt structure (e.g., reorders the 4 error descriptions), the positional parser would break
+**Candidate status**: `draft` — **strategy has NEVER executed end-to-end**. No API calls have ever been made by this strategy against any Tripletex environment. All evidence is offline (prompt parsing, type-checking, production script analysis).
+
+**What changed** (all fixes from the checklist above implemented):
+1. **Prompt parsing at strategy runtime** via `ctx.request.prompt` — extracts 10 error parameters from parenthesized groups using regex. Post-parse validation checks account ranges (1000–9999), positive amounts, source≠target, recorded>correct. Verified correct against all 5 production prompts (EN, DE, PT).
+2. **Direct 2710 posting** for missing VAT correction — replaces broken expense+vatType=1 approach with `buildDirectPosting` to account 2710 (no vatType, exact amount control).
+3. **Dynamic account lookup** — requests all unique accounts from the prompt plus 2710.
+4. **vatType copied from original posting template** — no hardcoding. The `buildPostingFromTemplate` copies vatType from the source posting. See "vatType Propagation Risk" below.
+5. **Missing VAT voucher detection** — filters for `!hasAccount(voucher, 2710)` to always find the BAD voucher (without VAT), not the GOOD one.
+6. **Input schema left empty** — extraction happens at strategy time, not classifier time. No classifier changes needed. This also sidesteps the task-21/task-24 classifier mismatch issue.
+
+### vatType Propagation Risk (wrong-amount rows 7-8)
+
+The wrong-amount correction (rows 7-8) copies vatType from the original posting via `buildPostingFromTemplate`. This is deliberate — if the original was booked with vatType=1, the correction must also use vatType=1 so Tripletex correctly auto-splits the net/VAT adjustment. The codex agent uses the same approach, and Check 4 passes in all 5 production runs.
+
+**Risk**: If the original posting has an unexpected vatType (e.g., vatType=12 for reduced rate), the correction might generate an incorrect VAT split. This has NOT been observed in production evidence, but it is **unverified in sandbox**.
+
+**Decision**: Keep the template-copy approach. Forcing vatType=0 would break the common case (vatType=1 or vatType=0 postings, which are the majority). The risk is accepted as low based on production evidence.
+
+**Architecture decision**: Prompt parsing at strategy runtime (via `ctx.request.prompt`) rather than classifier-time extraction. Rationale: (a) regex extraction is deterministic, (b) no risk of classifier extraction failures, (c) keeps the strategy self-contained, (d) no changes to the shared classifier contract.
+
+### Production Runs Consulted
+
+| Run ID | Language | Prompt Parameters | Score |
+|--------|----------|-------------------|-------|
+| `prod-2026-03-21-204843788Z-3d464771` | German | 6340→6390/3050, dup 6860/1650, vat 4500/22900, amt 6860/24450→10850 | 2.25/6 |
+| `prod-2026-03-21-204558586Z-ee909d4d` | Portuguese | 7140→7100/2250, dup 7000/4400, vat 6500/14100, amt 6590/13150→11650 | 2.25/6 |
+| `prod-2026-03-21-191608814Z-db732541` | Portuguese | 7140→7100/2250, dup 7000/4400, vat 6500/14100, amt 6590/13150→11650 | 2.25/6 |
+| `prod-2026-03-21-182142534Z-7fed6a02` | Portuguese | 6340→6390/2450, dup 6300/2900, vat 7300/5350, amt 7100/8550→6750 | 2.25/6 |
+| `prod-2026-03-21-175751200Z-397faff2` | English | 6500→6540/7350, dup 7100/3200, vat 6540/11450, amt 6300/8200→5800 | 2.25/6 |
+
+**Key script inspected**: `prod-2026-03-21-175751200Z-397faff2/scripts/correct-ledger-errors.ts` — codex agent script showing the correct 3-call pattern but with the VAT detection bug (finds good voucher first → Case B shortfall = 0 → no correction).
+
+### Verification Outcome
+
+**Sandbox verification blocked** — two independent blockers:
+1. **Sandbox reset failure**: 3 stale task-06 employee records fail to neutralize (`Validering feilet`).
+2. **Sandbox voucher drift**: 118 vouchers in Jan-Feb 2026 window (should be ~20-30). Many duplicate test vouchers for same account/amount patterns cause `pickSingle` to fail.
+
+**Prompt parsing verified offline**: All 5 production prompts parse correctly — all 10 parameters extracted match the expected values from RESEARCH.md evidence table.
+
+**Verifier infrastructure**: Added `--prompt-file` and `--skip-reset` flags to `scripts/research_os.ts`, plus `promptOverride` to `RunSandboxVerificationOptions`.
+
+**IMPORTANT: `--prompt-file` is MANDATORY for this strategy.** The verifier's default synthetic prompt (`"Research OS verifier run for task 24..."`) does not contain parenthesized error groups. Without `--prompt-file`, the strategy will throw `"Expected at least 4 parenthesized error groups in prompt, found 0."` A real production prompt (or one matching the sandbox seed data) must be provided.
+
+### Next Steps
+
+1. **Sandbox cleanup**: Manually reverse/delete stale experiment vouchers, or provision a fresh sandbox.
+2. **Re-verify** (prompt-file is mandatory): Run `bun scripts/research_os.ts verify --packet <packet> --strategy 24.correct-ledger-errors.v3 --input-file research/proof-inputs/task-24/input.json --prompt-file research/proof-inputs/task-24/prompt.txt`
+3. **If sandbox verified**: Promote to active in `configs/active-strategies.json`.
+4. **Task 21 parity**: Apply the same prompt-parsing approach to task 21 (which has the identical hardcoded-value problem).
 
 ## Frontier Memory
 
-- **Strongest known branch**: `24.correct-ledger-errors.v3` (candidate, not yet verified in production)
-- **Score ceiling with v3**: 6/6 (all 4 checks passable + 3-call efficiency = perfect score)
-- **Call-budget frontier**: 3 calls (same as v1)
-- **Predecessor**: v1 hardcoded values, v2 never implemented, codex agent scored 2.25/6 consistently
+- **Strongest known branch**: `24.correct-ledger-errors.v3` — fixes both root causes but has **never executed end-to-end**. All evidence is offline.
+- **Score ceiling with fixes**: 6/6 (all 4 checks passable + 3-call efficiency = perfect score)
+- **Call-budget frontier**: 3 calls (GET accounts, GET vouchers, POST correction)
+- **Imported legacy evidence**: Codex agent's `correct-ledger-errors.ts` script from run 397faff2 confirms the direct-2710 approach works for checks 1,2,4 but has the VAT detection bug.
 - **Anti-patterns / dead ends**:
   - NEVER use expense account + vatType=1 for missing VAT corrections
   - NEVER hardcode account numbers — they vary per run
   - NEVER hardcode vatType=1 on 7xxx accounts (locked to vatType=0, causes 422)
-  - NEVER pick the first amount-matched voucher for missing-VAT — always prefer no-2710 voucher
-
-## Next Steps
-
-1. Sandbox verification with a real prompt (not generic "Sandbox operator run" prompt)
-2. Production run to verify all 4 checks pass
-3. If Check 3 passes: promote v3 to active, retire v1
-4. If Check 3 still fails: add diagnostic logging of all postings on the missing-VAT account
+  - NEVER iterate vouchers to find the first match for missing-VAT — must filter for !has2710

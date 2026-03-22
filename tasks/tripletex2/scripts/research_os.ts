@@ -72,12 +72,30 @@ async function main(): Promise<void> {
     const input = await readJsonFile<Record<string, unknown>>(
       resolveFilePath(inputPath),
     );
+    const promptFilePath = optionalFlag(args, "--prompt-file");
+    const promptOverride = promptFilePath
+      ? await Bun.file(resolveFilePath(promptFilePath)).text()
+      : undefined;
+    const skipReset = args.includes("--skip-reset");
     const result = await runSandboxVerification({
       packet,
       packetPath: resolveFilePath(packetPath),
       strategyId,
       input,
+      promptOverride,
       candidateId: optionalFlag(args, "--candidate-id") ?? strategyId,
+      ...(skipReset
+        ? {
+            sandboxResetOverride: {
+              command: "skipped via --skip-reset",
+              exitCode: 0,
+              stdout: "",
+              stderr: "",
+              durationMs: 0,
+              highlights: ["Sandbox reset skipped by operator."],
+            },
+          }
+        : {}),
     });
     printJson({
       reportPath: result.reportPath,
@@ -95,7 +113,7 @@ async function main(): Promise<void> {
       "  bun scripts/research_os.ts queue top --count 3",
       "  bun scripts/research_os.ts packet build --task 06",
       "  bun scripts/research_os.ts candidates list [--task 06]",
-      "  bun scripts/research_os.ts verify --packet <packet-path> --strategy <strategy-id> [--input-file <json>]",
+      "  bun scripts/research_os.ts verify --packet <packet-path> --strategy <strategy-id> [--input-file <json>] [--prompt-file <txt>]",
     ].join("\n"),
   );
 }

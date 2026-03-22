@@ -48,14 +48,14 @@ export type CorrectLedgerErrorsTaskUnderstandingResult = TaskUnderstandingResult
 >;
 
 export async function loadTaskModule(): Promise<CorrectLedgerErrorsTaskModule> {
-  const { strategy: v3 } = await import(
+  const { strategy: strategyLegacy } = await import("./strategies/correct-ledger-errors");
+  const { strategy: strategyV3 } = await import(
     "./strategies/correct-ledger-errors-v3"
   );
-  const { strategy: v1 } = await import("./strategies/correct-ledger-errors");
 
   return {
     task,
-    strategies: [v3, v1],
+    strategies: [strategyV3, strategyLegacy],
   };
 }
 
