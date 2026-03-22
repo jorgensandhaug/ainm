@@ -143,6 +143,10 @@ TRIPLE_EW_PO1_V001 = "triple_ew_po1_v001"      # PO ridge=1.0
 TRIPLE_EW_BEST_V001 = "triple_ew_best_v001"    # 25/45/30
 TRIPLE_EW_BEST_V002 = "triple_ew_best_v002"    # 20/50/30
 TRIPLE_EW_BEST_V003 = "triple_ew_best_v003"    # 30/45/25
+TRIPLE_EW_BEST_V004 = "triple_ew_best_v004"    # 15/55/30
+TRIPLE_EW_BEST_V005 = "triple_ew_best_v005"    # 20/55/25
+TRIPLE_EW_BEST_V006 = "triple_ew_best_v006"    # 10/55/35
+TRIPLE_EW_BEST_V007 = "triple_ew_best_v007"    # 15/50/35
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -2140,7 +2144,7 @@ def build_online_predictor(
             model_name=DIRECT_TERMINAL_Z2_EW_V003,
             fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.0005, "max_epochs": 200, "entropy_weighted": True},
         )
-    if normalized in (TRIPLE_EW_PO01_V001, TRIPLE_EW_PO001_V001, TRIPLE_EW_PO1_V001, TRIPLE_EW_BEST_V001, TRIPLE_EW_BEST_V002, TRIPLE_EW_BEST_V003):
+    if normalized in (TRIPLE_EW_PO01_V001, TRIPLE_EW_PO001_V001, TRIPLE_EW_PO1_V001, TRIPLE_EW_BEST_V001, TRIPLE_EW_BEST_V002, TRIPLE_EW_BEST_V003, TRIPLE_EW_BEST_V004, TRIPLE_EW_BEST_V005, TRIPLE_EW_BEST_V006, TRIPLE_EW_BEST_V007):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         glmm_adapter = _build_smh_glmm_latent_adapter(
             workspace_paths,
@@ -2182,6 +2186,10 @@ def build_online_predictor(
             TRIPLE_EW_BEST_V001: (0.25, 0.45, 0.30),
             TRIPLE_EW_BEST_V002: (0.20, 0.50, 0.30),
             TRIPLE_EW_BEST_V003: (0.30, 0.45, 0.25),
+            TRIPLE_EW_BEST_V004: (0.15, 0.55, 0.30),
+            TRIPLE_EW_BEST_V005: (0.20, 0.55, 0.25),
+            TRIPLE_EW_BEST_V006: (0.10, 0.55, 0.35),
+            TRIPLE_EW_BEST_V007: (0.15, 0.50, 0.35),
         }
         wa, wb, wc = weight_map[normalized]
         base = TripleBlendPredictor(
