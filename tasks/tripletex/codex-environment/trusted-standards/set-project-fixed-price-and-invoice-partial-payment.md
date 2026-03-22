@@ -310,3 +310,15 @@ Log: fixedprice, isFixedPrice, customer. Confirm the fixed price was set correct
   - canonical WRITE counts: skip-PUT+configured-bank = **1 write** (POST invoice → 4.0), skip-PUT+missing-bank = **2 writes** (PUT bank + POST invoice → 4.0), update-needed+configured-bank = **2 writes** (PUT project + POST invoice → 4.0), update-needed+missing-bank = **3 writes** (PUT project + PUT bank + POST invoice → 3.3333)
   - add as many GETs as needed for verification and safety — they cost nothing
   - the proactive `/ledger/account` hedge is still recommended: the GET is free, and the conditional PUT only fires when bank is missing (avoiding a 422 error + retry which would add both a write AND an error penalty)
+- exact 2nd production confirmation on 2026-03-22 for `Cascade SARL` / `813648164` / `Projet d'automatisation` / `hugo.bernard@example.org` / `326550` / `75%` (run 4eaf37df) proved the update-needed proactive-hedge branch with `POST /invoice` on a missing-bank account:
+  - the initial `GET /project?name=...&count=50&fields=*,customer(*),projectManager(*)` found the project with `fixedprice=0` and `isFixedPrice=false`, but correct customer and PM already linked (PM email matched exactly)
+  - the proactive hedge discovered invoice account `1920` with empty `bankAccountNumber` and fixed it before the invoice write
+  - the successful production path was `GET /project` -> parallel(`PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`) -> `PUT /ledger/account` -> `POST /invoice` for **3 writes**, `0` errors
+  - the production account exposed outgoing VAT `25%` (id=3), and the invoice returned `amountExcludingVatCurrency=244912.5` and `amountCurrencyOutstanding=306140.63`
+  - milestone arithmetic `326550 * 0.75 = 244912.5` — third production confirmation of the 75% milestone percentage; decimal amount accepted directly
+  - this is the 2nd production run to successfully use `POST /invoice?sendToCustomer=false` on the correct entities; the 1st Cascade SARL run (2026-03-21) used old `POST /order` + `PUT /order/:invoice` for 4 writes — the POST /invoice optimization saved 1 write
+  - this is the 13th update-needed production run: 11/13 had missing bank accounts (85%); proactive hedge averages 2.85 writes + 0 errors vs optimistic would average 3.54 writes + 0.85 errors (counting only writes)
+- persistent-sandbox verification on 2026-03-22 with `326550 * 0.75 = 244912.5` re-confirmed:
+  - the update-needed proactive hedge path completed in `2` writes (bank already configured from prior sandbox proof): `PUT /project` + `POST /invoice`
+  - proof invoice returned `amountExcludingVatCurrency=244912.5`, VAT `25%` (id=3)
+  - therefore the conditional `1/2/3`-write standard (skip-PUT / update-needed+configured / update-needed+missing) remains the minimum proven write count for this task family

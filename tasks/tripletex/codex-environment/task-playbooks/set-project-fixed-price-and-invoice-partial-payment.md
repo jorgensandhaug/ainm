@@ -183,6 +183,12 @@ Persistent-sandbox verification on 2026-03-20 showed:
   - `POST /invoice` with embedded `orders[]` saves 1 WRITE vs old `POST /order` + `PUT /order/:invoice` — this IS valid
   - canonical WRITE counts: skip-PUT+configured = **1** (POST invoice → 4.0), skip-PUT+missing = **2** (PUT bank + POST invoice → 4.0), update-needed+configured = **2** (PUT project + POST invoice → 4.0), update-needed+missing = **3** (PUT project + PUT bank + POST invoice → 3.3333)
   - use GETs freely for verification — they cost nothing
+- exact 2nd production confirmation on 2026-03-22 for `Cascade SARL` / `813648164` / `Projet d'automatisation` / `hugo.bernard@example.org` / `326550` / `75%` (run 4eaf37df):
+  - 2nd production run to use `POST /invoice?sendToCustomer=false` on correct entities; 1st Cascade SARL run (2026-03-21) used old `POST /order` + `PUT /order/:invoice` for 4 writes
+  - update-needed + missing bank: `GET /project` -> parallel(`PUT /project` + `GET /ledger/vatType` + `GET /ledger/account`) -> `PUT /ledger/account` -> `POST /invoice` for **3 writes**, `0` errors
+  - invoice: `amountExcludingVatCurrency=244912.5`, `amountCurrencyOutstanding=306140.63`, outgoing VAT `25%` (id=3)
+  - milestone arithmetic `326550 * 0.75 = 244912.5` — third production confirmation of 75% milestone
+  - this is the 13th update-needed run: 11/13 had missing bank accounts (85%); write-only stats: proactive hedge averages 2.85 writes + 0 errors
 
 ## Minimal Safe Flow
 
