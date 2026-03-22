@@ -3522,3 +3522,141 @@ Cross-seed features (observations from other seeds in the same round) are MASSIV
 
 Cross-seed features are worth +2.5 points because all 5 seeds share hidden parameters.
 Observations from other seeds directly reveal the round's dynamics.
+
+---
+
+## ========================================================================
+## DATA BREAKPOINT — 2026-03-22 — 8 ROUNDS → 16 ROUNDS
+## ========================================================================
+
+**ALL SCORES ABOVE THIS LINE WERE EVALUATED ON 8 ROUNDS (leave-one-out over 8).**
+**ALL SCORES BELOW THIS LINE ARE EVALUATED ON 16 ROUNDS (leave-one-out over 16).**
+**Scores are NOT directly comparable across this boundary.**
+
+### Data inventory change
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Eligible rounds | 8 | 16 |
+| Total replays | ~9,000 | ~11,600 |
+| Training folds | 7 rounds | 15 rounds |
+| Test seeds per fold | 5 | 5 |
+| Training cells per fold | ~56,000 | ~120,000 |
+
+### New rounds (not in previous evaluation)
+
+| Round ID | Replays | Seeds |
+|----------|---------|-------|
+| 2a341ace-0f57-4309-9b89-e59fe0f09179 | 860 | 5 |
+| 324fde07-1670-4202-b199-7aa92ecb40ee | 270 | 5 |
+| 3eb0c25d-28fa-48ca-b8e1-fc249e3918e9 | 25 | 5 |
+| 75e625c3-60cb-4392-af3e-c86a98bde8c2 | 270 | 5 |
+| 795bfb1f-54bd-4f39-a526-9868b36f7ebd | 270 | 5 |
+| 7b4bda99-6165-4221-97cc-27880f5e6d95 | 270 | 5 |
+| cc5442dd-bc5d-418b-911b-7eb960cb0390 | 265 | 5 |
+| d0a2c894-2162-4d49-86cf-435b9013f3b8 | 270 | 5 |
+
+### Previous best models to re-evaluate on 16 rounds
+
+1. GT-crossseed ensemble (LGB+CatBoost) ev15: was 88.09 on 8 rounds
+2. GT-crossseed ensemble ev5: was 87.29
+3. GT-crossseed ensemble ev1: was 85.11
+4. GT-evidence ensemble (no crossseed) ev15: was 86.74
+5. GT-evidence (no crossseed) ev1: was 82.65
+
+### Derived data impact
+
+- Scripts `agent4_gt_evidence_model.py` and `agent4_gt_crossseed.py` read raw data directly
+- No re-derivation needed for these models
+- Old derived data (replay_summaries, evidence, features) covers only 8 rounds — not used by current best models
+- b0f9d1bf has analyses but no replays — excluded
+- 3eb0c25d has only 25 replays (5/seed) — may be noisy but included
+
+
+### 2026-03-22T01:00Z — Environment setup + baseline re-evaluation on 16 rounds
+
+**Environment fix:**
+- NixOS python needs explicit `LD_LIBRARY_PATH` for C extensions
+- Required: `/nix/store/.../gcc-13.3.0-lib/lib`, `/nix/store/.../zlib-1.3.1/lib`, `/nix/store/.../glibc-2.40-66/lib`
+- Reconstructed 8 missing round JSON files from analysis + replay data
+
+**Data status:**
+- 16 eligible rounds (up from 8)
+- 8 NEW rounds with 25-860 replays each
+- 8 OLD rounds with 1100+ replays each
+- No derived data changes needed — scripts read raw data directly
+
+**First results (16-round LOO evaluation):**
+
+Evidence model (no cross-seed), EXACT same script as before:
+- GT-evidence ev15: **90.40** (was 86.64 on 8 rounds, +3.76 from more training data)
+- GT-evidence ev1: **86.13** (was 82.05 on 8 rounds, +4.08)
+
+New radical models (partial fold results, still running):
+- Trajectory ev15: fold 1=95.92, fold 2=95.03 (very strong!)
+- Spatial ev15: fold 1=95.29, fold 2=94.01, fold 3=78.58 (variable)
+- Transition ev15: fold 1=94.88, fold 2=94.06 (GBM), Markov direct: 62-64
+- Focused ev15: fold 1=95.36
+
+Crossseed ensemble baseline: still computing (expected ~60-90 min for 16 folds)
+
+### 2026-03-22T03:00Z — Baseline re-evaluation COMPLETE on 16 rounds
+
+**CRITICAL FINDING: Cross-seed features HURT with more training data!**
+
+| Model | ev | Score (8r) | Score (16r) | Delta |
+|-------|-----|-----------|-------------|-------|
+| Evidence (no crossseed) | 15 | 86.64 | **90.40** | +3.76 |
+| Evidence (no crossseed) | 1 | 82.05 | **86.13** | +4.08 |
+| Crossseed ensemble | 15 | 88.09 | **90.13** | +2.04 |
+| Crossseed ensemble | 5 | 87.29 | **89.29** | +2.00 |
+| Crossseed ensemble | 1 | 85.11 | **87.48** | +2.37 |
+
+**Key insight:** With 16 rounds, evidence-only (no crossseed) BEATS crossseed at ev15!
+- Evidence ev15: **90.40** > Crossseed ev15: **90.13**
+- Cross-seed features were masking lack of training data; with enough rounds, the model learns round patterns directly from evidence
+- At ev1 (single observation), crossseed still wins: 87.48 > 86.13 (makes sense — less own-seed info, other seeds help)
+
+**New radical models (partial results, still running):**
+
+| Model | ev | Folds Done | Running Avg | vs Evidence ev15 |
+|-------|-----|-----------|-------------|-----------------|
+| **Trajectory** | 15 | 8/16 | **~93.0** | **+2.6** |
+| Combined (traj+spatial+cs) | 15 | 1/16 | ~95.9 | early |
+| Focused (dynamic cells) | 15 | 6/16 | ~91.5 | +1.1 |
+| Transition matrix | 15 | 8/16 | ~90.0 | -0.4 |
+| Spatial interaction | 15 | 14/16 | ~90.2 | -0.2 |
+
+**The trajectory model (full 50-year replay trajectories) is the clear winner!**
+
+### 2026-03-22T04:45Z — Full 16-round evaluation results (7 completed models)
+
+**FINAL LEADERBOARD (16-round leave-one-out evaluation):**
+
+| Rank | Model | ev | Score | KL | vs Evidence ev15 |
+|------|-------|-----|-------|-----|-----------------|
+| **1** | **Trajectory + crossseed** | **15** | **92.16** | 0.0277 | **+1.76** |
+| 2 | Transition + crossseed | 15 | 91.21 | 0.0309 | +0.81 |
+| 3 | Evidence (no crossseed) | 15 | 90.40 | 0.0344 | baseline |
+| 4 | Crossseed ensemble | 15 | 90.13 | 0.0356 | -0.27 |
+| 5 | Spatial + crossseed | 15 | 90.12 | 0.0357 | -0.28 |
+| 6 | Crossseed ensemble | 5 | 89.29 | 0.0390 | -1.11 |
+| 7 | Crossseed ensemble | 1 | 87.48 | 0.0463 | -2.92 |
+| 8 | Evidence (no crossseed) | 1 | 86.13 | 0.0513 | -4.27 |
+| 9 | Trajectory + crossseed | 1 | 83.91 | 0.0598 | -6.49 |
+
+**Still running:** Focused model, Combined model (trajectory+spatial+crossseed+evidence)
+
+**Key findings:**
+1. **Trajectory features are the #1 innovation** — +1.76 points over evidence baseline at ev15
+2. Transition matrix features also help (+0.81)
+3. Cross-seed features now HURT at ev15 (evidence 90.40 > crossseed 90.13)
+4. Spatial features alone don't help (90.12 ≈ evidence 90.40)
+5. At ev1, trajectory features HURT (83.91 < evidence 86.13) — trajectory features need enough replays to estimate well
+6. At ev1, crossseed features are still valuable (87.48 > evidence 86.13)
+
+**Important for live submission:**
+- Live rounds only have ~10 viewport queries per seed (not full replays)
+- Trajectory features require full 50-year trajectories (not available live)
+- For live: evidence model or crossseed model are the only options
+- Best live model candidate: crossseed ev1 at 87.48 (most realistic scenario)
