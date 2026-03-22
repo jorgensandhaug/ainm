@@ -5,24 +5,12 @@ cd "$(dirname "$0")/.."
 export PATH="$HOME/.local/bin:$PATH"
 export LD_LIBRARY_PATH="/home/jorge/.local/lib/nvidia:${LD_LIBRARY_PATH:-}"
 
-ROOT=$(pwd)
 IMGSZ=960
 BATCH=4
 DEVICE="1"
 
-echo "=== Stage 1/6: sweep_precision (30 epochs, from yolo26x.pt) ==="
-uv run python yolo/train.py \
-  --weights yolo26x.pt \
-  --data data/yolo/data.yaml \
-  --device $DEVICE \
-  --imgsz $IMGSZ --epochs 30 --batch $BATCH \
-  --lr0 0.0035 --lrf 0.008 --weight-decay 0.0005 --warmup-epochs 3.0 \
-  --optimizer AdamW --patience 20 --close-mosaic 12 \
-  --mixup 0.0 --copy-paste 0.0 --scale 0.35 --translate 0.05 --fliplr 0.5 \
-  --seed 62 --run-tag 960_sweep_precision
-
 STAGE1=$(ls -d runs/960_sweep_precision_*/weights/best.pt | tail -1)
-echo "Stage 1 best: $STAGE1"
+echo "Using Stage 1 best: $STAGE1"
 
 echo "=== Stage 2/6: hardopt (70 epochs) ==="
 uv run python yolo/train.py \
