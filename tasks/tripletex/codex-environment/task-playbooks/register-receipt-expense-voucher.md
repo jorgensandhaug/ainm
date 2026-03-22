@@ -262,3 +262,4 @@ All 4 branches verified end-to-end with GROSS interpretation (line amount direct
 | 01420e60 | A (Kundemøte lunsj) | ? | 0/10 | Missing sendToLedger |
 | 67d4ddca | C (Overnatting) | ? | 0/10 | Missing sendToLedger |
 | 1519c2a7 | C (Togbillett) | ? | 0/10 | Missing sendToLedger |
+| 70014f3c | A (Forretningslunsj 13200) | 13200 | **pending** | Clean run: 0 errors, 3 writes, all checks verified |

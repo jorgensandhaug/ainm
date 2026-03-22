@@ -76,8 +76,9 @@ All 4 production runs using 7360 for Kaffemøte scored 0/10.
 
 ---
 
-## Standard Flow — 4 Write Calls + Free Verification GETs
+## Standard Flow — 3 Scored Writes + Free GETs
 
+Only 3 calls count toward scoring: POST department, POST voucher, POST attachment.
 GETs are free (don't affect score). Use them to verify and log everything.
 
 ### Call 1: Create or resolve department
@@ -326,3 +327,4 @@ If any check fails in the GET readback, you have a bug. Fix it before the run en
 | 01420e60 | A (Kundemøte lunsj) | ? | 0/10 | Missing sendToLedger |
 | 67d4ddca | C (Overnatting) | ? | 0/10 | Missing sendToLedger |
 | 1519c2a7 | C (Togbillett) | ? | 0/10 | Missing sendToLedger |
+| 70014f3c | A (Forretningslunsj 13200) | 13200 | **pending** | Clean run: 0 errors, 3 writes, all checks verified |
