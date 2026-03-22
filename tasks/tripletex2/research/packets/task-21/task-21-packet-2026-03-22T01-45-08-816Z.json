@@ -1,0 +1,396 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-21-packet-2026-03-22T01-45-08-816Z",
+  "createdAt": "2026-03-22T01:45:08.816Z",
+  "taskId": "21",
+  "txTaskId": "21",
+  "taskSlug": "correct-ledger-errors-audit",
+  "taskName": "Correct ledger errors",
+  "queueEntry": {
+    "taskId": "21",
+    "txTaskId": "21",
+    "taskSlug": "correct-ledger-errors-audit",
+    "taskName": "Correct ledger errors",
+    "priority": 23,
+    "band": "watch",
+    "queueEligibility": "hold",
+    "bestKnownScore": 2.571428571428571,
+    "maxScore": 6,
+    "notes": [
+      "Score 2.5714/6 -- gap 3.4286 (57.1%).",
+      "4 attributed runs, 0 successful (0% success rate).",
+      "10 total leaderboard attempts."
+    ],
+    "operatorNotes": [
+      "Park unless a specific strategy idea appears."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "21.correct-ledger-errors.v1",
+    "strategyPath": "src/tasks/task-21/strategies/correct-ledger-errors.ts",
+    "strategyStatus": "active",
+    "strategyName": "Correct deterministic Jan-Feb 2026 ledger errors",
+    "summary": "Scans Jan-Feb 2026 vouchers for the four prompt-defined ledger mistakes and applies the matching correction entries.",
+    "hypothesis": "A single decisive voucher scan plus one account lookup is enough to identify the four prompt-defined defects and post the exact repairs in six calls.",
+    "expectedCallProfile": {
+      "targetCalls": 6,
+      "maxCalls": 6
+    },
+    "stepOutline": [
+      "API call 1: GET /ledger/voucher for Jan-Feb 2026 with expanded postings and reverseVoucher data.",
+      "API call 2: GET /ledger/account for accounts 2710 and 7140.",
+      "API call 3: POST /ledger/voucher to reclassify 2250 NOK from 7100 to 7140.",
+      "API call 4: PUT /ledger/voucher/{duplicateVoucherId}/:reverse on the duplicate 6500 voucher.",
+      "API call 5: POST /ledger/voucher to add the missing 2710 VAT line for the 6540 voucher.",
+      "API call 6: POST /ledger/voucher to correct the 6860 amount difference from 8650 to 7900."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "21.correct-ledger-errors.v1",
+      "strategyPath": "src/tasks/task-21/strategies/correct-ledger-errors.ts",
+      "strategyStatus": "active",
+      "strategyName": "Correct deterministic Jan-Feb 2026 ledger errors",
+      "summary": "Scans Jan-Feb 2026 vouchers for the four prompt-defined ledger mistakes and applies the matching correction entries.",
+      "hypothesis": "A single decisive voucher scan plus one account lookup is enough to identify the four prompt-defined defects and post the exact repairs in six calls.",
+      "expectedCallProfile": {
+        "targetCalls": 6,
+        "maxCalls": 6
+      },
+      "stepOutline": [
+        "API call 1: GET /ledger/voucher for Jan-Feb 2026 with expanded postings and reverseVoucher data.",
+        "API call 2: GET /ledger/account for accounts 2710 and 7140.",
+        "API call 3: POST /ledger/voucher to reclassify 2250 NOK from 7100 to 7140.",
+        "API call 4: PUT /ledger/voucher/{duplicateVoucherId}/:reverse on the duplicate 6500 voucher.",
+        "API call 5: POST /ledger/voucher to add the missing 2710 VAT line for the 6540 voucher.",
+        "API call 6: POST /ledger/voucher to correct the 6860 amount difference from 8650 to 7900."
+      ]
+    }
+  ],
+  "baselineCallBudget": 6,
+  "optimizationObjective": {
+    "frontierSummary": "Task 21 has a score gap of 3.4286/6 (57.1%). Best known score is 2.5714/6 from 10 attempts with 0% success rate.",
+    "currentBestKnownScore": 2.571428571428571,
+    "maxScore": 6,
+    "scoreGap": 3.4286,
+    "bestKnownCallBudget": 6,
+    "baselineCallBudget": 6,
+    "activeStrategyToBeat": {
+      "strategyId": "21.correct-ledger-errors.v1",
+      "strategyPath": "src/tasks/task-21/strategies/correct-ledger-errors.ts",
+      "strategyStatus": "active",
+      "strategyName": "Correct deterministic Jan-Feb 2026 ledger errors",
+      "summary": "Scans Jan-Feb 2026 vouchers for the four prompt-defined ledger mistakes and applies the matching correction entries.",
+      "hypothesis": "A single decisive voucher scan plus one account lookup is enough to identify the four prompt-defined defects and post the exact repairs in six calls.",
+      "expectedCallProfile": {
+        "targetCalls": 6,
+        "maxCalls": 6
+      },
+      "stepOutline": [
+        "API call 1: GET /ledger/voucher for Jan-Feb 2026 with expanded postings and reverseVoucher data.",
+        "API call 2: GET /ledger/account for accounts 2710 and 7140.",
+        "API call 3: POST /ledger/voucher to reclassify 2250 NOK from 7100 to 7140.",
+        "API call 4: PUT /ledger/voucher/{duplicateVoucherId}/:reverse on the duplicate 6500 voucher.",
+        "API call 5: POST /ledger/voucher to add the missing 2710 VAT line for the 6540 voucher.",
+        "API call 6: POST /ledger/voucher to correct the 6860 amount difference from 8650 to 7900."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 2.5714/6, or match the current correctness and score at 6 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 21.correct-ledger-errors.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 2.5714/6.",
+      "If score does not improve, match correctness at 6 API calls or fewer.",
+      "Compare against the active pinned strategy 21.correct-ledger-errors.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21/strategies/correct-ledger-errors.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21/strategies/correct-ledger-errors.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-21/task-21-packet-2026-03-22T01-45-08-816Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/task-policy.json",
+      "recentArtifactPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-production-2026-03-21T18-25-10-502Z-3f36fc78.json"
+      ]
+    },
+    "offlineEvidence": {
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-160658035Z-6dc64519/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-160658035Z-6dc64519/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-160658035Z-6dc64519/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-173946523Z-0523d6a8/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-173946523Z-0523d6a8/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-173946523Z-0523d6a8/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182837970Z-aff0bd66/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182837970Z-aff0bd66/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182837970Z-aff0bd66/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-200041332Z-659ca714/codex-score-reflection.summary.md",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-200041332Z-659ca714/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-200041332Z-659ca714/submission-score.json"
+      ]
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 1,
+    "recentArtifacts": [
+      {
+        "runId": "production-2026-03-21T18-25-10-502Z-3f36fc78",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-production-2026-03-21T18-25-10-502Z-3f36fc78.json",
+        "createdAt": "2026-03-21T18:25:10.502Z",
+        "runtimeStatus": "failed",
+        "strategyId": "21.correct-ledger-errors.v1",
+        "apiCallCount": 2
+      }
+    ]
+  },
+  "historicalRuns": [
+    {
+      "runId": "prod-2026-03-21-200041332Z-659ca714",
+      "createdAt": "2026-03-21T20:00:41.332Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-200041332Z-659ca714",
+      "promptExcerpt": "Du har motteke eit tilbodsbrev (sjaa vedlagt PDF) for ein ny tilsett. Utfor komplett onboarding: opprett den tilsette, tilknytt rett avdeling, set opp tilsetjingsforhold med stillingsprosent og arslonn, og konfigurer st…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 1/10 checks failed.",
+      "failureMode": "Check 5: failed",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "1. **Extract ALL fields from the PDF more carefully** — specifically check for `nationalIdentityNumber` (personnummer/fødselsnummer), `bankAccountNumber`, email, or phone number. These fields may be present in the offer letter and scored as separate checks. The agent should enumerate every data poi…",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 2.5714,
+        "scoreRaw": 12,
+        "scoreMax": 14,
+        "candidateCount": 1,
+        "feedbackComment": "1/10 checks failed.",
+        "allChecksPassed": false
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-200041332Z-659ca714/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-200041332Z-659ca714/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-200041332Z-659ca714/codex-score-reflection.summary.md"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-182837970Z-aff0bd66",
+      "createdAt": "2026-03-21T18:28:37.970Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182837970Z-aff0bd66",
+      "promptExcerpt": "Sie haben ein Angebotsschreiben erhalten (siehe beigefugte PDF) fuer einen neuen Mitarbeiter. Fuehren Sie das vollstaendige Onboarding durch: erstellen Sie den Mitarbeiter, weisen Sie die richtige Abteilung zu, richten…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 1/10 checks failed.",
+      "failureMode": "Check 5: failed",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "See reflection for what to change details.",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 2.5714,
+        "scoreRaw": 12,
+        "scoreMax": 14,
+        "candidateCount": 1,
+        "feedbackComment": "1/10 checks failed.",
+        "allChecksPassed": false
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182837970Z-aff0bd66/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182837970Z-aff0bd66/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182837970Z-aff0bd66/codex-score-reflection.summary.md"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-173946523Z-0523d6a8",
+      "createdAt": "2026-03-21T17:39:46.523Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-173946523Z-0523d6a8",
+      "promptExcerpt": "Vous avez recu une lettre d'offre (voir PDF ci-joint) pour un nouvel employe. Effectuez l'integration complete : creez l'employe, attribuez le bon departement, configurez les details d'emploi avec le pourcentage et le s…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 1/10 checks failed.",
+      "failureMode": "Check 5: failed",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "1. **Investigate the correct occupation code for \"Seniorutvikler\"** — SYSTEMUTVIKLER (id 5935) is wrong. The next agent should: - Search for SENIORPROGRAMMERER in the sandbox (`nameNO=seniorprogrammerer`) - Search for PROGRAMVAREUTVIKLER (`nameNO=programvareutvikler`) - Try the most likely candidat…",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 2.5714,
+        "scoreRaw": 12,
+        "scoreMax": 14,
+        "candidateCount": 1,
+        "feedbackComment": "1/10 checks failed.",
+        "allChecksPassed": false
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-173946523Z-0523d6a8/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-173946523Z-0523d6a8/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-173946523Z-0523d6a8/codex-score-reflection.summary.md"
+      ]
+    },
+    {
+      "runId": "prod-2026-03-21-160658035Z-6dc64519",
+      "createdAt": "2026-03-21T16:06:58.035Z",
+      "runPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-160658035Z-6dc64519",
+      "promptExcerpt": "Vous avez recu une lettre d'offre (voir PDF ci-joint) pour un nouvel employe. Effectuez l'integration complete : creez l'employe, attribuez le bon departement, configurez les details d'emploi avec le pourcentage et le s…",
+      "requestPath": [],
+      "apiCallCount": 0,
+      "outcome": "Partial success: 1/10 checks failed.",
+      "failureMode": "Check 5: failed",
+      "whatWentWrong": "See reflection for what went wrong details.",
+      "nextLesson": "See reflection for what to change details.",
+      "score": {
+        "status": "completed",
+        "normalizedScore": 2.5714,
+        "scoreRaw": 12,
+        "scoreMax": 14,
+        "candidateCount": 1,
+        "feedbackComment": "1/10 checks failed.",
+        "allChecksPassed": false
+      },
+      "sourceArtifacts": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-160658035Z-6dc64519/request.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-160658035Z-6dc64519/submission-score.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-160658035Z-6dc64519/codex-score-reflection.summary.md"
+      ]
+    }
+  ],
+  "promptExamples": [
+    {
+      "runId": "prod-2026-03-21-200041332Z-659ca714",
+      "createdAt": "2026-03-21T20:00:41.332Z",
+      "sourcePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-200041332Z-659ca714/request.json",
+      "languageHint": "Norwegian",
+      "promptText": "Du har motteke eit tilbodsbrev (sjaa vedlagt PDF) for ein ny tilsett. Utfor komplett onboarding: opprett den tilsette, tilknytt rett avdeling, set opp tilsetjingsforhold med stillingsprosent og arslonn, og konfigurer standard arbeidstid.",
+      "requestPath": [],
+      "whyItMatters": "Norwegian production prompt example. Scored 2.57: 1/10 checks failed.."
+    },
+    {
+      "runId": "prod-2026-03-21-182837970Z-aff0bd66",
+      "createdAt": "2026-03-21T18:28:37.970Z",
+      "sourcePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182837970Z-aff0bd66/request.json",
+      "languageHint": "German",
+      "promptText": "Sie haben ein Angebotsschreiben erhalten (siehe beigefugte PDF) fuer einen neuen Mitarbeiter. Fuehren Sie das vollstaendige Onboarding durch: erstellen Sie den Mitarbeiter, weisen Sie die richtige Abteilung zu, richten Sie die Beschaeftigungsdetails mit Prozentsatz und Jahresgehalt ein, und konfigurieren Sie die Standardarbeitszeit.",
+      "requestPath": [],
+      "whyItMatters": "German production prompt example. Scored 2.57: 1/10 checks failed.."
+    },
+    {
+      "runId": "prod-2026-03-21-173946523Z-0523d6a8",
+      "createdAt": "2026-03-21T17:39:46.523Z",
+      "sourcePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-173946523Z-0523d6a8/request.json",
+      "languageHint": "English",
+      "promptText": "Vous avez recu une lettre d'offre (voir PDF ci-joint) pour un nouvel employe. Effectuez l'integration complete : creez l'employe, attribuez le bon departement, configurez les details d'emploi avec le pourcentage et le salaire annuel, et configurez les heures de travail standard.",
+      "requestPath": [],
+      "whyItMatters": "English production prompt example. Scored 2.57: 1/10 checks failed.."
+    },
+    {
+      "runId": "prod-2026-03-21-160658035Z-6dc64519",
+      "createdAt": "2026-03-21T16:06:58.035Z",
+      "sourcePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-160658035Z-6dc64519/request.json",
+      "languageHint": "English",
+      "promptText": "Vous avez recu une lettre d'offre (voir PDF ci-joint) pour un nouvel employe. Effectuez l'integration complete : creez l'employe, attribuez le bon departement, configurez les details d'emploi avec le pourcentage et le salaire annuel, et configurez les heures de travail standard.",
+      "requestPath": [],
+      "whyItMatters": "English production prompt example. Scored 2.57: 1/10 checks failed.."
+    }
+  ],
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-21T23:30:27.315Z",
+        "bestScore": 2.571428571428571,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-21-232908610Z-8ed57511"
+      },
+      {
+        "capturedAt": "2026-03-21T23:30:12.340Z",
+        "bestScore": 2.571428571428571,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-21-233012289Z-edef2e1f"
+      },
+      {
+        "capturedAt": "2026-03-21T23:29:08.712Z",
+        "bestScore": 2.571428571428571,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-21-232908610Z-8ed57511"
+      },
+      {
+        "capturedAt": "2026-03-21T23:20:27.393Z",
+        "bestScore": 2.571428571428571,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-21-231803951Z-1a623504"
+      },
+      {
+        "capturedAt": "2026-03-21T23:20:06.730Z",
+        "bestScore": 2.571428571428571,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-21-232006679Z-77175e8c"
+      }
+    ],
+    "promptLabelSampleCount": 4,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-200041332Z-659ca714",
+      "prod-2026-03-21-182837970Z-aff0bd66",
+      "prod-2026-03-21-173946523Z-0523d6a8",
+      "prod-2026-03-21-160658035Z-6dc64519"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "knownFailureModes": []
+  },
+  "frontier": {
+    "summary": "Task 21 has a score gap of 3.4286/6 (57.1%). Best known score is 2.5714/6 from 10 attempts with 0% success rate.",
+    "strongestKnownBranch": {
+      "label": "Best scoring branch from production evidence (3 proof runs)",
+      "apiCallCount": 0,
+      "requestPath": [],
+      "proofRunIds": [
+        "prod-2026-03-21-200041332Z-659ca714",
+        "prod-2026-03-21-182837970Z-aff0bd66",
+        "prod-2026-03-21-173946523Z-0523d6a8"
+      ]
+    },
+    "nextHypotheses": [
+      "No successful runs yet -- investigate fundamental strategy or endpoint issues.",
+      "Large score gap indicates high improvement potential with strategy refinement."
+    ],
+    "antiPatterns": [
+      "Known failure pattern: Check 5: failed"
+    ]
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Score 2.5714/6 -- gap 3.4286 (57.1%).",
+    "4 attributed runs, 0 successful (0% success rate).",
+    "10 total leaderboard attempts.",
+    "Park unless a specific strategy idea appears.",
+    "Task packet built dynamically from production evidence for task 21.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 21.correct-ledger-errors.v1."
+  ]
+}

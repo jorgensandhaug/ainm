@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type {
@@ -52,6 +52,7 @@ import {
 import {
   getAttachmentFileBytes,
   normalizeAttachmentTextContent,
+  sanitizeAttachmentFilename,
   stageAttachmentFiles,
 } from "./attachment-files";
 
@@ -1116,11 +1117,57 @@ async function stageSolveRequest(
 ): Promise<SolveRequest> {
   const normalizedFiles = request.files.map(normalizeSolveRequestFile);
   const stagedFiles = await stageAttachmentFiles(stageDirectory, normalizedFiles);
+  const ensuredFiles = await ensureCurrentRunAttachmentPaths(
+    stageDirectory,
+    normalizedFiles,
+    stagedFiles,
+  );
 
   return {
     ...request,
-    files: stagedFiles.map(normalizeSolveRequestFile),
+    files: ensuredFiles.map(normalizeSolveRequestFile),
   };
+}
+
+async function ensureCurrentRunAttachmentPaths(
+  stageDirectory: string,
+  sourceFiles: readonly SolveRequestFile[],
+  stagedFiles: readonly SolveRequestFile[],
+): Promise<SolveRequestFile[]> {
+  const attachmentsDirectory = path.join(stageDirectory, "attachments");
+  await mkdir(attachmentsDirectory, { recursive: true });
+
+  return await Promise.all(
+    sourceFiles.map(async (file, index) => {
+      const expectedPath = path.join(
+        attachmentsDirectory,
+        buildStagedAttachmentFileName(index, file.fileName),
+      );
+      const stagedFile = stagedFiles[index];
+
+      if (!(await fileExists(expectedPath))) {
+        const fileBytes = getSolveRequestFileBytes(stagedFile ?? file);
+        await writeFile(expectedPath, fileBytes);
+      }
+
+      return {
+        ...(stagedFile ?? file),
+        path: expectedPath,
+      };
+    }),
+  );
+}
+
+function buildStagedAttachmentFileName(index: number, fileName: string): string {
+  return `${String(index + 1).padStart(2, "0")}-${sanitizeAttachmentFilename(fileName)}`;
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    return (await stat(filePath)).isFile();
+  } catch {
+    return false;
+  }
 }
 
 function normalizeSolveRequestFile(file: SolveRequestFile): SolveRequestFile {

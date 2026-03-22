@@ -187,12 +187,17 @@ export function buildCodexTaskUnderstandingPrompt(
   return [
     ...lines,
     "",
+    "Attachment handling:",
+    "Each attachment path points to a staged local file in the run directory.",
+    "If hasTextContent is no, the file may still be readable from disk, for example a PDF.",
+    "Inspect the staged path before concluding the file is unreadable or missing.",
+    "",
     "Attachments:",
     ...input.request.files.flatMap((file, index) => [
       `--- FILE ${index + 1} ---`,
       `fileName: ${file.fileName}`,
       `mediaType: ${file.mediaType ?? "unknown"}`,
-      `path: ${file.path ?? "not-staged"}`,
+      `path: ${file.path ?? "missing-runtime-attachment-path"}`,
       `hasTextContent: ${file.textContent !== undefined ? "yes" : "no"}`,
       ...(file.textContent !== undefined ? ["textContent:", file.textContent] : []),
     ]),
