@@ -17,10 +17,16 @@ from astar.infra.artifacts.paths import WorkspacePaths
 from astar.infra.artifacts.store import read_analysis_records, read_round_record
 from astar.observe.evidence import build_round_evidence
 from astar.policy.interactive import build_interactive_policy
+from astar.policy.registry import resolve_policy_name
+from astar.student.predictor.ffam_config import is_ffam_model_name
+from astar.student.predictor.ffam_knn_config import is_ffam_knn_model_name
+from astar.student.predictor.ffam_mode_config import is_ffam_mode_model_name
+from astar.student.predictor.ffam_operator_config import is_ffam_operator_model_name
 from astar.student.predictor.heuristic import GeometryPriorPredictor, LatentRegimePredictor
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.interactive import RoundPredictorAdapter, build_online_predictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
+from astar.student.predictor.query_residual_config import is_query_residual_model_name
 from astar.student.predictor.static_semantic import (
     build_static_semantic_prediction,
     default_static_semantic_config,
@@ -219,9 +225,10 @@ def _build_prediction_bundle(
             predictor.cell_count,
         )
 
-    if normalized == "query_residual":
-        predictor = QueryResidualPredictor.fit_from_workspace(
+    if is_query_residual_model_name(model_name):
+        predictor = QueryResidualPredictor.fit_named_from_workspace(
             paths,
+            model_name=model_name,
             round_ids=list(training_round_ids),
             samples_per_round=samples_per_round,
         )
@@ -232,6 +239,12 @@ def _build_prediction_bundle(
             predictor.base_predictor.analyzed_seed_count,
             predictor.base_predictor.cell_count,
         )
+
+    _norm = model_name.strip().lower()
+    _is_ensemble = _norm.startswith("ffam_ensemble")
+    _is_pooled = _norm.startswith("ffam_pooled")
+    if is_ffam_model_name(model_name) or is_ffam_mode_model_name(model_name) or is_ffam_operator_model_name(model_name) or is_ffam_knn_model_name(model_name) or _is_ensemble or _is_pooled:
+        raise ValueError("ffam retrieval requires mode=online_interactive for historical benchmark")
 
     if normalized == "latent_regime":
         predictor = LatentRegimePredictor()
@@ -254,7 +267,6 @@ def _build_online_prediction_bundle(
     samples_per_round: int,
     budget: int,
     episode_seed: int,
-    predictor: RoundPredictorAdapter | None = None,
 ) -> tuple[
     PredictionBundle,
     dict[int, dict[str, np.ndarray]],
@@ -262,18 +274,19 @@ def _build_online_prediction_bundle(
     int,
     int,
 ]:
-    resolved_predictor = predictor or build_online_predictor(
+    resolved_policy_name = resolve_policy_name(policy_name, model_name=model_name)
+    predictor = build_online_predictor(
         model_name,
         paths=paths,
         historical_round_ids=training_round_ids,
-        policy_name=policy_name,
+        policy_name=resolved_policy_name,
         samples_per_round=samples_per_round,
     )
-    policy = build_interactive_policy(policy_name, predictor=resolved_predictor)
+    policy = build_interactive_policy(resolved_policy_name)
     online_episode: OnlineEpisodeRun = run_online_episode(
         HistoricalReplayOracle(paths=paths),
         round_id=round_id,
-        predictor=resolved_predictor,
+        predictor=predictor,
         policy=policy,
         budget=budget,
         episode_seed=episode_seed,
@@ -283,18 +296,18 @@ def _build_online_prediction_bundle(
     training_analyzed_seed_count = 0
     training_cell_count = 0
     if (
-        isinstance(resolved_predictor, RoundPredictorAdapter)
-        and isinstance(resolved_predictor.predictor, HistoricalBucketPriorPredictor)
+        isinstance(predictor, RoundPredictorAdapter)
+        and isinstance(predictor.predictor, HistoricalBucketPriorPredictor)
     ):
         round_detail = read_round_record(paths, round_id).round
         diagnostics_by_seed = {
-            seed_index: resolved_predictor.predictor.build_seed_diagnostics(round_detail, seed_index).model_dump(
+            seed_index: predictor.predictor.build_seed_diagnostics(round_detail, seed_index).model_dump(
                 mode="python",
             )
             for seed_index in range(round_detail.seeds_count)
         }
-        training_analyzed_seed_count = resolved_predictor.predictor.analyzed_seed_count
-        training_cell_count = resolved_predictor.predictor.cell_count
+        training_analyzed_seed_count = predictor.predictor.analyzed_seed_count
+        training_cell_count = predictor.predictor.cell_count
     return (
         online_episode.prediction_bundle,
         diagnostics_by_seed,
@@ -348,7 +361,6 @@ def evaluate_model_on_round(
     samples_per_round: int = 1,
     budget: int = 50,
     episode_seed: int = 0,
-    online_predictor: RoundPredictorAdapter | None = None,
 ) -> list[ModelSeedEvaluationContext]:
     round_record = read_round_record(paths, round_id)
     analyses, truth_bundle = _analysis_ground_truth_bundle(paths, round_id)
@@ -386,12 +398,8 @@ def evaluate_model_on_round(
             samples_per_round=samples_per_round,
             budget=budget,
             episode_seed=episode_seed,
-            predictor=online_predictor,
         )
-        resolved_policy_name = build_interactive_policy(
-            policy_name,
-            predictor=online_predictor,
-        ).name
+        resolved_policy_name = build_interactive_policy(policy_name).name
         resolved_samples_per_round = samples_per_round
         resolved_budget = budget
         resolved_episode_seed = episode_seed

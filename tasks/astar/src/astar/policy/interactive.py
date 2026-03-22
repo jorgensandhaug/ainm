@@ -41,7 +41,7 @@ class QueryPlanPolicyAdapter(BaseModel):
         )
 
 
-def build_interactive_policy(policy_name: str) -> QueryPlanPolicyAdapter:
+def build_interactive_policy(policy_name: str, predictor: object = None) -> QueryPlanPolicyAdapter:
     policy = build_named_policy(policy_name)
     return QueryPlanPolicyAdapter(policy=policy, name=policy.name)
 
