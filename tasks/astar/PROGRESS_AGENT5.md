@@ -3165,6 +3165,55 @@ All imports verified working. Benchmarks launched:
 - `agent5_ffam_mode_v248_full8_v01` (full 8-round LOO)
 - `agent5_ffam_ensemble_v35_full8_v01` (full 8-round LOO)
 
-### Benchmark Results (pending)
+### Benchmark Results
 
-Awaiting results...
+#### Standalone Mode Models (8-round LOO)
+
+| Config | Score | R36 | Key Change |
+|--------|-------|-----|------------|
+| **a5_v4** | **87.56** | 71.79 | Stronger beta (24/96) |
+| **a5_v3** | **87.56** | 72.02 | Interaction features |
+| a5_v5 | 87.54 | **73.16** | Lower beta (6/24) |
+| a5_v1 | 87.50 | 72.33 | Higher mode dim (7) |
+| a5_v6 | 87.19 | 72.09 | More cells (1024) |
+| v248 | 87.14 | 69.85 | Agent7 baseline |
+| a5_v2 | 86.72 | 71.81 | Evidence propagation (hurt!) |
+
+#### Ensemble Models (8-round LOO)
+
+| Config | Score | R36 | Key Change |
+|--------|-------|-----|------------|
+| **a5_e7** | **87.85** | 72.47 | Strong beta + 16% kNN logodds |
+| a5_e5 | 87.84 | 72.44 | Strong beta + 15% kNN logodds |
+| a5_e9 | 87.84 | 72.53 | Strong beta + adaptive_scale=2.5 |
+| a5_e12 | 87.84 | 72.44 | Lower probability floor |
+| a5_e1 | 87.82 | 72.35 | Strong beta + 12% kNN |
+| a5_e8 | 87.82 | 72.32 | adaptive_scale=1.5 |
+| a5_e11 | 87.78 | 72.47 | Interactions + 15% kNN |
+| a5_e6 | 87.77 | 72.20 | Strong beta + 8% kNN |
+| a5_e2 | 87.77 | 72.41 | Interactions + 12% kNN |
+| a5_e4 | 87.71 | 72.78 | High dim + 12% kNN |
+| a5_e10 | 87.67 | 72.44 | Probability space (not logodds) |
+| a5_e3 | 87.69 | **73.43** | Low beta + 12% kNN |
+| v35 | 87.45 | 70.40 | Agent7 baseline ensemble |
+
+#### Key Findings
+
+1. **Strong beta (24/96) consistently helps** the mode model, adding ~0.4 mean score
+2. **15-16% kNN weight** is optimal for ensemble (vs 12% in Agent7's best)
+3. **Log-odds blending** is significantly better than probability space (+0.17)
+4. **Evidence propagation hurts** (-0.4 points — the smoothing destroys signal)
+5. **Round 36e581 is the bottleneck**: best 73.43 (a5_e3) vs 70.40 (v35 baseline)
+6. **Interaction features** help slightly in mode but not much in ensemble
+
+### Score Progression Summary
+
+| Stage | Best Score | Model |
+|-------|-----------|-------|
+| QR baseline (start) | 73.95 | query_residual v7 |
+| QR calibrated | 81.09 | query_residual (recalibrated) |
+| FFAM mode v248 port | 87.14 | ffam_mode_v248 |
+| FFAM mode a5_v4 | 87.56 | ffam_mode_a5_v4 (strong beta) |
+| FFAM ensemble a5_e7 | **87.85** | ffam_ensemble_a5_e7 (best) |
+
+**Total improvement: +13.90 points (73.95 → 87.85)**
