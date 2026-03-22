@@ -348,6 +348,67 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_scale=1.5,
         blend_space="logodds",
     ),
+    # === Agent5 experimental ensembles ===
+    # a5_e1: Best new mode (a5_v4 strong beta) + kNN, logodds
+    "ffam_ensemble_a5_e1": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e1",
+        mode_model="ffam_mode_a5_v4",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e2: Interactions mode (a5_v3) + kNN, logodds
+    "ffam_ensemble_a5_e2": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e2",
+        mode_model="ffam_mode_a5_v3",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e3: Low beta mode (a5_v5) + kNN — best for hard rounds
+    "ffam_ensemble_a5_e3": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e3",
+        mode_model="ffam_mode_a5_v5",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e4: High mode dim (a5_v1) + kNN
+    "ffam_ensemble_a5_e4": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e4",
+        mode_model="ffam_mode_a5_v1",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e5: Strong beta mode + higher kNN weight (15% vs 12%)
+    "ffam_ensemble_a5_e5": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e5",
+        mode_model="ffam_mode_a5_v4",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e6: Strong beta mode + very high mode weight (92%)
+    "ffam_ensemble_a5_e6": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e6",
+        mode_model="ffam_mode_a5_v4",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.92,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
 }
 
 
