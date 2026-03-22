@@ -5310,7 +5310,25 @@ Improvement trajectory:
    - More trees beyond 800: no help
    - Deeper than d10: no help (d12 overfits slightly)
 
-546. Next experiments:
+546. XGBoost stacking: 89.66 (worse than LGB 90.41)
+   - LGB definitively beats XGBoost for this task across all configurations
+
+## FINAL FINAL LEADERBOARD
+
+| Rank | Config | Score |
+|------|--------|-------|
+| **1** | **Stacking LGB d10/d8 + 3 train eps + 10 eval avg** | **90.41** |
+| 2 | Multi-ep avg LGB d10 10e | 90.15 |
+| 3 | Multi-ep avg LGB d12 10e | 90.12 |
+| 4 | Multi-ep avg LGB d10 5e | 90.08 |
+| 5 | Multi-ep avg LGB d10 5t 10e | 90.03 |
+| 6 | XGBoost stacking | 89.66 |
+| 7 | CE LGB multi-ep | 89.86 |
+| 8 | Stacking + regime | 89.89 |
+| 9 | Multi-ep train 3ep | 89.64 |
+| 10 | Multi-ep 10 var eps | 89.19 |
+
+547. Next experiments:
 
 ## Open Questions
 
