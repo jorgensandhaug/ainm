@@ -4260,7 +4260,10 @@
 | 30 | 80.17 |
 - t=20-30 optimal range, t=10 too aggressive
 - Dev5 with obs_t=20: **84.29** (+0.13 over no obs)
-- Full 8-round running
+- Full 8-round: **79.77** (+5.07 over old f=0.01 ensemble at 74.70!)
+  - Per-round range: 64.92 to 92.32
+  - Worst: f1dac9a9 at 64.92 (hard round)
+  - Best: 92.32
 2. ensemble hv2+qr GEO 50/50: 79.50
 3. ensemble hv2+sx ARITH 50/50: 79.48
 4. hazard_posterior_v2 k7_r3: 77.40
