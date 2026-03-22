@@ -126,6 +126,13 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         knn_model="ffam_knn_v1",
         mode_weight=0.96,
     ),
+    # v14: 4c + 3-seed MLP + 5% kNN (combine internal + external ensemble)
+    "ffam_ensemble_v14": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v14",
+        mode_model="ffam_mode_v248",  # 4c + 3-seed MLP
+        knn_model="ffam_knn_v1",
+        mode_weight=0.95,
+    ),
 }
 
 
