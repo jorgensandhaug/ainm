@@ -147,6 +147,8 @@ TRIPLE_EW_BEST_V004 = "triple_ew_best_v004"    # 15/55/30
 TRIPLE_EW_BEST_V005 = "triple_ew_best_v005"    # 20/55/25
 TRIPLE_EW_BEST_V006 = "triple_ew_best_v006"    # 10/55/35
 TRIPLE_EW_BEST_V007 = "triple_ew_best_v007"    # 15/50/35
+TRIPLE_EW_BEST_V008 = "triple_ew_best_v008"    # v002 but obs beta_scale=5
+TRIPLE_EW_BEST_V009 = "triple_ew_best_v009"    # v002 but obs beta=15
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -2144,7 +2146,7 @@ def build_online_predictor(
             model_name=DIRECT_TERMINAL_Z2_EW_V003,
             fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.0005, "max_epochs": 200, "entropy_weighted": True},
         )
-    if normalized in (TRIPLE_EW_PO01_V001, TRIPLE_EW_PO001_V001, TRIPLE_EW_PO1_V001, TRIPLE_EW_BEST_V001, TRIPLE_EW_BEST_V002, TRIPLE_EW_BEST_V003, TRIPLE_EW_BEST_V004, TRIPLE_EW_BEST_V005, TRIPLE_EW_BEST_V006, TRIPLE_EW_BEST_V007):
+    if normalized in (TRIPLE_EW_PO01_V001, TRIPLE_EW_PO001_V001, TRIPLE_EW_PO1_V001, TRIPLE_EW_BEST_V001, TRIPLE_EW_BEST_V002, TRIPLE_EW_BEST_V003, TRIPLE_EW_BEST_V004, TRIPLE_EW_BEST_V005, TRIPLE_EW_BEST_V006, TRIPLE_EW_BEST_V007, TRIPLE_EW_BEST_V008, TRIPLE_EW_BEST_V009):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         glmm_adapter = _build_smh_glmm_latent_adapter(
             workspace_paths,
@@ -2196,8 +2198,12 @@ def build_online_predictor(
             predictor_a=glmm_adapter.predictor, predictor_b=dt_adapter.predictor, predictor_c=prior_op,
             weight_a=wa, weight_b=wb, weight_c=wc, name=f"{normalized}_base",
         )
+        obs_params = {
+            TRIPLE_EW_BEST_V008: {"beta_min": 15.0, "beta_scale": 5.0},
+            TRIPLE_EW_BEST_V009: {"beta_min": 15.0, "beta_scale": 0.0},
+        }.get(normalized, {"beta_min": 20.0, "beta_scale": 0.0})
         obs = ExactObservationBlendPredictor(
-            base_predictor=base, beta_min=20.0, beta_scale=0.0, probability_floor=3e-4, name=normalized,
+            base_predictor=base, probability_floor=3e-4, name=normalized, **obs_params,
         )
         return RoundPredictorAdapter(predictor=obs, name=normalized)
     if normalized in (TRIPLE_EW_R005_V001, TRIPLE_EW_R0005_V001, TRIPLE_EW_R0002_V001, TRIPLE_EW_R0001_V001, TRIPLE_EW_R00005_V001, TRIPLE_EW_R00001_V001):
