@@ -45,21 +45,21 @@ export const strategy = {
   strategyId: "06.create-employee.v2",
   strategyPath: "src/tasks/task-06/strategies/create-employee-v2.ts",
   taskId: CREATE_EMPLOYEE_TASK_ID,
-  name: "Create employee (fields-expanded POST)",
+  name: "Create employee (1-call with nested employment expansion)",
   summary:
-    "Creates an employee using POST /employee with fields=* to request expanded employment data in the response. If the response proves startDate, skips the employment readback. Falls back to the proven 2-call path otherwise.",
+    "Creates an employee using POST /employee?fields=employments(*) to expand nested employment data in the response. The expanded response includes startDate, eliminating the separate employment readback and reducing the call path from 2 to 1.",
   hypothesis:
-    "Adding fields=* to POST /employee should cause Tripletex to return full employment data including startDate, eliminating the separate employment readback and reducing the fresh-account path from 2 calls to 1.",
+    "Adding fields=employments(*) to POST /employee causes Tripletex to return full employment data including startDate in the create response, proven by sandbox verification on 2026-03-22.",
   expectedCallProfile: {
     targetCalls: 1,
     maxCalls: 6,
   },
   stepOutline: [
-    "API call 1: POST /employee?fields=* with firstName, lastName, dateOfBirth, email, explicit userType, and nested employments[].",
-    "If the response proves startDate in employments, return immediately (1 call).",
+    "API call 1: POST /employee?fields=id,...,employments(*) with firstName, lastName, dateOfBirth, email, explicit userType, and nested employments[].",
+    "If the response proves startDate in the expanded employments, return immediately (1 call on fresh accounts, fewer calls on repair path).",
     "Conditional repair: if the create fails with the known validation branch, GET /department and retry with department.id.",
     "Conditional repair: if the department retry still fails on the next known branch, GET /division and retry with employments[].division.id.",
-    "Fallback verification call: GET /employee/employment by employeeId only when the successful write response still does not prove the scored startDate.",
+    "Fallback verification call: GET /employee/employment by employeeId only if the expanded response still does not prove the scored startDate.",
   ],
   status: "draft",
   async run(
@@ -132,7 +132,7 @@ export const strategy = {
       )
     ) {
       notes.push(
-        "POST /employee?fields=* returned startDate in the response — skipped employment readback (1-call path).",
+        "POST /employee with expanded employments(*) returned startDate in the response — skipped employment readback.",
       );
     } else {
       const employmentResponse = await ctx.tripletex.get<ListResponse<EmploymentSummary>>(
@@ -150,7 +150,7 @@ export const strategy = {
       );
       employmentId = employment.id ?? employmentId;
       notes.push(
-        "POST /employee?fields=* did not return startDate — fell back to /employee/employment readback (2-call path).",
+        "POST /employee with expanded employments(*) did not return startDate — fell back to /employee/employment readback.",
       );
     }
 
@@ -185,7 +185,7 @@ async function createEmployee(
 ): Promise<ResponseWrapper<EmployeeSummary>> {
   return ctx.tripletex.post<ResponseWrapper<EmployeeSummary>>("/employee", {
     body,
-    query: { fields: "*" },
+    query: { fields: "id,firstName,lastName,email,dateOfBirth,userType,employments(*)" },
   });
 }
 
