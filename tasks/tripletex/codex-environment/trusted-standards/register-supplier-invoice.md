@@ -86,6 +86,8 @@ The correct sequence is:
   - `cac:TaxTotal` with correct VAT amounts
   - `cac:LegalMonetaryTotal` with net, gross, and payable amounts
   - one `cac:InvoiceLine` with item name = prompt description, classified tax category, line extension amount, and price
+  - `cac:PaymentMeans` with `cbc:PaymentMeansCode=30`, `cbc:PaymentID=${invoiceNumber}` (sets `kidOrReceiverReference` on the SI entity), and `cac:PayeeFinancialAccount/cbc:ID=${bankAccount}` (if bank account is in prompt)
+- **CRITICAL**: include `cac:PaymentMeans` with `PaymentID` in the XML — without it, `kidOrReceiverReference` stays empty on the SI entity. T20 runs without PaymentMeans consistently fail Check 5; the same applies to T11. Sandbox-verified 2026-03-22.
 - use the prompt description exactly in the invoice line item name
 - use net amount in the XML line and totals, not gross
 

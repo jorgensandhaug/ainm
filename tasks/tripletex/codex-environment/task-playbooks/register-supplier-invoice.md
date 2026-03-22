@@ -59,6 +59,8 @@ cbc:InvoiceTypeCode = 380
 cbc:DocumentCurrencyCode = NOK
 ```
 
+**CRITICAL**: Include `cac:PaymentMeans` with `cbc:PaymentMeansCode=30`, `cbc:PaymentID=${invoiceNumber}`, and `cac:PayeeFinancialAccount/cbc:ID=${bankAccount}` (if bank account is in prompt). Without this, `kidOrReceiverReference` on the SI entity stays empty — this was the root cause of persistent Check 5 failure on T20 (sandbox-verified 2026-03-22).
+
 ## Posting Payload (PUT step 4)
 
 Send only `version` and `postings` — do NOT send `description` (immutable on Leverandørfaktura).

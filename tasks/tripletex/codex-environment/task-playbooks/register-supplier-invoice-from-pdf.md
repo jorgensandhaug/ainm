@@ -16,6 +16,7 @@
 
 ## Critical Rules
 - **TIMEOUT**: After reading the trusted standard, IMMEDIATELY write the script and run it. Do NOT read additional files. 2 runs (4c255d98, de228487) scored 0% by timing out without ever executing a script.
+- **PaymentMeans is REQUIRED in the EHF XML** — without it, `kidOrReceiverReference` on the SI entity stays empty and Check 5 fails. Add `<cac:PaymentMeans>` with `<cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>` and `<cac:PayeeFinancialAccount><cbc:ID>${bankAccount}</cbc:ID></cac:PayeeFinancialAccount>`. Check 5 had NEVER passed across 11 runs; this is the fix (sandbox-verified 2026-03-22).
 - MUST set both `postalAddress` AND `physicalAddress` with `country: { id: 161 }` — all runs that omitted physicalAddress failed
 - importDocument response is `.values[0]` — using `.value` crashes and creates orphaned SI entity
 - Do NOT combine postings + sendToLedger=true in one PUT — 422
@@ -26,20 +27,23 @@
 
 ## Production Run History
 
-| Run | Lang | Calls | Score | Notes |
-|---|---|---|---|---|
-| 53cb0731 | EN | 5+ | 7/10 | No physicalAddress, not booked |
-| 9b2a1d22 | ? | ? | 7/10 | No physicalAddress, not booked |
-| aaf59452 | ES | ? | 7/10 | No physicalAddress, not booked |
-| dedc4bfe | FR | 5 | 8/10 | No physicalAddress, IS booked |
-| 80b7e1d2 | DE | ? | 8/10 | No physicalAddress, IS booked |
-| 61320c6d | NN | ? | 8/10 | No physicalAddress, IS booked |
-| 9b27a332 | EN | 3 | **2/10** | Direct voucher (WRONG approach) |
-| 4c255d98 | PT | 0 | **0/10** | Agent timed out reading standard |
-| de228487 | DE | 0 | **0/10** | Agent timed out reading standard (0 assistant messages, 0 API calls in 305s) |
-| 4c22beb6 | NB | 5 | ?/10 | Clean 5-call run, 0 errors, both addresses+country+booking; trusted standard followed exactly |
+| Run | Lang | Calls | Score | Checks Failed | Notes |
+|---|---|---|---|---|---|
+| 53cb0731 | EN | 5+ | 7/10 | 5,6 | No physicalAddress, not booked, no PaymentMeans |
+| 9b2a1d22 | ? | ? | 7/10 | 5,6 | No physicalAddress, not booked, no PaymentMeans |
+| aaf59452 | ES | ? | 7/10 | 5,6 | No physicalAddress, not booked, no PaymentMeans |
+| dedc4bfe | FR | 5 | 8/10 | 5 | No physicalAddress, IS booked, no PaymentMeans |
+| 80b7e1d2 | DE | ? | 8/10 | 5 | No physicalAddress, IS booked, no PaymentMeans |
+| 61320c6d | NN | ? | 8/10 | 5 | No physicalAddress, IS booked, no PaymentMeans |
+| 9b27a332 | EN | 3 | **2/10** | 2,3,4,5,6 | Direct voucher (WRONG approach) |
+| 4c255d98 | PT | 0 | **0/10** | — | Agent timed out reading standard |
+| de228487 | DE | 0 | **0/10** | — | Agent timed out reading standard |
+| 7c4183ab | PT | 5 | 8/10 | 5 | Both addresses+country+booking, no PaymentMeans |
+| 4c22beb6 | NB | 5 | 8/10 | 5 | Both addresses+country+booking, no PaymentMeans |
 
-**Best path to 10/10:** importDocument + physicalAddress + country + booking = all checks pass. Extract `ledgerAccount.id` from POST /supplier response — do NOT waste a separate GET for account 2400.
+**ROOT CAUSE of persistent Check 5 failure**: Missing `<cac:PaymentMeans>` in the EHF XML leaves `kidOrReceiverReference` empty on the supplierInvoice entity. Check 5 has NEVER passed across 11 runs. Fix: add PaymentMeans with `PaymentID=${invoiceNumber}` and `PayeeFinancialAccount/ID=${bankAccount}`. Sandbox-verified 2026-03-22.
+
+**Best path to 10/10:** importDocument (with PaymentMeans) + physicalAddress + country + booking = 5 calls. Extract `ledgerAccount.id` from POST /supplier response — do NOT waste a separate GET for account 2400.
 
 ## Sandbox-Verified Optimization Attempts (2026-03-22)
 - Combined PUT (postings + sendToLedger=true in one call) → **422** ("Bilag uten posteringer kan ikke bli sendt til hovedbok"). Cannot reduce steps 4+5 to 1 call.

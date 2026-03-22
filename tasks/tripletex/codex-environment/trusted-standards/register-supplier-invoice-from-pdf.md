@@ -38,6 +38,9 @@ For non-25% VAT, add `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<date>&fiel
 MUST set BOTH `postalAddress` AND `physicalAddress` with `country: { id: 161 }`. All 6 production runs that omitted physicalAddress failed.
 
 ## Step 3: importDocument (EHF XML)
+
+**CRITICAL: PaymentMeans section is REQUIRED.** Without it, `kidOrReceiverReference` on the SI entity stays empty — Check 5 has NEVER passed across 11 T20 production runs that omitted this section. Sandbox-verified 2026-03-22: adding PaymentMeans with `PaymentID=${invoiceNumber}` correctly populates `kidOrReceiverReference`.
+
 ```typescript
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
@@ -74,6 +77,13 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
     <cac:PartyLegalEntity><cbc:RegistrationName>Ditt firma</cbc:RegistrationName>
       <cbc:CompanyID schemeID="0192">999999999</cbc:CompanyID></cac:PartyLegalEntity>
   </cac:Party></cac:AccountingCustomerParty>
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>30</cbc:PaymentMeansCode>
+    <cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>
+    <cac:PayeeFinancialAccount>
+      <cbc:ID>${bankAccount}</cbc:ID>
+    </cac:PayeeFinancialAccount>
+  </cac:PaymentMeans>
   <cac:TaxTotal>
     <cbc:TaxAmount currencyID="NOK">${vatAmount}</cbc:TaxAmount>
     <cac:TaxSubtotal>
@@ -138,6 +148,7 @@ Do NOT include postings — causes 422. Use version from step 4 response, not st
 
 ## Pitfalls
 - **TIMEOUT KILLS**: Two production runs (prod-4c255d98, prod-de228487) scored 0% with 0 API calls because the agent read the standard then stalled in thinking for 5 minutes. After reading this file, IMMEDIATELY write the script and execute it. Do not read any other files.
+- **PaymentMeans is REQUIRED in the XML** — without it, `kidOrReceiverReference` on the SI entity stays empty and Check 5 fails. This was the ONLY failing check across 11 T20 runs that all scored 8/10 or less. Add `<cac:PaymentMeans>` with `<cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>` and `<cac:PayeeFinancialAccount><cbc:ID>${bankAccount}</cbc:ID></cac:PayeeFinancialAccount>`. Sandbox-verified 2026-03-22.
 - `importDocument` response is `.values[0]` (plural) — `.value` crashes and creates orphaned SI entity
 - Row 0 is reserved — use row 1 and 2
 - `account: { number: N }` → 422; MUST use `account: { id }` from GET
