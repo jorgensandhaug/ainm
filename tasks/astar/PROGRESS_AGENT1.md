@@ -331,7 +331,25 @@ Model has plateaued at ~81.7. All configurations within ±0.6 of each other.
 | prior_operator_z2_v001 (r=0.1) | 79.51 | 59.48 | 87.90 |
 | prior_operator_z2_v002 (r=0.01) | 79.51 | 59.47 | 87.89 |
 
-Prior operator scores lower overall but has BEST worst-round at 62.65! This is a 3rd complementary model for potential triple-blend.
+Prior operator scores lower overall but has BEST worst-round at 62.65! This is a 3rd complementary model for triple-blend.
+
+### TRIPLE BLEND BREAKTHROUGH (Phase 8) - NEW BEST 83.03!
+
+| Variant | GLMM% | DT% | PO% | Score | Worst | Best |
+|---------|-------|-----|-----|-------|-------|------|
+| **v003** | **35** | **35** | **30** | **83.03** | **62.80** | **91.46** |
+| v001 | 40 | 30 | 30 | 82.91 | 62.29 | 91.33 |
+| v006 | 40 | 25 | 35 | 82.88 | 62.32 | 91.18 |
+| v005 | 40 | 40 | 20 | 82.78 | 62.05 | 92.06 |
+| v004 | 45 | 30 | 25 | 82.75 | 61.69 | 91.67 |
+| v002 | 50 | 25 | 25 | 82.58 | 61.13 | 91.88 |
+
+All with observation blending at t=20. Triple blend of three complementary models:
+- GLMM: captures rollout dynamics (best on easy rounds)
+- Direct Terminal: captures direct feature→terminal mapping (balanced)
+- Prior Operator: captures prior correction patterns (best on hard rounds)
+
+**Total improvement: 78.38 → 83.03 (+4.65 points, +13.70 on worst round)**
 
 ## Additional Results (Phase 3)
 
