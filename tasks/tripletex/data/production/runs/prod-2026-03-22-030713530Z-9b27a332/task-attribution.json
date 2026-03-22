@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-030713530Z-9b27a332",
+  "request_id": "400a2c27",
+  "prompt_raw": "You received a supplier invoice (see attached PDF). Register the invoice in Tripletex. Create the supplier if it does not exist. Use the correct expense account and input VAT.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T03:08:17Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T03:07:13.581Z",
+  "after_captured_at": "2026-03-22T03:08:47.973Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "20",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T03:08:47.974Z"
+}

@@ -12,7 +12,7 @@ Do not use for:
 - Standalone approval or delivery of an existing travel expense
 - Project-linked or reinvoiced travel expenses
 
-## The Correct Flow (7 calls, 0 errors)
+## The Correct Flow (8 calls, 0 errors)
 
 ### Round 1 — parallel (3 calls)
 ```
@@ -45,20 +45,29 @@ PUT /travelExpense/:deliver?id=<id>
 - Response: `ListResponseTravelExpense` — read from `values[]`
 - Verify `state=DELIVERED`
 
-### Round 5 — approve (1 call) ← CRITICAL
+### Round 5 — approve (1 call)
 ```
 PUT /travelExpense/:approve?id=<id>
 ```
 - Do NOT use `overrideApprovalFlow=true` (returns 403)
 - Verify `state=APPROVED` and `isApproved=true`
-- **This step was missing from ALL 22 production runs that scored 4.5/8**
+- Approval is a PREREQUISITE for createVouchers (422 "Reiseregningen er ikke godkjent" if skipped)
+
+### Round 6 — createVouchers (1 call) ← CRITICAL
+```
+PUT /travelExpense/:createVouchers?id=<id>&date=<returnDate>
+```
+- `date` = return date of the trip (YYYY-MM-DD format)
+- Creates the accounting voucher with ledger postings
+- After this call, `voucher.id` is populated and `isCompleted=true`
+- **This step was missing from ALL 23 production runs that scored 4.5/8 — including runs that had approve**
 
 ### Done — stop. No extra readback calls needed.
 
 **Call counts:**
-- 7 calls when employee has no address
-- 6 calls when employee has address
-- 5 calls when employee has address AND prompt provides departureFrom
+- 8 calls when employee has no address
+- 7 calls when employee has address
+- 6 calls when employee has address AND prompt provides departureFrom
 
 ## Exact Payload Shape
 
@@ -117,13 +126,15 @@ PUT /travelExpense/:approve?id=<id>
 - `amount` is auto-computed as 5 × 800 = 4000 — do NOT set explicitly
 - `vatType` from category lookup (typically id=12 for Fly/Taxi on production companies)
 
-## Four Critical Rules
+## Five Critical Rules
 
-### Rule 1: APPROVE after delivery
+### Rule 1: CREATE VOUCHERS after approval ← ROOT CAUSE FIX
 
-After `PUT /travelExpense/:deliver`, you MUST call `PUT /travelExpense/:approve?id=<id>`. Without this step, the travel expense stays in `DELIVERED` state with `isApproved=false`. This was the root cause of checks 2, 3, 6 failing across ALL 22 production runs.
+After `PUT /travelExpense/:approve`, you MUST call `PUT /travelExpense/:createVouchers?id=<id>&date=<returnDate>`. Without this step, the travel expense has no accounting voucher and `isCompleted=false`. This was the actual root cause of checks 2, 3, 6 failing. Approve alone is NOT sufficient — the first production run with approve (b57900d3) still scored 4.5/8.
 
-**Do NOT use `overrideApprovalFlow=true`** — it returns 403. Plain `:approve` works fine.
+**Approve is a prerequisite** — calling createVouchers without approval returns 422 "Reiseregningen er ikke godkjent".
+
+**Do NOT use `overrideApprovalFlow=true`** on `:approve` — it returns 403. Plain `:approve` works fine.
 
 ### Rule 2: USE the prompt's rate and day count on perDiemCompensations
 
@@ -151,7 +162,7 @@ cost.vatType = { id: flyCat.vatType.id };
 
 If POST fails with `VAT_NOT_REGISTERED` → retry with `vatType: { id: 0 }`.
 
-## Why You Cannot Reduce Below 5–6 Calls
+## Why You Cannot Reduce Below 6–7 Calls
 
 All 3 round-1 lookups are mandatory. Sandbox-verified 2026-03-22:
 
@@ -164,7 +175,7 @@ All 3 round-1 lookups are mandatory. Sandbox-verified 2026-03-22:
 | `fields=*,company(*)` on employee | 400 — `company` is not an expandable field |
 | Omit `costCategory` entirely | POST 201 but deliver 422 |
 
-**The 5–6 call path is the proven floor.** Do not try to optimize further.
+**The 6–7 call path is the proven floor.** Do not try to optimize further.
 
 ## Fields That Cause 422 If Sent
 
@@ -230,6 +241,6 @@ Full E2E sandbox tests with VAT-registered company:
 4. `:approve` without `overrideApprovalFlow` works; WITH `overrideApprovalFlow=true` → 403
 
 ## Production History
-- 22 prior runs: ALL used only deliver, NEVER called `:approve` → ALL scored 4.5/8 (checks 2,3,6 fail)
-- prod-2026-03-22-041342038Z-b57900d3: **first run with approve step** — Norwegian prompt, Ingrid Larsen / Kundebesøk Trondheim / 2 days diett 800 / Fly 2500 + Taxi 600, 7 calls 0 errors (employee had no address → company GET needed), state=APPROVED isApproved=true
-- **Every run MUST include approve after deliver.**
+- 22 prior runs: ALL used only deliver, NEVER called `:approve` or `:createVouchers` → ALL scored 4.5/8 (checks 2,3,6 fail)
+- prod-2026-03-22-041342038Z-b57900d3: first run with approve step but WITHOUT createVouchers — Norwegian prompt, Ingrid Larsen / Kundebesøk Trondheim / 2 days diett 800 / Fly 2500 + Taxi 600, 7 calls 0 errors, state=APPROVED isApproved=true — **still scored 4.5/8** (approve alone is insufficient)
+- **Every run MUST include: deliver → approve → createVouchers. All three steps are required.**

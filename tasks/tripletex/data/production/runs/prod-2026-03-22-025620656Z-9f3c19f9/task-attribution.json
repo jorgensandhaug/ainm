@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-025620656Z-9f3c19f9",
+  "request_id": "a031bf32",
+  "prompt_raw": "Perform month-end closing for March 2026. Post accrual reversal (5450 NOK per month from account 1700 to expense). Record monthly depreciation for a fixed asset with acquisition cost 156750 NOK and useful life 10 years (straight-line depreciation to account 6010). Verify that the trial balance is zero. Also post a salary accrual (debit salary expense account 5000, credit accrued salary account 2900).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T02:57:16Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T02:56:20.786Z",
+  "after_captured_at": "2026-03-22T02:57:47.121Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "26",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T02:57:47.127Z"
+}

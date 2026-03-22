@@ -49,6 +49,7 @@ interface CostCategorySummary {
   description?: string;
   name?: string;
   showOnTravelExpenses?: boolean;
+  vatType?: { id: number } | null;
 }
 
 interface TravelPaymentTypeSummary {
@@ -164,10 +165,10 @@ export const strategy = {
   summary:
     "Resolves the employee, travel categories, payment type, and compatible per-diem rates, then creates and delivers the travel expense in the winning embedded-write flow.",
   hypothesis:
-    "The best proven path is a single embedded POST /travelExpense followed by PUT /travelExpense/:deliver, but only after resolving a concrete departureFrom, explicit zero-VAT cost rows, and a live per-diem rateType.",
+    "The best proven path is a single embedded POST /travelExpense followed by PUT :deliver, PUT :approve, and PUT :createVouchers.",
   expectedCallProfile: {
-    targetCalls: 6,
-    maxCalls: 7,
+    targetCalls: 8,
+    maxCalls: 9,
   },
   stepOutline: [
     "API call 1: GET /employee by exact email to resolve the owning employee.",
@@ -177,6 +178,8 @@ export const strategy = {
     "API call 5: GET /travelExpense/rate for PER_DIEM rows when the request includes per-diem compensation.",
     "API call 6: POST /travelExpense with embedded costs and perDiemCompensations.",
     "API call 7: PUT /travelExpense/:deliver and verify the returned parent row is DELIVERED.",
+    "API call 8: PUT /travelExpense/:approve and verify state=APPROVED.",
+    "API call 9: PUT /travelExpense/:createVouchers?id=<id>&date=<returnDate> to create accounting voucher.",
   ],
   status: "draft",
   async run(
@@ -322,17 +325,18 @@ export const strategy = {
               perDiemRateResponse?.values ?? [],
             ),
           ),
-          costs: input.costs.map((cost, index) => ({
-            costCategory: {
-              id: pickCostCategory(costCategories, cost.categoryName).id,
-            },
-            paymentType: { id: paymentType.id },
-            comments: cost.comment ?? cost.categoryName,
-            amountCurrencyIncVat: cost.amountNokInclVat,
-            amountNOKInclVAT: cost.amountNokInclVat,
-            date: chooseCostDate(cost, index, input),
-            vatType: { id: 0 },
-          })),
+          costs: input.costs.map((cost, index) => {
+            const category = pickCostCategory(costCategories, cost.categoryName);
+            return {
+              costCategory: { id: category.id },
+              paymentType: { id: paymentType.id },
+              comments: cost.comment ?? cost.categoryName,
+              amountCurrencyIncVat: cost.amountNokInclVat,
+              amountNOKInclVAT: cost.amountNokInclVat,
+              date: chooseCostDate(cost, index, input),
+              vatType: { id: category.vatType?.id ?? 0 },
+            };
+          }),
         },
       },
     );
@@ -353,6 +357,30 @@ export const strategy = {
     const deliveredExpense = pickDeliveredExpense(
       deliverResponse.values ?? [],
       travelExpenseId,
+    );
+
+    // Approve after delivery — prerequisite for createVouchers
+    const approveResponse = await ctx.tripletex.put<ListResponse<TravelExpenseSummary>>(
+      "/travelExpense/:approve",
+      {
+        query: {
+          id: travelExpenseId,
+        },
+      },
+    );
+    const approvedExpense =
+      approveResponse.values?.find((e) => Number(e.id) === travelExpenseId) ??
+      approveResponse.values?.[0];
+
+    // CRITICAL: Create vouchers — ALL 23 production runs that omitted this scored 4.5/8
+    await ctx.tripletex.put(
+      "/travelExpense/:createVouchers",
+      {
+        query: {
+          id: travelExpenseId,
+          date: input.returnDate,
+        },
+      },
     );
 
     const notes: string[] = [];
@@ -382,7 +410,7 @@ export const strategy = {
       },
       notes,
       verification: {
-        state: deliveredExpense.state,
+        state: approvedExpense?.state ?? deliveredExpense.state,
         title: deliveredExpense.title,
         departureDate: deliveredExpense.travelDetails?.departureDate,
         returnDate: deliveredExpense.travelDetails?.returnDate,

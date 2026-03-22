@@ -1,0 +1,8 @@
+{
+  "prompt": "El cliente Estrella SL (org. nº 871338140) ha reclamado sobre la factura por \"Diseño web\" (39850 NOK sin IVA). Emita una nota de crédito completa que revierta toda la factura.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "nQrAvEUQ-oSjxOPyxMr_Ams97uVOlXSXXn6rhENLdQo"
+  }
+}

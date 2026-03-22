@@ -8,7 +8,7 @@ Task asks to reconcile a bank statement (CSV) against open invoices. Incoming pa
 
 ## PRE-BUILT SCRIPT — USE THIS, DO NOT WRITE YOUR OWN
 
-**This task has a pre-built, tested script at `./scripts/reconcile-bank-statement.ts`.** It handles all 9 steps including cross-month CSV reconciliation (production CSVs always span 2 months). **Do NOT write your own script** — the pre-built script was sandbox-verified with 10/10 matches, 0 errors.
+**This task has a pre-built, tested script at `./scripts/reconcile-bank-statement.ts`.** It handles all 9 steps including cross-month CSV reconciliation (production CSVs always span 2 months). **Do NOT write your own script** — the pre-built script was sandbox-verified END-TO-END with cross-month CSV: 11/11 matches, both recons closed, 0 match failures.
 
 **Execution steps** (3 commands, ~30s total):
 ```bash

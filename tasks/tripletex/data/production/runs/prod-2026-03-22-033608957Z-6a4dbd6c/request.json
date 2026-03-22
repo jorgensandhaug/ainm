@@ -1,0 +1,8 @@
+{
+  "prompt": "O pagamento de Luz do Sol Lda (org. nº 962812384) referente à fatura \"Sessão de formação\" (41100 NOK sem IVA) foi devolvido pelo banco. Reverta o pagamento para que a fatura volte a mostrar o montante em aberto.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "yyG1ZFUqI8bfyFAQjR06aqUXgqDqZxRhqhv3pCPh7B0"
+  }
+}

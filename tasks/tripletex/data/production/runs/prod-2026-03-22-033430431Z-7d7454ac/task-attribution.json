@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-033430431Z-7d7454ac",
+  "request_id": "abf74176",
+  "prompt_raw": "Enregistrez le fournisseur Lumière SARL avec le numéro d'organisation 879852439. E-mail : faktura@lumiresarl.no.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T03:35:08Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T03:34:31.764Z",
+  "after_captured_at": "2026-03-22T03:35:39.125Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "04",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T03:35:39.131Z"
+}

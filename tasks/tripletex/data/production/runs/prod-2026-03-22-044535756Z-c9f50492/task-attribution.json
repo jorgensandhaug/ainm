@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-044535756Z-c9f50492",
+  "request_id": "09d5c46d",
+  "prompt_raw": "Ejecute el ciclo de vida completo del proyecto 'Plataforma Datos Montaña' (Montaña SL, org. nº 806602094): 1) El proyecto tiene un presupuesto de 200900 NOK. 2) Registre horas: Pablo Rodríguez (director de proyecto, pablo.rodriguez@example.org) 56 horas y Ricardo Rodríguez (consultor, ricardo.rodriguez@example.org) 52 horas. 3) Registre costo de proveedor de 98700 NOK de Río Verde SL (org. nº 806237310). 4) Cree una factura al cliente por el proyecto.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T04:47:27Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T04:45:35.804Z",
+  "after_captured_at": "2026-03-22T04:48:00.199Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "29",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T04:48:00.202Z"
+}

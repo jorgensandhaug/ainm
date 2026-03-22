@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-035624233Z-a5e9ca4e",
+  "request_id": "c42886b7",
+  "prompt_raw": "Kunden Nordlys AS (org.nr 902392165) har reklamert på fakturaen for \"Programvarelisens\" (47350 kr ekskl. MVA). Opprett ei fullstendig kreditnota som reverserer heile fakturaen.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T03:57:10Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T03:56:25.426Z",
+  "after_captured_at": "2026-03-22T03:57:41.833Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "14",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T03:57:41.836Z"
+}

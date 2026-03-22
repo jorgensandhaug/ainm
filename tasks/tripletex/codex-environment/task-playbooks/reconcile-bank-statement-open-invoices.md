@@ -16,7 +16,9 @@ Do not use for:
 
 ## Critical Timing Rule
 
-The task has a hard 300s budget. **Three production runs have scored 0 due to timeout** — agents spent all 300s reading docs (bc688ea1), or the LLM took too long generating output after reading extra files (2f10e207). Do not read AGENTS.md, openapi.json, or additional playbook files once the trusted standard is loaded. Read the trusted standard, parse the CSV, write one comprehensive TypeScript script, and execute immediately. The actual API interaction takes ~4s; the remaining 296s is wasted if spent on documentation exploration or slow LLM generation. Skip Glob/search for trusted-standard files — go directly to `cat ./trusted-standards/reconcile-bank-statement-open-invoices.md`.
+The task has a hard 300s budget. **A pre-built script exists at `./scripts/reconcile-bank-statement.ts`** — copy and run it instead of writing your own. See the trusted standard for exact usage. This eliminates the 106s LLM generation bottleneck that caused production run 1d375699 to timeout.
+
+If the pre-built script is missing, read the trusted standard and write one comprehensive TypeScript script immediately. Do not read AGENTS.md, openapi.json, or additional playbook files. The API interaction takes ~8-15s; the remaining 285s is wasted if spent on documentation exploration or slow LLM generation.
 
 ## Production Run Results
 

@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-033706336Z-e5113aee",
+  "request_id": "4632f951",
+  "prompt_raw": "Sie haben ein Angebotsschreiben erhalten (siehe beigefugte PDF) fuer einen neuen Mitarbeiter. Fuehren Sie das vollstaendige Onboarding durch: erstellen Sie den Mitarbeiter, weisen Sie die richtige Abteilung zu, richten Sie die Beschaeftigungsdetails mit Prozentsatz und Jahresgehalt ein, und konfigurieren Sie die Standardarbeitszeit.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T03:37:50Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T03:37:07.387Z",
+  "after_captured_at": "2026-03-22T03:38:20.826Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "21",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T03:38:20.829Z"
+}

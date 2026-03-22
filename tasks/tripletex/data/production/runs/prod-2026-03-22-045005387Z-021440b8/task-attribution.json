@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-045005387Z-021440b8",
+  "request_id": "ae1d7785",
+  "prompt_raw": "El cliente Estrella SL (org. nº 871338140) ha reclamado sobre la factura por \"Diseño web\" (39850 NOK sin IVA). Emita una nota de crédito completa que revierta toda la factura.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T04:50:49Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T04:50:05.442Z",
+  "after_captured_at": "2026-03-22T04:51:19.739Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "14",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T04:51:19.740Z"
+}

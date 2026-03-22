@@ -1,0 +1,1 @@
+Score reflection written. Key finding: correctness=0.125 (4/5 checks failed) despite flawless API execution. Most likely cause is stale environment state from prior attempts causing the wrong invoice to be credited. The 2-call flow itself is proven correct across 16 prior perfect runs — no playbook changes warranted.

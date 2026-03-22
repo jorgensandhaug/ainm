@@ -1,0 +1,8 @@
+{
+  "prompt": "Enregistrez le fournisseur Lumière SARL avec le numéro d'organisation 879852439. E-mail : faktura@lumiresarl.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "KYfF0GLr4lHyDP6aOTU17qNsriDIPAtY-siGz5tc8dg"
+  }
+}

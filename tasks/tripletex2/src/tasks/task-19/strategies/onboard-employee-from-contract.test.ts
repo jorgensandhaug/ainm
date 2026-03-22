@@ -54,6 +54,15 @@ test("task 19 strategy reuses the newest exact department and writes the determi
           };
         }
 
+        if (path === "/employee/standardTime") {
+          return {
+            value: {
+              id: 772,
+              hoursPerDay: 7.5,
+            },
+          };
+        }
+
         throw new Error(`Unexpected POST ${path}`);
       },
     }),
@@ -75,6 +84,7 @@ test("task 19 strategy reuses the newest exact department and writes the determi
     "GET /division",
     "GET /department",
     "POST /employee",
+    "POST /employee/standardTime",
   ]);
   assert.deepEqual(getCalls, [
     {
@@ -125,11 +135,20 @@ test("task 19 strategy reuses the newest exact department and writes the determi
         ],
       },
     },
+    {
+      path: "/employee/standardTime",
+      body: {
+        employee: { id: 18626378 },
+        fromDate: "2026-09-09",
+        hoursPerDay: 7.5,
+      },
+    },
   ]);
   assert.deepEqual(result.createdEntityIds, {
     employeeId: 18626378,
     departmentId: 932226,
     employmentId: 2816699,
+    standardTimeId: 772,
   });
   assert.equal(result.verification?.divisionIncluded, false);
   assert.equal(result.verification?.occupationCodeId, 301);

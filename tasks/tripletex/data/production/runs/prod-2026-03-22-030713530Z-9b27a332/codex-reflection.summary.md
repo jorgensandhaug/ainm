@@ -1,0 +1,1 @@
+Score reflection written. Key finding: the direct `POST /ledger/voucher` approach (3 calls, 0 errors) scored only 2/10 because it doesn't create a supplier invoice entity — the scorer needs one. Prior importDocument runs scored 8/10. The trusted standard was wrong to ban importDocument for all supplier invoice tasks; it should be the default for task 20 (T3).

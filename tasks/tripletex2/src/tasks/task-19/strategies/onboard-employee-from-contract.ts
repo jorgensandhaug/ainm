@@ -76,7 +76,7 @@ export const strategy = {
   hypothesis:
     "For contract-driven onboarding, the deterministic low-call branch is one division pre-read, one exact department lookup with create fallback, then one employee write with nested employmentDetails and optional employee standard time.",
   expectedCallProfile: {
-    targetCalls: 3,
+    targetCalls: 4,
     maxCalls: 5,
   },
   stepOutline: [
@@ -84,7 +84,7 @@ export const strategy = {
     "API call 2: GET /department filtered by the exact department name and reuse the newest exact active match locally.",
     "Conditional API call 3: POST /department only when the lookup finds no exact active department match.",
     "API call 3 or 4: POST /employee with explicit userType=NO_ACCESS and one nested employmentDetails row including occupationCode.id.",
-    "Optional API call 4 or 5: POST /employee/standardTime when the contract includes employee-specific hoursPerDay.",
+    "API call 4 or 5: POST /employee/standardTime — ALWAYS called with hoursPerDay from contract or default 7.5. Missing this costs 2 points.",
   ],
   status: "draft",
   async run(
@@ -182,20 +182,20 @@ export const strategy = {
     const employeeId = requireId(employee.id, "employee id");
     const employmentId = normalizeOptionalId(employee.employments?.[0]?.id);
 
-    let standardTimeId: number | undefined;
-    if (typeof standardHoursPerDay === "number") {
-      const standardTimeResponse = await ctx.tripletex.post<ResponseWrapper<StandardTimeSummary>>(
-        "/employee/standardTime",
-        {
-          body: {
-            employee: { id: employeeId },
-            fromDate: startDate,
-            hoursPerDay: standardHoursPerDay,
-          },
+    // ALWAYS call POST /employee/standardTime — missing this costs 2pt (Check 10).
+    // Default to 7.5 hours/day when the contract doesn't specify hours.
+    const effectiveHoursPerDay = typeof standardHoursPerDay === "number" ? standardHoursPerDay : 7.5;
+    const standardTimeResponse = await ctx.tripletex.post<ResponseWrapper<StandardTimeSummary>>(
+      "/employee/standardTime",
+      {
+        body: {
+          employee: { id: employeeId },
+          fromDate: startDate,
+          hoursPerDay: effectiveHoursPerDay,
         },
-      );
-      standardTimeId = normalizeOptionalId(standardTimeResponse.value?.id);
-    }
+      },
+    );
+    const standardTimeId = normalizeOptionalId(standardTimeResponse.value?.id);
 
     const notes: string[] = [];
     if (departmentResolution.created) {
@@ -233,7 +233,7 @@ export const strategy = {
         occupationCodeId,
         percentageOfFullTimeEquivalent,
         remunerationType,
-        standardHoursPerDay,
+        standardHoursPerDay: effectiveHoursPerDay,
         startDate,
         userTypeRequested: "NO_ACCESS",
         workingHoursScheme,

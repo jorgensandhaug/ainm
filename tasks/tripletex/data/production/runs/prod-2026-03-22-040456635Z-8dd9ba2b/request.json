@@ -1,0 +1,8 @@
+{
+  "prompt": "Gjer forenkla årsoppgjer for 2025: 1) Rekn ut og bokfør årlege avskrivingar for tre eigedelar: Inventar (136150 kr, 5 år lineært, konto 1240), Kjøretøy (389450 kr, 7 år, konto 1230), Programvare (272250 kr, 5 år, konto 1250). Bruk konto 6010 for avskrivingskostnad og 1209 for akkumulerte avskrivingar. 2) Reverser forskotsbetalt kostnad (totalt 55250 kr på konto 1700). 3) Rekn ut og bokfør skattekostnad (22 % av skattbart resultat) på konto 8700/2920. Bokfør kvar avskriving som eit eige bilag.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "pFIFeG69FoBz3M3l6vSLEJQ0JMsH1niO025SSjb8apY"
+  }
+}

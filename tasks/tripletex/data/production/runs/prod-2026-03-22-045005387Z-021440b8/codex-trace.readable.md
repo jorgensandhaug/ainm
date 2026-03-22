@@ -1,0 +1,373 @@
+# Claude Trace Snapshot
+
+- provider: claude
+- session_id: 2e66119c-809e-4799-b3a3-7f2e5983bd2d
+- session_file: /home/jorge/.claude/projects/-home-jorge-repos-ainm-tasks-tripletex-codex-environment/2e66119c-809e-4799-b3a3-7f2e5983bd2d.jsonl
+- completed: true
+- assistant_messages: 2
+- tool_calls: 5
+- tool_results: 5
+
+## 2026-03-22T04:50:06.040Z user_message
+Scored Tripletex run.
+Follow ./AGENTS.md exactly.
+
+Highest priorities:
+- Get the final Tripletex state exactly correct.
+- Use the fewest API calls possible.
+- Avoid all avoidable 4xx errors.
+
+Knowledge order:
+- 1. ./trusted-standards/
+- 2. ./task-playbooks/
+- 3. ./openapi.json
+- If this is an exact trusted-standard match, ALWAYS read (cat) the matching .md file BEFORE writing any script. Never write from memory. Then execute it directly without re-checking ./openapi.json.
+
+Run-specific rules:
+- Only interact with the Tripletex API by writing TypeScript and running it with bun.
+- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-045005387Z-021440b8/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.
+- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.
+- Use only the provided base URL and session token.
+- Authenticate with Basic Auth username 0 and password = session token.
+- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.
+- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.
+- Do not ask questions. Do not talk to the user. Do only the task.
+
+Task:
+El cliente Estrella SL (org. nº 871338140) ha reclamado sobre la factura por "Diseño web" (39850 NOK sin IVA). Emita una nota de crédito completa que revierta toda la factura.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+nQrAvEUQ-oSjxOPyxMr_Ams97uVOlXSXXn6rhENLdQo
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-045005387Z-021440b8/scripts
+
+Runner configuration:
+- provider: claude
+- model: claude-opus-4-6
+- effort: high
+- backend: proxy
+- proxy_base_url: https://europe-west1-ai-nm26osl-1706.cloudfunctions.net/claude-proxy
+- disable_experimental_betas: false
+
+## 2026-03-22T04:50:10.644Z tool_call
+tool: Read
+call_id: toolu_vrtx_016pmNvy3Q97zuyVTdhES4Q8
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/AGENTS.md"
+}
+```
+
+## 2026-03-22T04:50:10.653Z tool_call
+tool: Glob
+call_id: toolu_vrtx_01BTc45Ui1R2KoBqtaVME5kQ
+
+```json
+{
+  "pattern": "trusted-standards/*.md",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment"
+}
+```
+
+## 2026-03-22T04:50:10.670Z tool_result
+tool: Glob
+call_id: toolu_vrtx_01BTc45Ui1R2KoBqtaVME5kQ
+
+```text
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-project-activity-with-budget.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/analyze-expense-increase-create-internal-projects.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-foreign-currency-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/README.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-project-hours-and-create-project-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-free-accounting-dimension-and-book-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-product.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-and-send-customer-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-employee.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-project-lifecycle-budget-hours-cost-and-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/correct-ledger-errors.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/month-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-order-invoice-and-register-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/run-employee-payroll.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-supplier.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/common-endpoints.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/reverse-customer-invoice-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-supplier-invoice.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-project.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer-invoice-credit-note.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-receipt-expense-voucher.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-supplier-invoice-from-pdf.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/simplified-year-end-closing.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-travel-expense.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/reconcile-bank-statement-open-invoices.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-department.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/onboard-employee.md
+```
+
+## 2026-03-22T04:50:11.673Z tool_result
+tool: Read
+call_id: toolu_vrtx_016pmNvy3Q97zuyVTdhES4Q8
+
+```text
+File content (31220 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.
+```
+
+## 2026-03-22T04:50:13.730Z tool_call
+tool: Read
+call_id: toolu_vrtx_01CyZctxSNPKXVGsCvtRGKTG
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-customer-invoice-credit-note.md"
+}
+```
+
+## 2026-03-22T04:50:14.781Z tool_result
+tool: Read
+call_id: toolu_vrtx_01CyZctxSNPKXVGsCvtRGKTG
+
+```text
+     1→# Create Customer Invoice Credit Note
+     2→
+     3→## Trust Level
+     4→- Trusted standard
+     5→- Use directly for exact matches
+     6→- Skip `./openapi.json` re-checking for exact matches
+     7→
+     8→## Exact Match
+     9→- create one full credit note that nullifies one existing outgoing customer invoice
+    10→- prompt identifies the invoice strongly enough to find it in one decisive read
+    11→- task is a full reversal, not a partial credit or manual ledger correction
+    12→- task does not require sending the credit note
+    13→
+    14→## Do Not Use This Standard If
+    15→- task is a partial credit-note flow
+    16→- prompt already gives the exact invoice id and the one-write path is available
+    17→- prompt is too ambiguous to identify one invoice safely
+    18→- task is actually payment reversal rather than invoice crediting
+    19→- task explicitly requires sending the credit note
+    20→
+    21→## Standard Flow
+    22→1. `GET /invoice?...&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` to identify the exact original invoice
+    23→2. `PUT /invoice/{id}/:createCreditNote?date=<date>&sendToCustomer=false`
+    24→3. verify from the credit-note write response
+    25→4. stop
+    26→
+    27→## Exact-Match Fast Path
+    28→- if the prompt gives:
+    29→  - customer organization number
+    30→  - exact ex-VAT amount
+    31→  - exact service or line description
+    32→  - no exact invoice id
+    33→- the minimal realistic path is exactly two API calls:
+    34→  1. one decisive `GET /invoice?...`
+    35→  2. one `PUT /invoice/{id}/:createCreditNote?...`
+    36→- only reduce this to one API call when the prompt already gives the exact invoice id
+    37→- do not spend a separate `GET /customer` or `GET /invoice/{id}` in the standard shape
+    38→- for the exact prompt shapes `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500`, `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`, `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`, `organizationNumber=882988155`, `description="Heures de conseil"`, `amountExcludingVatCurrency=40900`, `organizationNumber=991882502`, `description="Opplæring"`, `amountExcludingVatCurrency=13100`, `organizationNumber=962075754`, `description="Analysebericht"`, `amountExcludingVatCurrency=30200`, that two-call path was the successful production path on 2026-03-20
+    39→- for the exact prompt shape `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`, that two-call path was re-confirmed as the successful production path on 2026-03-21
+    40→- for the exact prompt shape `organizationNumber=996887898`, `description="Vedlikehold"`, `amountExcludingVatCurrency=19200`, that two-call path was the successful production path on 2026-03-21
+    41→- for the exact prompt shape `organizationNumber=911680521`, `description="Systemutvikling"`, `amountExcludingVatCurrency=8050`, that two-call path was the successful production path on 2026-03-21
+    42→- for the exact prompt shape `organizationNumber=991882502`, `description="Opplæring"`, `amountExcludingVatCurrency=13100`, that two-call path was re-confirmed as the successful production path on 2026-03-21 (second confirmation; first was 2026-03-20)
+    43→- for the exact prompt shape `organizationNumber=912435113`, `description="Webdesign"`, `amountExcludingVatCurrency=40550`, that two-call path was the successful production path on 2026-03-21
+    44→- for the exact prompt shape `organizationNumber=962467210`, `description="Nettverkstjeneste"`, `amountExcludingVatCurrency=41600`, that two-call path was the successful production path on 2026-03-21
+    45→- for the exact prompt shape `organizationNumber=978503071`, `description="Licencia de software"`, `amountExcludingVatCurrency=25450`, that two-call path was the successful production path on 2026-03-22 (Spanish prompt); sandbox-verified on 2026-03-22
+    46→- for the exact prompt shape `organizationNumber=866100829`, `description="Webdesign"`, `amountExcludingVatCurrency=9900`, that two-call path was the successful production path on 2026-03-22 (Norwegian prompt); sandbox-verified on 2026-03-22
+    47→- for the exact prompt shape `organizationNumber=901668566`, `description="Webdesign"`, `amountExcludingVatCurrency=38800`, that two-call path was the successful production path on 2026-03-22 (German prompt); sandbox-verified on 2026-03-22
+    48→- for the exact prompt shape `organizationNumber=949502619`, `description="Programvarelisens"`, `amountExcludingVatCurrency=11250`, that two-call path was the successful production path on 2026-03-22 (Norwegian prompt); this run had TWO identical invoices matching all criteria — the correct behavior is to pick the highest `id` (most recent) and credit it; the original agent wasted 1 extra GET by failing on the duplicate instead of handling it client-side; sandbox-verified on 2026-03-22 with duplicate-invoice setup confirming 2-call path works
+    49→- for the exact prompt shape `organizationNumber=902392165`, `description="Programvarelisens"`, `amountExcludingVatCurrency=47350`, that two-call path was the successful production path on 2026-03-22 (Norwegian nynorsk prompt); sandbox-verified on 2026-03-22
+    50→- **CRITICAL**: when multiple invoices match all criteria identically, the script MUST pick the highest `id` instead of exiting with an error; failing on duplicates and re-querying is the #1 source of wasted calls for this task shape
+    51→
+    52→## Payload Rules
+    53→- locate the invoice by prompt facts such as:
+    54→  - `customer.organizationNumber`
+    55→  - exact ex-VAT amount
+    56→  - exact service/line description
+    57→- check both `orderLines[].description` and `orders[].orderLines[].description`
+    58→- if the same exact description appears in both places on one invoice, treat that as one invoice match, not as ambiguity
+    59→- if the prompt gives no invoice date, prefer one wide but bounded invoice search window such as:
+    60→  - `invoiceDateFrom=2000-01-01`
+    61→  - `invoiceDateTo=<run-date-plus-one-day>`
+    62→- if multiple invoices match all criteria identically (same customer, same amount, same description, both uncredited), pick the one with the highest `id` (most recently created) — do NOT fail or spend an extra resolver call; the production environment can have duplicate invoices and "the invoice" in the prompt refers to one of them
+    63→- filter out:
+    64→  - `isCreditNote=true`
+    65→  - `isCredited=true`
+    66→- for the create-credit-note write:
+    67→  - always send `date`
+    68→  - default to `sendToCustomer=false` unless the prompt explicitly requires sending
+    69→- do not create a manual negative invoice
+    70→- do not reverse a voucher unless the task is explicitly about payment reversal
+    71→
+    72→## Reuse From Write Response
+    73→- credit note id from `value.id`
+    74→- credit note number from `value.invoiceNumber`
+    75→- original invoice linkage from `value.creditedInvoice`
+    76→- `value.isCreditNote`
+    77→
+    78→## Verification
+    79→- default verification is zero extra calls after the credit-note write
+    80→- trust the write response when it proves:
+    81→  - `isCreditNote=true`
+    82→  - `creditedInvoice=<original invoice id>`
+    83→
+    84→## Known Recovery Branches
+    85→- if the invoice locate step returns multiple candidates with DIFFERENT customers, amounts, or descriptions, add one extra targeted resolver such as `GET /customer?organizationNumber=...&fields=*`
+    86→- if multiple candidates are truly identical (same customer org number, same amount, same description), that is NOT ambiguity — pick the highest `id` and proceed; do NOT spend an extra call
+    87→- if the prompt already gives the exact invoice id, skip the locate read and go straight to `PUT /invoice/{id}/:createCreditNote`
+    88→
+    89→## OpenAPI / Sandbox Status
+    90→- `/invoice` and `/invoice/{id}/:createCreditNote` verified in `./openapi.json`
+    91→- production run re-verified on 2026-03-20 for the exact prompt shape `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500`:
+    92→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+    93→  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+    94→  - the run succeeded with no extra resolver read and no extra verification read
+    95→- production run re-verified again on 2026-03-20 for the exact prompt shape `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`:
+    96→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+    97→  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+    98→  - the run succeeded with no extra resolver read and no extra verification read
+    99→- production run re-verified again on 2026-03-20 for the exact prompt shape `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`:
+   100→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   101→  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+   102→  - the run succeeded with no extra resolver read and no extra verification read
+   103→- production run re-verified again on 2026-03-20 for the exact prompt shape `organizationNumber=882988155`, `description="Heures de conseil"`, `amountExcludingVatCurrency=40900`:
+   104→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   105→  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+   106→  - the run succeeded with no extra resolver read and no extra verification read
+   107→- production run re-verified again on 2026-03-20 for the exact prompt shape `organizationNumber=991882502`, `description="Opplæring"`, `amountExcludingVatCurrency=13100`:
+   108→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   109→  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+   110→  - the run succeeded with no extra resolver read and no extra verification read
+   111→- production run re-verified again on 2026-03-20 for the exact prompt shape `organizationNumber=962075754`, `description="Analysebericht"`, `amountExcludingVatCurrency=30200`:
+   112→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   113→  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+   114→  - the run succeeded with no extra resolver read and no extra verification read
+   115→- re-verified on 2026-03-20 in persistent sandbox:
+   116→  - a fresh fixture customer plus invoice could still be credited through the same standard two-call core of:
+   117→    - `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   118→    - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false`
+   119→  - the locate step matched the created fixture invoice exactly by organization number, `amountExcludingVatCurrency=10400`, and nested order-line description
+   120→  - the write response returned a distinct credit note with `isCreditNote=true` and `creditedInvoice=<original id>`
+   121→  - one decisive `GET /invoice?invoiceDateFrom=2026-01-01&invoiceDateTo=2027-01-01&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` uniquely located the target invoice by organization number, exact ex-VAT amount, and exact line description
+   122→  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned the created credit note with `isCreditNote=true` and `creditedInvoice=<original id>`
+   123→  - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the production-style facts `description="Datarådgjeving"` and `amountExcludingVatCurrency=45300`; the locate read produced two identical description hits across top-level `orderLines[]` and nested `orders[].orderLines[]`, but still uniquely identified one invoice by organization number + amount + invoice-level uniqueness
+   124→  - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the production-style facts `description="Maintenance"` and `amountExcludingVatCurrency=45550`; the locate read returned the same description under both top-level `orderLines[]` and nested `orders[].orderLines[]`, but still uniquely identified one invoice by organization number + amount + invoice-level uniqueness
+   125→  - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the exact prompt identifiers `organizationNumber=900993560`, `description="Maintenance"`, `amountExcludingVatCurrency=30500`; the same two-call core located the created invoice and the credit-note write response alone proved success with `isCreditNote=true` and `creditedInvoice=<original id>`
+   126→  - re-verified again on 2026-03-20 in persistent sandbox with a disposable invoice matching the exact prompt identifiers `organizationNumber=973999966`, `description="Conseil en données"`, `amountExcludingVatCurrency=40800`; the locate read again showed the same exact description under both top-level `orderLines[]` and nested `orders[].orderLines[]`, but still uniquely identified one invoice by organization number + amount + invoice-level uniqueness
+   127→  - on that exact-identifier French fixture, `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned the created credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and needed no follow-up read
+   128→  - re-verified again on 2026-03-20 in persistent sandbox with a disposable French analog matching this production task shape `description="Heures de conseil"` and `amountExcludingVatCurrency=40900`; after setup, one decisive `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` uniquely located the fixture invoice by organization number + amount + line description
+   129→  - on that `Heures de conseil` analog, the same exact description appeared under both top-level `orderLines[]` and nested `orders[].orderLines[]` on the same invoice, and `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` still returned `isCreditNote=true` with `creditedInvoice=<original id>` and no follow-up read
+   130→  - re-verified again on 2026-03-20 in persistent sandbox with a disposable analog matching the same task shape `description="Opplæring"` and `amountExcludingVatCurrency=13100`; after setup, one decisive `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` uniquely located the fixture invoice by organization number + amount + line description, and `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned `isCreditNote=true` with `creditedInvoice=<original id>` and no follow-up read
+   131→  - re-verified again on 2026-03-20 in persistent sandbox with a disposable analog matching the same task shape `description="Analysebericht"` and `amountExcludingVatCurrency=30200`; after setup, one decisive `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-21&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` uniquely located the fixture invoice by organization number + amount + line description, and `PUT /invoice/{id}/:createCreditNote?date=2026-03-20&sendToCustomer=false` returned `isCreditNote=true` with `creditedInvoice=<original id>` and no follow-up read
+   132→- production run re-verified on 2026-03-21 for the exact prompt shape `organizationNumber=996887898`, `description="Vedlikehold"`, `amountExcludingVatCurrency=19200`:
+   133→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-22&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   134→  - `PUT /invoice/{id}/:createCreditNote?date=2026-03-21&sendToCustomer=false`
+   135→  - the run succeeded with 2 API calls, 0 errors, correctness=1.0, normalized_score=4 (tied best), 5/5 checks passed
+   136→  - re-verified in persistent sandbox on 2026-03-21 with a disposable fixture matching `organizationNumber=996887898`, `description="Vedlikehold"`, `amountExcludingVatCurrency=19200`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+   137→- production run re-verified on 2026-03-21 for the exact prompt shape `organizationNumber=911680521`, `description="Systemutvikling"`, `amountExcludingVatCurrency=8050`:
+   138→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-22&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   139→  - `PUT /invoice/2147566276/:createCreditNote?date=2026-03-21&sendToCustomer=false`
+   140→  - the run succeeded with 2 API calls, 0 errors, correctness=1.0, normalized_score=4 (tied best), 5/5 checks passed
+   141→  - re-verified in persistent sandbox on 2026-03-21 with a disposable fixture matching `organizationNumber=911680521`, `description="Systemutvikling"`, `amountExcludingVatCurrency=8050`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+   142→- production run re-confirmed on 2026-03-21 for the exact prompt shape `organizationNumber=812449982`, `description="Datarådgjeving"`, `amountExcludingVatCurrency=45300`:
+   143→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-22&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   144→  - `PUT /invoice/2147571523/:createCreditNote?date=2026-03-21&sendToCustomer=false`
+   145→  - the run succeeded with 2 API calls, 0 errors; this is the second production confirmation for this exact prompt shape (first was 2026-03-20)
+   146→- production run re-confirmed on 2026-03-21 for the exact prompt shape `organizationNumber=991882502`, `description="Opplæring"`, `amountExcludingVatCurrency=13100`:
+   147→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-22&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   148→  - `PUT /invoice/2147572201/:createCreditNote?date=2026-03-21&sendToCustomer=false`
+   149→  - the run succeeded with 2 API calls, 0 errors; this is the second production confirmation for this exact prompt shape (first was 2026-03-20)
+   150→  - re-verified in persistent sandbox on 2026-03-21 with a disposable fixture matching `organizationNumber=991882502`, `description="Opplæring"`, `amountExcludingVatCurrency=13100`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+   151→- production run confirmed on 2026-03-21 for the exact prompt shape `organizationNumber=912435113`, `description="Webdesign"`, `amountExcludingVatCurrency=40550`:
+   152→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-22&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   153→  - `PUT /invoice/2147644431/:createCreditNote?date=2026-03-21&sendToCustomer=false`
+   154→  - the run succeeded with 2 API calls, 0 errors
+   155→  - re-verified in persistent sandbox on 2026-03-21 with a disposable fixture matching `organizationNumber=912435113`, `description="Webdesign"`, `amountExcludingVatCurrency=40550`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+   156→- production run confirmed on 2026-03-21 for the exact prompt shape `organizationNumber=962467210`, `description="Nettverkstjeneste"`, `amountExcludingVatCurrency=41600`:
+   157→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-22&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   158→  - `PUT /invoice/2147644728/:createCreditNote?date=2026-03-21&sendToCustomer=false`
+   159→  - the run succeeded with 2 API calls, 0 errors
+   160→  - re-verified in persistent sandbox on 2026-03-21 with a disposable fixture matching `organizationNumber=962467210`, `description="Nettverkstjeneste"`, `amountExcludingVatCurrency=41600`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+   161→- production run confirmed on 2026-03-22 for the exact prompt shape `organizationNumber=978503071`, `description="Licencia de software"`, `amountExcludingVatCurrency=25450` (Spanish prompt):
+   162→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-23&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   163→  - `PUT /invoice/2147651501/:createCreditNote?date=2026-03-22&sendToCustomer=false`
+   164→  - the run succeeded with 2 API calls, 0 errors
+   165→  - re-verified in persistent sandbox on 2026-03-22 with a disposable fixture matching `organizationNumber=978503071`, `description="Licencia de software"`, `amountExcludingVatCurrency=25450`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+   166→- production run confirmed on 2026-03-22 for the exact prompt shape `organizationNumber=901668566`, `description="Webdesign"`, `amountExcludingVatCurrency=38800` (German prompt):
+   167→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-23&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   168→  - `PUT /invoice/2147652358/:createCreditNote?date=2026-03-22&sendToCustomer=false`
+   169→  - the run succeeded with 2 API calls, 0 errors
+   170→  - re-verified in persistent sandbox on 2026-03-22 with a disposable fixture matching `organizationNumber=901668566`, `description="Webdesign"`, `amountExcludingVatCurrency=38800`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+   171→- production run on 2026-03-22 for the exact prompt shape `organizationNumber=949502619`, `description="Programvarelisens"`, `amountExcludingVatCurrency=11250` (Norwegian prompt):
+   172→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-23&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   173→  - `PUT /invoice/2147663977/:createCreditNote?date=2026-03-22&sendToCustomer=false`
+   174→  - the run used 3 API calls (1 wasted GET) because the script failed when 2 identical invoices matched; the correct behavior is to pick the highest `id` and proceed in 2 calls
+   175→  - re-verified in persistent sandbox on 2026-03-22 with TWO identical fixture invoices for same customer/amount/description; the 2-call path works when the script picks the highest `id` instead of failing on the duplicate
+   176→  - 15 consecutive production runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable; duplicate-invoice handling is the only new pitfall discovered
+   177→- production run confirmed on 2026-03-22 for the exact prompt shape `organizationNumber=902392165`, `description="Programvarelisens"`, `amountExcludingVatCurrency=47350` (Norwegian nynorsk prompt):
+   178→  - `GET /invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-23&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`
+   179→  - `PUT /invoice/2147664001/:createCreditNote?date=2026-03-22&sendToCustomer=false`
+   180→  - the run succeeded with 2 API calls, 0 errors
+   181→  - re-verified in persistent sandbox on 2026-03-22 with a disposable fixture matching `organizationNumber=902392165`, `description="Programvarelisens"`, `amountExcludingVatCurrency=47350`; the same two-call core located the invoice and created the credit note with `isCreditNote=true` and `creditedInvoice=<original id>` and no follow-up read
+   182→  - 16 consecutive optimal production runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable
+   183→
+```
+
+## 2026-03-22T04:50:35.109Z assistant_message
+Exact match for credit note trusted standard. Writing the 2-call script.
+
+## 2026-03-22T04:50:35.129Z tool_call
+tool: Write
+call_id: toolu_vrtx_01XW1oBT66eXcAZkthSjAHpn
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-045005387Z-021440b8/scripts/credit-note.ts",
+  "content": "const BASE = \"https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2\";\nconst TOKEN = \"nQrAvEUQ-oSjxOPyxMr_Ams97uVOlXSXXn6rhENLdQo\";\nconst AUTH = \"Basic \" + btoa(\"0:\" + TOKEN);\nconst H = { Authorization: AUTH, \"Content-Type\": \"application/json\" };\nconst TODAY = \"2026-03-22\";\n\n// Step 1: Locate the invoice\nconst getUrl = `${BASE}/invoice?invoiceDateFrom=2000-01-01&invoiceDateTo=2026-03-23&count=1000&sorting=-invoiceDate&fields=*,customer(*),orderLines(*),orders(*,orderLines(*))`;\nconst res1 = await fetch(getUrl, { headers: H });\nif (!res1.ok) { console.error(\"GET /invoice failed:\", res1.status, await res1.text()); process.exit(1); }\nconst data = await res1.json();\nconst invoices = data.values || [];\n\n// Find invoice matching org nr 871338140, description \"Diseño web\", amount 39850\nconst matches = invoices.filter((inv: any) => {\n  if (inv.isCreditNote || inv.isCredited) return false;\n  if (inv.customer?.organizationNumber !== \"871338140\") return false;\n  if (inv.amountExcludingVatCurrency !== 39850) return false;\n  const descs: string[] = [];\n  for (const ol of (inv.orderLines || [])) descs.push(ol.description || \"\");\n  for (const o of (inv.orders || [])) for (const ol of (o.orderLines || [])) descs.push(ol.description || \"\");\n  return descs.some((d: string) => d === \"Diseño web\");\n});\n\nif (matches.length === 0) { console.error(\"No matching invoice found\"); process.exit(1); }\n\n// Pick highest id if duplicates\nconst target = matches.reduce((a: any, b: any) => (a.id > b.id ? a : b));\nconsole.log(\"Found invoice id:\", target.id, \"amount:\", target.amountExcludingVatCurrency);\n\n// Step 2: Create credit note\nconst putUrl = `${BASE}/invoice/${target.id}/:createCreditNote?date=${TODAY}&sendToCustomer=false`;\nconst res2 = await fetch(putUrl, { method: \"PUT\", headers: H });\nif (!res2.ok) { console.error(\"PUT createCreditNote failed:\", res2.status, await res2.text()); process.exit(1); }\nconst cn = await res2.json();\nconsole.log(\"Credit note created:\", cn.value?.id, \"isCreditNote:\", cn.value?.isCreditNote, \"creditedInvoice:\", cn.value?.creditedInvoice);\n"
+}
+```
+
+## 2026-03-22T04:50:35.173Z tool_result
+tool: Write
+call_id: toolu_vrtx_01XW1oBT66eXcAZkthSjAHpn
+
+```text
+File created successfully at: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-045005387Z-021440b8/scripts/credit-note.ts
+```
+
+## 2026-03-22T04:50:37.886Z tool_call
+tool: Bash
+call_id: toolu_vrtx_01NxdxFPc4WUPz614D1erUwo
+
+```json
+{
+  "command": "cd /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-045005387Z-021440b8/scripts && bun run credit-note.ts",
+  "description": "Run credit note script",
+  "timeout": 30000
+}
+```
+
+## 2026-03-22T04:50:44.453Z tool_result
+tool: Bash
+call_id: toolu_vrtx_01NxdxFPc4WUPz614D1erUwo
+
+```text
+Found invoice id: 2147664097 amount: 39850
+Credit note created: 2147675459 isCreditNote: true creditedInvoice: 2147664097
+```
+
+## 2026-03-22T04:50:48.711Z assistant_message
+Done. 2 API calls, 0 errors.
+
+- Found invoice 2147664097 (Estrella SL, org 871338140, "Diseño web", 39850 NOK ex-VAT)
+- Created credit note 2147675459 (`isCreditNote=true`, `creditedInvoice=2147664097`)

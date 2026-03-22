@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-035804287Z-e89025d1",
+  "request_id": "88a264d6",
+  "prompt_raw": "Nous avons besoin de la depense Tastatur de ce recu enregistree au departement Utvikling. Utilisez le bon compte de charges et assurez le traitement correct de la TVA.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T03:59:27Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T03:58:04.340Z",
+  "after_captured_at": "2026-03-22T03:59:58.814Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "22",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T03:59:58.816Z"
+}

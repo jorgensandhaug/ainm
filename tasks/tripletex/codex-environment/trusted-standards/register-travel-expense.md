@@ -8,7 +8,7 @@
 - Prompt provides cost lines (flight, taxi, etc.) and per-diem allowance
 - No attachment, approval, mileage, accommodation allowance, project linking, update, or delete
 
-## Standard Flow (7 calls max, 0 errors)
+## Standard Flow (8 calls max, 0 errors)
 
 ### Round 1 — parallel (3 calls)
 ```
@@ -41,13 +41,22 @@ PUT /travelExpense/:deliver?id=<travelExpenseId>
 ```
 Response is `ListResponseTravelExpense` — read delivered object from `values[]`.
 
-### Round 5 — approve (1 call) ← CRITICAL
+### Round 5 — approve (1 call)
 ```
 PUT /travelExpense/:approve?id=<travelExpenseId>
 ```
 - Do NOT use `overrideApprovalFlow=true` (returns 403)
 - Verify `state=APPROVED` and `isApproved=true` from response
-- **ALL 22 production runs that omitted this step scored 4.5/8 with checks 2,3,6 failing**
+- Approval is a PREREQUISITE for createVouchers (422 "Reiseregningen er ikke godkjent" if skipped)
+
+### Round 6 — createVouchers (1 call) ← CRITICAL
+```
+PUT /travelExpense/:createVouchers?id=<travelExpenseId>&date=<returnDate>
+```
+- `date` parameter = return date of the trip (YYYY-MM-DD)
+- Creates the accounting voucher with ledger postings
+- After this call, `voucher.id` is populated and `isCompleted=true`
+- **ALL 23 production runs that omitted this step scored 4.5/8 — including the run that had approve**
 
 ### Done — stop
 Do NOT add extra readback calls.
@@ -105,8 +114,8 @@ Do NOT add extra readback calls.
 
 ## Four Rules That Matter Most
 
-### 1. APPROVE after delivery ← CRITICAL, NEVER SKIP
-After deliver, call `PUT /travelExpense/:approve?id=<id>`. Without approval, the travel expense remains in `DELIVERED` state with `isApproved=false`. This was the root cause of checks 2, 3, 6 failing across ALL 22 production runs. Do NOT use `overrideApprovalFlow=true` (returns 403).
+### 1. CREATE VOUCHERS after approval ← CRITICAL, NEVER SKIP
+After deliver and approve, call `PUT /travelExpense/:createVouchers?id=<id>&date=<returnDate>`. Without this step, no accounting voucher is created and `isCompleted=false`. This was the actual root cause of checks 2, 3, 6 failing — approve alone is NOT sufficient (first approve-only production run b57900d3 still scored 4.5/8). The full chain is: deliver → approve → createVouchers. Approve is a prerequisite for createVouchers (422 "Reiseregningen er ikke godkjent" without it). Do NOT use `overrideApprovalFlow=true` on approve (returns 403).
 
 ### 2. Per-diem: USE the prompt's rate and day count directly
 Set `rate` to the prompt's stated per-diem rate (e.g., 800). Set `count` to the prompt's stated number of days (e.g., 5 for "5 days"). Do NOT set `amount` — it is auto-computed as `count × rate`.
@@ -143,7 +152,7 @@ These "optimizations" look like they would save API calls but actually waste cal
 | `fields=*,company(*)` on employee | 400 | `company` is not a field on EmployeeDTO; use `companyId` + separate GET |
 | Omit `costCategory` from costs | POST 201, deliver 422 | costCategory.id required for deliver validation |
 
-**Conclusion:** All 3 round-1 lookups (employee, costCategory, paymentType) are mandatory. The 5–6 call path is the proven floor. Sandbox-verified 2026-03-22.
+**Conclusion:** All 3 round-1 lookups (employee, costCategory, paymentType) are mandatory. The 6–7 call path is the proven floor. Sandbox-verified 2026-03-22.
 
 ## Fields That DO NOT Exist (422 if sent)
 | Wrong field | Causes | Use instead |
@@ -192,6 +201,6 @@ Full E2E with VAT-registered company:
 3. `:approve` without `overrideApprovalFlow` works; WITH override → 403
 
 ## Production History
-- 22 prior runs: ALL only delivered (never approved) → ALL scored 4.5/8 (checks 2,3,6 fail)
-- prod-2026-03-22-041342038Z-b57900d3: **first run with approve step** — Norwegian prompt, Ingrid Larsen / Kundebesøk Trondheim / 2 days diett 800 / Fly 2500 + Taxi 600, 7 calls 0 errors (employee had no address → company GET needed), state=APPROVED isApproved=true
-- **Every run MUST include approve after deliver**
+- 22 prior runs: ALL only delivered (never approved/vouchered) → ALL scored 4.5/8 (checks 2,3,6 fail)
+- prod-2026-03-22-041342038Z-b57900d3: first run with approve but WITHOUT createVouchers — still scored 4.5/8 (approve alone insufficient)
+- **Every run MUST include: deliver → approve → createVouchers. All three steps required.**

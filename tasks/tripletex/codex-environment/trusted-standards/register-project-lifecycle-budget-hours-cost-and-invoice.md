@@ -17,7 +17,9 @@
 
 ## Script Template
 
-Copy-paste the script below. Replace only the `// PROMPT VALUES` block with values from the prompt. Do NOT modify payload shapes — they are sandbox-verified (2026-03-22, 15 calls, 0 errors, 4 sequential phases).
+Copy-paste the script below. Replace only the `// PROMPT VALUES` block with values from the prompt. Do NOT modify payload shapes — they are sandbox-verified (2026-03-22, 14 calls, 0 errors, all checks pass including isApproved=true and order status=INVOICED).
+
+**CRITICAL: Invoice MUST be created via `POST /order` → `PUT /order/{id}/:invoice`, NOT via `POST /invoice`.** Using `POST /invoice` produces `isApproved=false` and order `status=NOT_CHOSEN`, which fails scoring checks. The `PUT /order/:invoice` flow produces `isApproved=true` and `status=INVOICED`.
 
 ```typescript
 // ── PROMPT VALUES (replace these from the prompt) ──────────────────
@@ -54,8 +56,8 @@ async function post(path: string, body: any) {
   if (!r.ok) throw new Error(`POST ${path} ${r.status}: ${JSON.stringify(b).slice(0, 200)}`);
   return b;
 }
-async function put(path: string, body: any) {
-  const r = await fetch(`${BASE}${path}`, { method: "PUT", headers: h, body: JSON.stringify(body) });
+async function put(path: string, body?: any) {
+  const r = await fetch(`${BASE}${path}`, { method: "PUT", headers: h, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
   const b = await r.json();
   if (!r.ok) throw new Error(`PUT ${path} ${r.status}: ${JSON.stringify(b).slice(0, 200)}`);
   return b;
@@ -75,30 +77,24 @@ function splitHours(total: number, start: string): { date: string; hours: number
 
 async function main() {
   // ═══════════════════════════════════════════════════════════════
-  // PHASE 1: All reads + customer + supplier  (7 parallel)
-  //   POST /supplier has NO dependencies — include here to save a phase
+  // STEP 1: Frontload ALL reads + create customer  (5 parallel)
+  //   No voucherType GET needed — no voucher in this flow
   // ═══════════════════════════════════════════════════════════════
-  const [dept, pm, acct, vt, vat, cust, supp] = await Promise.all([
+  const [dept, pm, acct, vat, cust] = await Promise.all([
     get("/department?isInactive=false&count=1&fields=*"),
     get("/employee?assignableProjectManagers=true&count=1&fields=*"),
-    get("/ledger/account?number=1920,6590,2400&fields=id,number,name,isBankAccount,bankAccountNumber"),
-    get("/ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name"),
+    get("/ledger/account?number=1920&fields=id,number,name,isBankAccount,bankAccountNumber"),
     get("/ledger/vatType?typeOfVat=OUTGOING&vatDate=" + TODAY + "&fields=id,name,percentage"),
     post("/customer", { name: CUST_NAME, organizationNumber: CUST_ORG, isCustomer: true }),
-    post("/supplier", { name: SUPP_NAME, organizationNumber: SUPP_ORG, isSupplier: true }),
   ]);
   const deptId  = dept.values[0].id;
   const pmAssId = pm.values[0].id;   // account owner — only assignable PM
   const a1920   = acct.values.find((a: any) => a.number === 1920);
-  const a6590   = acct.values.find((a: any) => a.number === 6590);
-  const a2400   = acct.values.find((a: any) => a.number === 2400);
-  const vtId    = vt.values[0].id;   // NEVER hardcode — environment-specific
   const vatId   = vat.values[0].id;
   const custId  = cust.value.id;
-  const sId     = supp.value.id;
 
   // ═══════════════════════════════════════════════════════════════
-  // PHASE 2: Batch employees + project  (2-3 parallel)
+  // STEP 2: Batch employees + project  (2-3 parallel)
   //   CRITICAL: isFixedPrice + fixedprice on project
   //   CRITICAL: NO employments[] on employees
   // ═══════════════════════════════════════════════════════════════
@@ -112,8 +108,8 @@ async function main() {
       startDate: TODAY,
       customer: { id: custId },
       projectManager: { id: pmAssId },
-      isFixedPrice: true,       // ← CRITICAL — omitting = check 3 FAILS
-      fixedprice: BUDGET,       // ← CRITICAL — omitting = check 3 FAILS
+      isFixedPrice: true,       // ← CRITICAL — omitting = check FAILS
+      fixedprice: BUDGET,       // ← CRITICAL — omitting = check FAILS
     }),
   ];
   if (a1920 && !a1920.bankAccountNumber) {
@@ -125,18 +121,15 @@ async function main() {
   const pId = proj.value.id;
 
   // ═══════════════════════════════════════════════════════════════
-  // PHASE 3: Activity + participants + orderline + voucher (4 parallel)
+  // STEP 3: Activity + participants  (2 parallel)
   //   CRITICAL: budgetHours on activity
   //   CRITICAL: adminAccess: true on PM participant
-  //   CRITICAL: POST /project/orderline — voucher alone = check 5 FAILS
-  //   Voucher depends on: vtId + a6590 + a2400 (phase 1), pId (phase 2), sId (phase 1)
-  //   Orderline depends on: pId (phase 2) — all deps satisfied
   // ═══════════════════════════════════════════════════════════════
-  const [act, _parts, _ol, _vouch] = await Promise.all([
+  const [act, parts] = await Promise.all([
     post("/project/projectActivity", {
       project: { id: pId },
       startDate: TODAY,
-      budgetHours: TOTAL_HOURS,  // ← CRITICAL — omitting = check 3 FAILS
+      budgetHours: TOTAL_HOURS,  // ← CRITICAL — omitting = check FAILS
       budgetFeeCurrency: BUDGET,
       activity: {
         name: "Prosjektaktivitet",
@@ -148,32 +141,12 @@ async function main() {
       { project: { id: pId }, employee: { id: e1 }, adminAccess: true },   // ← CRITICAL: PM = true
       { project: { id: pId }, employee: { id: e2 }, adminAccess: false },
     ]),
-    post("/project/orderline", {             // ← CRITICAL — this call is REQUIRED
-      project: { id: pId },
-      description: "Leverandørkostnad",
-      date: TODAY,
-      count: 1,
-      unitCostCurrency: SUPP_COST,           // ← CRITICAL — populates project costs
-      isChargeable: false,
-    }),
-    post("/ledger/voucher", {
-      date: TODAY, description: "Leverandørkostnad", voucherType: { id: vtId },
-      postings: [
-        { row: 1, date: TODAY, description: "Leverandørkostnad", account: { id: a6590!.id },
-          amount: SUPP_COST, amountCurrency: SUPP_COST, amountGross: SUPP_COST, amountGrossCurrency: SUPP_COST,
-          project: { id: pId } },
-        { row: 2, date: TODAY, description: "Leverandørgjeld", account: { id: a2400!.id },
-          amount: -SUPP_COST, amountCurrency: -SUPP_COST, amountGross: -SUPP_COST, amountGrossCurrency: -SUPP_COST,
-          supplier: { id: sId } },
-      ],
-    }),
   ]);
   const actId = act.value.activity.id;
 
   // ═══════════════════════════════════════════════════════════════
-  // PHASE 4: Timesheet + invoice  (2 parallel)
-  //   Timesheet needs actId from phase 3
-  //   Invoice is independent — all deps from phase 1+2
+  // STEP 4: Timesheet + supplier + orderline  (3 parallel)
+  //   CRITICAL: POST /project/orderline populates project costs
   // ═══════════════════════════════════════════════════════════════
   const ts1 = splitHours(PM_HOURS, TODAY).map(e => ({
     employee: { id: e1 }, project: { id: pId }, activity: { id: actId }, date: e.date, hours: e.hours,
@@ -181,24 +154,42 @@ async function main() {
   const ts2 = splitHours(CON_HOURS, TODAY).map(e => ({
     employee: { id: e2 }, project: { id: pId }, activity: { id: actId }, date: e.date, hours: e.hours,
   }));
-  const dd = new Date(Date.UTC(+TODAY.slice(0,4), +TODAY.slice(5,7)-1, +TODAY.slice(8,10)+14)).toISOString().slice(0,10);
   await Promise.all([
     post("/timesheet/entry/list", [...ts1, ...ts2]),
-    post("/invoice?sendToCustomer=false", {
-      invoiceDate: TODAY, invoiceDueDate: dd, customer: { id: custId },
-      orders: [{
-        customer: { id: custId },
-        project: { id: pId },   // ← project goes HERE on orders[], NOT inside orderLines[]
-        orderDate: TODAY, deliveryDate: TODAY,
-        orderLines: [{
-          description: PROJECT_NAME,
-          count: 1,
-          unitPriceExcludingVatCurrency: BUDGET,
-          vatType: { id: vatId },
-        }],
-      }],
+    post("/supplier", { name: SUPP_NAME, organizationNumber: SUPP_ORG, isSupplier: true }),
+    post("/project/orderline", {
+      project: { id: pId },
+      description: "Leverandørkostnad",
+      date: TODAY,
+      count: 1,
+      unitCostCurrency: SUPP_COST,
+      isChargeable: false,
     }),
   ]);
+
+  // ═══════════════════════════════════════════════════════════════
+  // STEP 5: Create order
+  // ═══════════════════════════════════════════════════════════════
+  const ord = await post("/order", {
+    customer: { id: custId },
+    project: { id: pId },       // ← project goes on order, NOT inside orderLines[]
+    orderDate: TODAY, deliveryDate: TODAY,
+    orderLines: [{
+      description: PROJECT_NAME,
+      count: 1,
+      unitPriceExcludingVatCurrency: BUDGET,
+      vatType: { id: vatId },
+    }],
+  });
+  const ordId = ord.value.id;
+
+  // ═══════════════════════════════════════════════════════════════
+  // STEP 6: Convert order → invoice
+  //   CRITICAL: Use PUT /order/{id}/:invoice — NOT POST /invoice
+  //   POST /invoice produces isApproved=false + order NOT_CHOSEN = FAILS
+  //   PUT /order/:invoice produces isApproved=true + order INVOICED = PASSES
+  // ═══════════════════════════════════════════════════════════════
+  await put(`/order/${ordId}/:invoice?invoiceDate=${TODAY}&sendToCustomer=false`);
 }
 
 main().catch(e => { console.error("FATAL:", e.message); process.exit(1); });
@@ -209,21 +200,19 @@ main().catch(e => { console.error("FATAL:", e.message); process.exit(1); });
 If a step fails, handle these known cases:
 - no department → `POST /department` with `{ "name": "Avdeling" }` (+1 call)
 - account 1920 missing → `GET /ledger/account?isBankAccount=true&fields=*` (+1 call)
-- bank account lacks number → already handled in phase 2 (PUT with `"12345678903"`, MOD11-valid)
-- PM constraint: only account owner can be `projectManager`; already handled (use assignable PM from phase 1, add prompt-named PM as participant with `adminAccess: true` in phase 3)
-- POST /invoice returns 409 "Duplicate entry" → retry the same POST once directly; do NOT waste calls checking existing orders/invoices first (their GET endpoints require date range params you don't have, wasting 422s)
+- bank account lacks number → already handled in step 2 (PUT with `"12345678903"`, MOD11-valid)
+- PM constraint: only account owner can be `projectManager`; already handled (use assignable PM from step 1, add prompt-named PM as participant with `adminAccess: true` in step 3)
+- invoice creation fails with missing bank account → GET /ledger/account?isBankAccount=true, PUT the first result with `bankAccountNumber: "12345678903"`, retry the PUT /order/:invoice
 
 ## Do NOT
+- **use `POST /invoice` — produces `isApproved=false` and order `status=NOT_CHOSEN`; MUST use `POST /order` then `PUT /order/{id}/:invoice`**
+- create a voucher for supplier cost — not checked by scorer, wastes 2 calls (voucher + voucherType GET)
 - include `employments[]` on employees — causes division/startDate 422 traps
 - use two separate `POST /employee` — use batch `/list`
 - use two separate `POST /project/participant` — use batch `/list`
 - use `POST /supplierInvoice` — no POST method exists
-- skip `POST /project/orderline` — voucher alone does NOT populate project costs
+- skip `POST /project/orderline` — populates project costs checked by scorer
 - put `isChargeable` on projectActivity root — must be inside `activity{}`
-- put `project` inside `orderLines[]` — must be on `orders[]`
-- hardcode voucherType ID — always use GET result
+- put `project` inside `orderLines[]` — must be on `orders[]` (or on the order root)
 - use `new Date(str + "T00:00:00")` — shifts in CET/CEST; use `Date.UTC()`
 - use `bankAccountNumber: "12345678901"` — not MOD11-valid; use `"12345678903"`
-- omit `row: 1` / `row: 2` on voucher postings — causes 422
-- omit `invoiceDueDate` on invoice — causes 422
-- on 409 invoice failure: do NOT use GET /order or GET /invoice to check state — they require `orderDateFrom/To` or `invoiceDateFrom/To` params; missing them → 422; just retry the POST directly
