@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-111855757Z-a9736cc6",
+  "request_id": "a3cd0ab2",
+  "prompt_raw": "Kunden Elvdal AS (org.nr 963143230) har ein uteståande faktura på 19600 kr eksklusiv MVA for \"Datarådgjeving\". Registrer full betaling på denne fakturaen.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:19:53Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:18:55.820Z",
+  "after_captured_at": "2026-03-22T11:20:24.058Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T11:20:24.061Z"
+}

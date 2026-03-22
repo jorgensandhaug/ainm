@@ -1,0 +1,8 @@
+{
+  "prompt": "Betalingen fra Snøhetta AS (org.nr 962427715) for fakturaen \"Systemutvikling\" (49600 kr ekskl. MVA) ble returnert av banken. Reverser betalingen slik at fakturaen igjen viser utestående beløp.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "LADIHKIs6tjaYXj9bLtuvactnCsc1LyutEFXklz_H_Y"
+  }
+}

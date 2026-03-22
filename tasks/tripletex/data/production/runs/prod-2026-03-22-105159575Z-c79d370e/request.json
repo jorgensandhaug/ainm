@@ -1,0 +1,8 @@
+{
+  "prompt": "El cliente Río Verde SL (org. nº 802788037) ha reclamado sobre la factura por \"Asesoría de datos\" (8550 NOK sin IVA). Emita una nota de crédito completa que revierta toda la factura.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "bnSYweTG54yCWNa8GQtz-weg0rjrczQOTDu8cqfDv9c"
+  }
+}

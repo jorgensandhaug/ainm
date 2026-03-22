@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-110323743Z-7802a757",
+  "request_id": "22d3aae8",
+  "prompt_raw": "Erstellen Sie eine benutzerdefinierte Buchhaltungsdimension \"Produktlinje\" mit den Werten \"Basis\" und \"Standard\". Buchen Sie dann einen Beleg auf Konto 6540 über 25900 NOK, verknüpft mit dem Dimensionswert \"Basis\".",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:04:52Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:03:23.795Z",
+  "after_captured_at": "2026-03-22T11:05:23.305Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "17",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T11:05:23.306Z"
+}

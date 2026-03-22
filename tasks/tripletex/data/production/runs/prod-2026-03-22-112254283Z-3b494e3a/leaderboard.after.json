@@ -1,0 +1,218 @@
+{
+  "captured_at": "2026-03-22T11:24:32.408Z",
+  "run_id": "prod-2026-03-22-112254283Z-3b494e3a",
+  "source": "after",
+  "url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "entries": [
+    {
+      "tx_task_id": "01",
+      "best_score": 2,
+      "rolling_scores": [],
+      "total_attempts": 27,
+      "last_attempt_at": "2026-03-22T11:09:41.353585+00:00"
+    },
+    {
+      "tx_task_id": "02",
+      "best_score": 2,
+      "rolling_scores": [],
+      "total_attempts": 26,
+      "last_attempt_at": "2026-03-22T10:56:39.922272+00:00"
+    },
+    {
+      "tx_task_id": "03",
+      "best_score": 2,
+      "rolling_scores": [],
+      "total_attempts": 24,
+      "last_attempt_at": "2026-03-22T11:15:59.126581+00:00"
+    },
+    {
+      "tx_task_id": "04",
+      "best_score": 2,
+      "rolling_scores": [],
+      "total_attempts": 27,
+      "last_attempt_at": "2026-03-22T03:35:10.816261+00:00"
+    },
+    {
+      "tx_task_id": "05",
+      "best_score": 2,
+      "rolling_scores": [],
+      "total_attempts": 27,
+      "last_attempt_at": "2026-03-22T09:40:40.139067+00:00"
+    },
+    {
+      "tx_task_id": "06",
+      "best_score": 1.5,
+      "rolling_scores": [],
+      "total_attempts": 27,
+      "last_attempt_at": "2026-03-22T11:10:25.006202+00:00"
+    },
+    {
+      "tx_task_id": "07",
+      "best_score": 2,
+      "rolling_scores": [],
+      "total_attempts": 28,
+      "last_attempt_at": "2026-03-22T11:19:56.392877+00:00"
+    },
+    {
+      "tx_task_id": "08",
+      "best_score": 2,
+      "rolling_scores": [],
+      "total_attempts": 26,
+      "last_attempt_at": "2026-03-22T11:16:17.441023+00:00"
+    },
+    {
+      "tx_task_id": "09",
+      "best_score": 4,
+      "rolling_scores": [],
+      "total_attempts": 26,
+      "last_attempt_at": "2026-03-22T11:24:04.096797+00:00"
+    },
+    {
+      "tx_task_id": "10",
+      "best_score": 4,
+      "rolling_scores": [],
+      "total_attempts": 23,
+      "last_attempt_at": "2026-03-22T10:42:25.556246+00:00"
+    },
+    {
+      "tx_task_id": "11",
+      "best_score": 1,
+      "rolling_scores": [],
+      "total_attempts": 28,
+      "last_attempt_at": "2026-03-22T11:12:22.971733+00:00"
+    },
+    {
+      "tx_task_id": "12",
+      "best_score": 2.4,
+      "rolling_scores": [],
+      "total_attempts": 25,
+      "last_attempt_at": "2026-03-22T10:52:08.881260+00:00"
+    },
+    {
+      "tx_task_id": "13",
+      "best_score": 1.125,
+      "rolling_scores": [],
+      "total_attempts": 24,
+      "last_attempt_at": "2026-03-22T09:57:48.600087+00:00"
+    },
+    {
+      "tx_task_id": "14",
+      "best_score": 4,
+      "rolling_scores": [],
+      "total_attempts": 26,
+      "last_attempt_at": "2026-03-22T11:23:46.743278+00:00"
+    },
+    {
+      "tx_task_id": "15",
+      "best_score": 3.333333333333333,
+      "rolling_scores": [],
+      "total_attempts": 24,
+      "last_attempt_at": "2026-03-22T11:02:37.560947+00:00"
+    },
+    {
+      "tx_task_id": "16",
+      "best_score": 2.6666666666666665,
+      "rolling_scores": [],
+      "total_attempts": 22,
+      "last_attempt_at": "2026-03-22T11:02:51.342698+00:00"
+    },
+    {
+      "tx_task_id": "17",
+      "best_score": 3.5,
+      "rolling_scores": [],
+      "total_attempts": 26,
+      "last_attempt_at": "2026-03-22T11:05:14.887733+00:00"
+    },
+    {
+      "tx_task_id": "18",
+      "best_score": 4,
+      "rolling_scores": [],
+      "total_attempts": 22,
+      "last_attempt_at": "2026-03-22T11:24:03.182853+00:00"
+    },
+    {
+      "tx_task_id": "19",
+      "best_score": 2.7273,
+      "rolling_scores": [],
+      "total_attempts": 15,
+      "last_attempt_at": "2026-03-22T11:20:42.078317+00:00"
+    },
+    {
+      "tx_task_id": "20",
+      "best_score": 2.4000000000000004,
+      "rolling_scores": [],
+      "total_attempts": 18,
+      "last_attempt_at": "2026-03-22T11:05:49.057999+00:00"
+    },
+    {
+      "tx_task_id": "21",
+      "best_score": 2.571428571428571,
+      "rolling_scores": [],
+      "total_attempts": 15,
+      "last_attempt_at": "2026-03-22T09:53:07.378852+00:00"
+    },
+    {
+      "tx_task_id": "22",
+      "best_score": 2.1,
+      "rolling_scores": [],
+      "total_attempts": 15,
+      "last_attempt_at": "2026-03-22T10:37:05.817566+00:00"
+    },
+    {
+      "tx_task_id": "23",
+      "best_score": 0.6000000000000001,
+      "rolling_scores": [],
+      "total_attempts": 17,
+      "last_attempt_at": "2026-03-22T10:58:58.406886+00:00"
+    },
+    {
+      "tx_task_id": "24",
+      "best_score": 6,
+      "rolling_scores": [],
+      "total_attempts": 17,
+      "last_attempt_at": "2026-03-22T11:20:06.145525+00:00"
+    },
+    {
+      "tx_task_id": "25",
+      "best_score": 6,
+      "rolling_scores": [],
+      "total_attempts": 17,
+      "last_attempt_at": "2026-03-22T11:00:18.413439+00:00"
+    },
+    {
+      "tx_task_id": "26",
+      "best_score": 6,
+      "rolling_scores": [],
+      "total_attempts": 17,
+      "last_attempt_at": "2026-03-22T10:51:52.568986+00:00"
+    },
+    {
+      "tx_task_id": "27",
+      "best_score": 6,
+      "rolling_scores": [],
+      "total_attempts": 17,
+      "last_attempt_at": "2026-03-22T10:58:28.913246+00:00"
+    },
+    {
+      "tx_task_id": "28",
+      "best_score": 6,
+      "rolling_scores": [],
+      "total_attempts": 13,
+      "last_attempt_at": "2026-03-22T11:00:52.034071+00:00"
+    },
+    {
+      "tx_task_id": "29",
+      "best_score": 1.0909090909090908,
+      "rolling_scores": [],
+      "total_attempts": 19,
+      "last_attempt_at": "2026-03-22T10:56:43.492167+00:00"
+    },
+    {
+      "tx_task_id": "30",
+      "best_score": 1.8,
+      "rolling_scores": [],
+      "total_attempts": 13,
+      "last_attempt_at": "2026-03-22T05:14:27.437658+00:00"
+    }
+  ]
+}

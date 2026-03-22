@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-112253973Z-bea12fcd",
+  "request_id": "58a0434e",
+  "prompt_raw": "The customer Ridgepoint Ltd (org no. 900993560) has complained about the invoice for \"Maintenance\" (30500 NOK excl. VAT). Issue a full credit note that reverses the entire invoice.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:23:43Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:22:54.377Z",
+  "after_captured_at": "2026-03-22T11:24:14.378Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T11:24:14.382Z"
+}

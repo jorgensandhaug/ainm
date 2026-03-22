@@ -1,0 +1,1 @@
+Score-aware reflection written. Key finding: T20 best stayed at 2.4/6 despite all verification GETs showing correct state. The playbook's /10 scores may not map linearly to the T3 leaderboard scale, and there are likely scoring checks on fields our verification doesn't cover. Further investigation needed into which specific checks drive the T20 score gap.

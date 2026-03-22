@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-111517552Z-11cdec92",
+  "request_id": "3c6a0849",
+  "prompt_raw": "Crie o produto \"Livro de receitas\" com número de produto 7946. O preço é 18250 NOK sem IVA, utilizando a taxa de IVA de 0 % para livros.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:15:56Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:15:17.601Z",
+  "after_captured_at": "2026-03-22T11:16:27.385Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T11:16:27.387Z"
+}

@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-104644700Z-1d00ce6b",
+  "request_id": "2498870e",
+  "prompt_raw": "Wir haben Fehler im Hauptbuch für Januar und Februar 2026 entdeckt. Überprüfen Sie alle Belege und finden Sie die 4 Fehler: eine Buchung auf das falsche Konto (Konto 6500 statt 6540, Betrag 3000 NOK), ein doppelter Beleg (Konto 6540, Betrag 2600 NOK), eine fehlende MwSt.-Zeile (Konto 7000, Betrag ohne MwSt. 7100 NOK, fehlende MwSt. auf Konto 2710), und ein falscher Betrag (Konto 6540, 8350 NOK gebucht statt 7000 NOK). Korrigieren Sie alle Fehler mit entsprechenden Korrekturbuchungen.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T10:49:07Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T10:46:44.758Z",
+  "after_captured_at": "2026-03-22T10:49:37.991Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T10:49:37.992Z"
+}

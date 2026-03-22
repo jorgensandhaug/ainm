@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-110850262Z-1444d516",
+  "request_id": "e0418e8c",
+  "prompt_raw": "Vi har mottatt faktura INV-2026-7530 fra leverandøren Stormberg AS (org.nr 935090350) på 27050 kr inklusiv MVA. Beløpet gjelder kontortjenester (konto 6540). Registrer leverandørfakturaen med korrekt inngående MVA (25 %).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:12:07Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:08:51.169Z",
+  "after_captured_at": "2026-03-22T11:12:38.015Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T11:12:38.017Z"
+}

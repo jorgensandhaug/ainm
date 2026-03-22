@@ -1,0 +1,8 @@
+{
+  "prompt": "Crie o cliente Oceano Lda com número de organização 945727098. O endereço é Industriveien 56, 4611 Kristiansand. E-mail: post@oceano.no.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "gArdhGE8FGKVxrhgQGAaeAiPLTWSDaomDga2Xn4Jh6k"
+  }
+}

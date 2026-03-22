@@ -1,0 +1,8 @@
+{
+  "prompt": "Vi har mottatt faktura INV-2026-7530 fra leverandøren Stormberg AS (org.nr 935090350) på 27050 kr inklusiv MVA. Beløpet gjelder kontortjenester (konto 6540). Registrer leverandørfakturaen med korrekt inngående MVA (25 %).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "uC56rYv-hryAZUQeqsafBnPuvnNyqV49NRP_kZVM7ZU"
+  }
+}

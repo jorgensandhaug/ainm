@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-105022400Z-7b9089af",
+  "request_id": "42548c4c",
+  "prompt_raw": "Ejecute la nómina de Miguel Martínez (miguel.martinez@example.org) para este mes. El salario base es de 46800 NOK. Añada una bonificación única de 13350 NOK además del salario base.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T10:52:06Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T10:50:22.450Z",
+  "after_captured_at": "2026-03-22T10:52:36.799Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T10:52:36.799Z"
+}

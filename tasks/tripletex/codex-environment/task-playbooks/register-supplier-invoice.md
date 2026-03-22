@@ -22,13 +22,15 @@ Do not use for:
 2. `GET /ledger/account?number=...&fields=id,number,vatLocked,legalVatTypes` — response: `.values`; extract id AND check `vatLocked` — **do NOT use `isApplicableForSupplierInvoice=true`** (excludes vatLocked accounts like 7100 → empty results → crash)
 3. **If vatLocked** (step 2): `GET /ledger/account?number=2710&fields=id` — get input VAT account for manual split (2711 for 12%)
 4. `POST /ledger/voucher/importDocument` with EHF/UBL XML — **response: `.values` (plural, NOT `.value`)** — extract `.values[0].id` and `.values[0].version`
-4. `GET /supplierInvoice?voucherId={id}&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31&fields=*` — **verify** SI entity created; log `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`. **CRITICAL**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED — omitting them returns 422
-5. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings (version from step 3) — response: `.value`
-6. `PUT /ledger/voucher/{id}?sendToLedger=true` — book the voucher (version from step 5) — response: `.value`
-7. `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)` — **verify** booked (`number > 0`); log postings, description, voucherType. **NOTE**: plain `fields=*` returns posting IDs only — use `postings(*)` for expanded data
-8. `GET /supplier/{id}?fields=*` — **verify** postalAddress, physicalAddress, bankAccountPresentation populated
+5. `GET /supplierInvoice?voucherId={id}&invoiceDateFrom=2026-01-01&invoiceDateTo=2026-12-31&fields=*` — **verify** SI entity created; log `amount`, `amountExcludingVat`, `invoiceNumber`, `kidOrReceiverReference`. **CRITICAL**: `invoiceDateFrom` and `invoiceDateTo` are REQUIRED — omitting them returns 422
+6. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings (version from step 4) — response: `.value`
+7. `PUT /ledger/voucher/{id}?sendToLedger=true` — book the voucher (version from step 6) — response: `.value`
+8. `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)` — **verify** booked (`number > 0`); log postings. **NOTE**: plain `fields=*` returns posting IDs only — use `postings(*)` for expanded data
+9. `GET /ledger/posting?voucherId={id}&fields=*` — **verify** posting details: `account.number`, `amount`, `amountGross`, `vatType.id`, `supplier.id`, `invoiceNumber`, `row`
+10. `GET /supplier/{id}?fields=*` — **verify** postalAddress, physicalAddress, bankAccountPresentation populated
+11. `GET /supplierInvoice/{siId}?fields=*,orderLines(*)` — **verify** order lines: `description`, `amountExcludingVat`, `vatType.id`
 
-**GETs do NOT lower score.** Use them liberally. 4 write calls + 4 read calls = 8 total. For non-25% VAT, add `GET /ledger/vatType` → 9 total.
+**GETs do NOT lower score.** Use them liberally. 4 write calls + 7 verification GETs = 11 total. For non-25% VAT or vatLocked accounts, add 1-2 more GETs.
 
 ### Why importDocument (NOT direct POST /ledger/voucher)
 
@@ -176,5 +178,6 @@ If the script crashes AFTER `importDocument` succeeds but BEFORE booking, retryi
 - direct-voucher runs: peaked at 1/8 despite correct description + auto-booking — NO SI entity
 - **FIX**: added booking step → expected improvement to 3/4 checks
 - **6b159167** (Portuguese prompt, importDocument + booked): 11 calls (4W+4R+3 errors); buyer org 422 + whoAmI 422 + SI GET 422; after fixing: voucher booked as 1-2026, SI correct; all 3 pitfalls documented
-- **fcfbb67a** (French prompt, importDocument + booked): 8 calls (4W+1L+3V) **0 errors** — first clean T11 run; voucher booked as number 1, SI entity correct; logging fix: use `postings(*)` not `fields=*` for voucher verification
+- **fcfbb67a** (French prompt, importDocument + booked): 8 calls (4W+1L+3V) **0 errors** — first clean T11 run; voucher booked as number 1, SI entity correct; scoring: ambiguous (concurrent runs), no score captured; logging fix: use `postings(*)` not `fields=*` for voucher verification
+- **1444d516** (Norwegian prompt, Stormberg AS / 935090350 / INV-2026-7530 / 27050 / 6540 / 25%): first attempt failed importDocument 422 — PaymentMeans code=30 missing PayeeFinancialAccount (PEPPOL BR-61); retry succeeded, 8 calls 0 errors; voucher booked as 1-2026; SI correct; duplicate supplier from retry (108590789 + 108590928); scoring: ambiguous, no score captured; FIX: made PayeeFinancialAccount ALWAYS required in XML, added `GET /ledger/posting` verification step
 - **d1b91499** (English prompt, account 7100 vatLocked): 15 calls, 3 avoidable 422s — isApplicableForSupplierInvoice filter excluded vatLocked account, PaymentMeans missing PayeeFinancialAccount, vatType:{id:1} on locked account; recovered by posting GROSS without VAT split (wrong accounting); FIX: vatLocked detection + manual 3-posting + removed isApplicableForSupplierInvoice filter

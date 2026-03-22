@@ -1,0 +1,8 @@
+{
+  "prompt": "Créez une facture pour le client Étoile SARL (nº org. 935438500) avec trois lignes de produit : Stockage cloud (8679) à 13200 NOK avec 25 % TVA, Développement système (5934) à 1900 NOK avec 15 % TVA (alimentaire), et Session de formation (8942) à 14800 NOK avec 0 % TVA (exonéré).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "YCKczdWtz-GKdiuWT6Vpo3AcRhOJvSYm0QQwh94u7L0"
+  }
+}

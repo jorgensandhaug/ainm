@@ -1,0 +1,8 @@
+{
+  "prompt": "Crea y envía una factura al cliente Solmar SL (org. nº 893298169) por 19500 NOK sin IVA. La factura es por Mantenimiento.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "6Cj0ZXQaObDxhgV-CXGG66em08Y5MiSmKp3USr2J_wc"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-105704259Z-019858d3",
+  "request_id": "778c6bb4",
+  "prompt_raw": "Nous avons envoyé une facture de 11764 EUR à Forêt SARL (nº org. 832101389) lorsque le taux de change était de 10.90 NOK/EUR. Le client a maintenant payé, mais le taux est de 11.19 NOK/EUR. Enregistrez le paiement et comptabilisez l'écart de change (agio) sur le bon compte.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T10:58:26Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T10:57:04.312Z",
+  "after_captured_at": "2026-03-22T10:58:56.904Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T10:58:56.905Z"
+}

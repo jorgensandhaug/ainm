@@ -162,17 +162,26 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
    - Log: `id`, `amount` (should be -gross), `amountExcludingVat` (should be -net), `invoiceNumber`, `kidOrReceiverReference`, `invoiceDueDate`, `outstandingAmount`
    - If count=0: importDocument failed silently — STOP, do not proceed
 
-2. **After booking** (step 7): `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)`
-   - **CRITICAL**: plain `fields=*` returns posting IDs only — use `postings(*)` for expanded data
+2. **After booking** (step 8): `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)`
+   - **CRITICAL**: plain `fields=*` returns posting IDs only (URL stubs) — use `postings(*)` for expanded data
    - Confirm: `number > 0` (booked)
-   - Log: `description`, `voucherType.name`, all postings with `account.id`, `amount`, `amountGross`, `vatType`
+   - Log: `description`, `voucherType.name`, all postings with `account.number`, `amount`, `amountGross`, `vatType.id`
    - If number=0: booking failed — investigate
 
-3. **After all writes** (step 8): `GET /supplier/{id}?fields=*`
+3. **Posting details** (step 9): `GET /ledger/posting?voucherId={id}&fields=*`
+   - Redundant but more reliable than `postings(*)` expansion
+   - Log: every posting's `row`, `account.number`, `amount`, `amountGross`, `vatType.id`, `supplier.id`, `invoiceNumber`, `description`
+   - Verify: expense row has correct account, net amount, vatType; supplier row has correct -gross, supplier ref, invoice number
+
+4. **Supplier** (step 10): `GET /supplier/{id}?fields=*`
    - Confirm: `postalAddress` populated, `physicalAddress` populated, `bankAccountPresentation` populated (if bank account was in prompt)
    - Log: full address fields, country.id
 
-**Log everything** — console.log the full JSON response from each verification GET. This data is critical for debugging failed production runs.
+5. **SI order lines** (step 11): `GET /supplierInvoice/{siId}?fields=*,orderLines(*)`
+   - Log: each order line's `description`, `amountExcludingVat`, `vatType.id`, `count`
+   - Verify: order line description matches prompt description
+
+**Log everything** — `console.log(JSON.stringify(response, null, 2))` for EVERY verification GET. This data is critical for debugging failed production runs.
 
 ## Known Recovery Branches
 - if the run is explicit-existing-supplier or retry/persistent-account and the supplier lookup returns zero hits, create the supplier once and continue with the returned ids

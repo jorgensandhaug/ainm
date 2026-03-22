@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-111824277Z-a816e2a4",
+  "request_id": "a32de2b2",
+  "prompt_raw": "Has recibido un contrato de trabajo (ver PDF adjunto). Crea el empleado en Tripletex con todos los datos del contrato: numero de identidad, fecha de nacimiento, departamento, codigo de ocupacion, salario, porcentaje de empleo y fecha de inicio.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:20:35Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:18:24.330Z",
+  "after_captured_at": "2026-03-22T11:21:05.861Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T11:21:05.865Z"
+}

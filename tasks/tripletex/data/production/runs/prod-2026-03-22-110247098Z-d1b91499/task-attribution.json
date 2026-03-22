@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-110247098Z-d1b91499",
+  "request_id": "3883c42d",
+  "prompt_raw": "We have received invoice INV-2026-8735 from the supplier Brightstone Ltd (org no. 913701585) for 8500 NOK including VAT. The amount relates to office services (account 7100). Register the supplier invoice with the correct input VAT (25%).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:06:35Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:02:47.149Z",
+  "after_captured_at": "2026-03-22T11:07:05.554Z",
+  "diff_entry_count": 4,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T11:07:05.558Z"
+}

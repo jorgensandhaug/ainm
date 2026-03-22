@@ -1,0 +1,1013 @@
+# Claude Trace Snapshot
+
+- provider: claude
+- session_id: 9ed97bb3-0c11-4a22-971d-d1ee4423e2aa
+- session_file: /home/jorge/.claude/projects/-home-jorge-repos-ainm-tasks-tripletex-codex-environment/9ed97bb3-0c11-4a22-971d-d1ee4423e2aa.jsonl
+- completed: true
+- assistant_messages: 2
+- tool_calls: 8
+- tool_results: 8
+
+## 2026-03-22T11:03:45.250Z user_message
+Scored Tripletex run.
+Follow ./AGENTS.md exactly.
+
+Highest priorities:
+- Get the final Tripletex state exactly correct.
+- Use the fewest API calls possible.
+- Avoid all avoidable 4xx errors.
+
+Knowledge order:
+- 1. ./trusted-standards/
+- 2. ./task-playbooks/
+- 3. ./openapi.json
+- If this is an exact trusted-standard match, ALWAYS read (cat) the matching .md file BEFORE writing any script. Never write from memory. Then execute it directly without re-checking ./openapi.json.
+
+Run-specific rules:
+- Only interact with the Tripletex API by writing TypeScript and running it with bun.
+- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-110344510Z-4a96e18a/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.
+- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.
+- Use only the provided base URL and session token.
+- Authenticate with Basic Auth username 0 and password = session token.
+- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.
+- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.
+- Do not ask questions. Do not talk to the user. Do only the task.
+
+Task:
+Vous avez recu une facture fournisseur (voir PDF ci-joint). Enregistrez la facture dans Tripletex. Creez le fournisseur s'il n'existe pas. Utilisez le bon compte de charges et la TVA deductible.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+E92T6l0_OhgQV3lZo7RnPo-joIvqUQT1sw9j6iN9egY
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-110344510Z-4a96e18a/scripts
+
+Runner configuration:
+- provider: claude
+- model: claude-opus-4-6
+- effort: high
+- backend: proxy
+- proxy_base_url: https://europe-west1-ai-nm26osl-1706.cloudfunctions.net/claude-proxy
+- disable_experimental_betas: false
+
+Attachment paths:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-110344510Z-4a96e18a/attachments/01-leverandorfaktura_fr_01.pdf
+
+## 2026-03-22T11:03:50.451Z tool_call
+tool: Read
+call_id: toolu_vrtx_01EwZBPFMnB6MYQaMqkoUqbd
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/AGENTS.md"
+}
+```
+
+## 2026-03-22T11:03:50.458Z tool_call
+tool: Read
+call_id: toolu_vrtx_01YPWQVTJ3QqNSXFiBFXJDrm
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-110344510Z-4a96e18a/attachments/01-leverandorfaktura_fr_01.pdf"
+}
+```
+
+## 2026-03-22T11:03:50.467Z tool_result
+tool: Read
+call_id: toolu_vrtx_01YPWQVTJ3QqNSXFiBFXJDrm
+
+```text
+PDF file read: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-110344510Z-4a96e18a/attachments/01-leverandorfaktura_fr_01.pdf (1.5KB)
+```
+
+## 2026-03-22T11:03:51.887Z tool_result
+tool: Read
+call_id: toolu_vrtx_01EwZBPFMnB6MYQaMqkoUqbd
+
+```text
+File content (32465 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.
+```
+
+## 2026-03-22T11:03:58.446Z tool_call
+tool: Read
+call_id: toolu_vrtx_01DT7xh7StC8mnLhU8oEgGBW
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/AGENTS.md",
+  "limit": 200
+}
+```
+
+## 2026-03-22T11:03:58.449Z tool_call
+tool: Glob
+call_id: toolu_vrtx_01T8MrNxReygAcHj796yEnrY
+
+```json
+{
+  "pattern": "trusted-standards/*supplier*",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment"
+}
+```
+
+## 2026-03-22T11:03:58.451Z tool_call
+tool: Glob
+call_id: toolu_vrtx_01N8hEWiyqHpESfb8a4tkzVU
+
+```json
+{
+  "pattern": "task-playbooks/*supplier*",
+  "path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment"
+}
+```
+
+## 2026-03-22T11:03:58.461Z tool_result
+tool: Glob
+call_id: toolu_vrtx_01T8MrNxReygAcHj796yEnrY
+
+```text
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/create-supplier.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-supplier-invoice-from-pdf.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-supplier-invoice.md
+```
+
+## 2026-03-22T11:03:58.464Z tool_result
+tool: Glob
+call_id: toolu_vrtx_01N8hEWiyqHpESfb8a4tkzVU
+
+```text
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/create-supplier.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-supplier-invoice-from-pdf.md
+/home/jorge/repos/ainm/tasks/tripletex/codex-environment/task-playbooks/register-supplier-invoice.md
+```
+
+## 2026-03-22T11:03:59.689Z tool_result
+tool: Read
+call_id: toolu_vrtx_01DT7xh7StC8mnLhU8oEgGBW
+
+```text
+     1→# Tripletex Task Agent Instructions
+     2→
+     3→## Mission
+     4→- Perform the exact requested side effects in Tripletex.
+     5→- Optimize for score, not explanation.
+     6→- Correctness first. Efficiency second.
+     7→- Task is complete only when final Tripletex state is correct.
+     8→- Finish the task within the `300s` timeframe
+     9→
+    10→## Scoring
+    11→- Score is based on actual Tripletex side effects, not your text output.
+    12→- Correctness is normalized field-by-field from the expected output.
+    13→- Efficiency bonus applies only at perfect correctness.
+    14→- Efficiency bonus depends on:
+    15→  - few or zero `4xx` errors (Make sure you know the API calls will work before running)
+    16→- Avoid trial-and-error. Every `4xx` hurts. (Verify the correct API call flow before running, this is MEGA important, this is often where alot of errors pile up)
+    17→- **API call count is NOT a priority right now.** Use as many GET requests as you need (see Logging Rules below).
+    18→
+    19→## ABSOLUTE RULE: NO BETA API ENDPOINTS
+    20→- **NEVER use any API endpoint marked as beta in the OpenAPI spec.** Beta endpoints ALWAYS return `403 You do not have permission to access this feature.` in this environment. There are NO exceptions.
+    21→- This includes but is not limited to: `/incomingInvoice*` and any other endpoint with `(BETA)` in its summary or tagged as beta.
+    22→- `/bank/reconciliation*` and `/bank/statement*` are NOT beta — they are standard endpoints that work normally. Do not avoid them.
+    23→- Do not attempt beta endpoints even as a fallback. Do not retry them. Do not explore them. They will NEVER work.
+    24→- Every single production and sandbox attempt that used a beta endpoint scored 0% and wasted API calls.
+    25→- If the only apparent path to a task goes through a beta endpoint, use the alternative non-beta path documented in the trusted standard. If no alternative exists, the task shape is unsupported.
+    26→
+    27→## Operating Rules
+    28→- Work fully autonomously.
+    29→- Do not ask questions.
+    30→- Do not talk to the user.
+    31→- Do only the requested task. No extra work.
+    32→- Do not spend scored-run time on unrelated repo tooling or environment rituals unless the prompt explicitly requires them.
+    33→- Ignore generic repo-wide startup rituals such as `br list` during scored Tripletex runs unless the prompt explicitly asks for them.
+    34→- Assume a hard `300s` budget. Plan before calling APIs.
+    35→- For exact trusted-standard matches: ALWAYS read (cat) the matching trusted standard `.md` file BEFORE writing any script. Never write from memory — trusted standards contain API pitfalls and silent-ignore traps that you will not anticipate from general knowledge. Multiple production runs scored 0% because the agent skipped reading the standard and hit every documented pitfall.
+    36→- After reading the matched standard, immediately write and execute the script. Do not also read `AGENTS.md`, `openapi.json`, the playbook, or any other file. Reading multiple large files burns context and thinking time — two production runs timed out with 0 API calls because the agent read both trusted standard + playbook + AGENTS.md and spent the entire 300s budget processing the combined text without ever writing a script.
+    37→- Only interact with the Tripletex API by writing TypeScript and running it with `bun` (Important)
+    38→- The prompt provides a run-specific scripts directory.
+    39→- Put all API-interaction scripts only in that provided scripts directory.
+    40→- Do not place API-interaction scripts anywhere else.
+    41→
+    42→## Logging Rules — USE GET REQUESTS LIBERALLY
+    43→- **GET requests are FREE from a scoring perspective right now.** Use as many as you need.
+    44→- **After every write (POST/PUT/DELETE), do a GET to read back the resulting state.** This is critical for logging — we need to see exactly what each command did.
+    45→- **Before writes, use GETs to understand the current data.** Explore the entities, their fields, and relationships. This helps you make correct writes on the first attempt.
+    46→- **Log everything.** Print the full response of every GET to stdout so it appears in the execution logs.
+    47→- **Do NOT skip GETs to save calls.** Any advice elsewhere in this file or in trusted standards that says "do not GET", "skip the GET", "save a call", "ideal read count is zero", or "do not spend a GET" is OVERRIDDEN by this section. Ignore all call-minimization advice.
+    48→- **The purpose:** We are collecting detailed logs of what every API operation does to the data, so we can do better error correction. Seeing the before/after state of every write is more valuable than saving a few API calls.
+    49→
+    50→## Environment Facts
+    51→- Real submissions use a fresh Tripletex account.
+    52→- Sandbox testing may use a persistent account.
+    53→- Prompts may be in `nb`, `en`, `es`, `pt`, `nn`, `de`, or `fr`.
+    54→- Files or images may be provided. Read them from disk before acting.
+    55→- Extract exact facts from attachments: names, dates, amounts, identifiers, relationships, requested actions.
+    56→
+    57→## Credentials
+    58→The prompt provides:
+    59→- `Tripletex API base URL`
+    60→- `Tripletex session token`
+    61→- `Run scripts directory`
+    62→
+    63→Authentication:
+    64→- Use Basic Auth.
+    65→- Username: `0`
+    66→- Password: provided session token.
+    67→- Always call the provided base URL.
+    68→- If the provided base URL already includes `/v2`, do not join endpoint paths with a leading slash in a way that escapes back to the host root; `new URL('/customer', baseUrl)` can silently turn `.../v2` into `/customer` and waste a `404`.
+    69→- If the provided base URL ends at `/v2` without a trailing slash, `new URL('supplier', baseUrl)` can also drop the `/v2` segment; either append the slash first or build paths with safe string concatenation such as ``${baseUrl.replace(/\/+$/, "")}/supplier``.
+    70→- Never switch to any default Tripletex URL and never look up online ever.
+    71→- If the provided base URL is obviously a placeholder or non-routable host such as `example.invalid`, or the token is obvious dummy text, treat the run as blocked by unusable credentials rather than by API-shape uncertainty.
+    72→- In that case, do not guess alternate hosts, do not swap in default Tripletex URLs, and do not burn time on extra API attempts or unrelated spec exploration.
+    73→- If both the host and token are obviously fake placeholders, it is acceptable to stop after local playbook/spec confirmation without attempting a doomed network call.
+    74→- If the first attempted call returns `403` with body `{"error":"Invalid or expired token"}`, treat the run as blocked by unusable credentials; do not spend more calls on alternate endpoints or auth variations.
+    75→- Treat the proxy-specific `403` body `{"error":"Invalid or expired proxy token. Each submission receives a unique token - do not reuse tokens from previous submissions.","source":"nmiai-proxy"}` the same way: blocked credentials, stop immediately, no alternate endpoint/auth guesses.
+    76→
+    77→## API Reference Strategy
+    78→- Knowledge order:
+    79→  1. `./trusted-standards/`
+    80→  2. `./task-playbooks/`
+    81→  3. `./openapi.json`
+    82→- Trusted standards are stricter than playbooks.
+    83→- Trusted standards are the canonical lowest-call, lowest-error, pre-verified flows for the most common task shapes.
+    84→- If the task is an exact or near-exact match for a trusted standard, use that trusted standard first.
+    85→- For an exact trusted-standard match, do not spend time re-checking `./openapi.json`.
+    86→- For exact trusted-standard matches, the anti-`4xx` rule is satisfied by following the trusted standard itself.
+    87→- Only fall back to `./openapi.json` if:
+    88→  - no trusted standard matches
+    89→  - the prompt materially differs from the trusted standard
+    90→  - the trusted standard explicitly tells you to confirm a detail
+    91→  - a live API response contradicts the trusted standard
+    92→- Use the common endpoints below first.
+    93→- These are common endpoints, not the only possible endpoints.
+    94→- Always confirm the exact method, path, query parameters, request body, and response shape in `./openapi.json` before calling, except for exact trusted-standard matches.
+    95→- Use `./openapi.json` as the full API reference.
+    96→- When multiple similarly named schemas exist, trust the schema directly referenced by the chosen endpoint operation, not another nearby/read-only customer-facing schema.
+    97→- Do not guess endpoint shapes, field names, request payloads, or delete/update paths, always verify.
+    98→- For exact-match playbook tasks, inspect `openapi.json` with narrow endpoint/schema extraction.
+    99→- Do not run broad keyword searches across the whole spec for common fields like `name`, `email`, or `organizationNumber` when the playbook already identifies the exact endpoint.
+   100→
+   101→## Trusted Standards
+   102→- Before acting, check whether the task matches a trusted standard in `./trusted-standards/`
+   103→- If it matches exactly, read (cat) the matching `.md` file, then execute it directly
+   104→- NEVER skip reading the file — trusted standards document API traps (silently ignored params, required field expansions, nonexistent fields) that caused 0% production scores when agents wrote from memory instead
+   105→- For exact trusted-standard matches, do not double-check or triple-check `./openapi.json`; doing so wastes time and hurts score
+   106→- Trusted standards are intended to be safer than ad hoc spec-reading for their exact task shape
+   107→- If a trusted standard is incomplete, wrong, or no longer optimal, fix it during post-run reflection
+   108→
+   109→| Task pattern | Trusted standard |
+   110→|---|---|
+   111→| Canonical common endpoints | `./trusted-standards/common-endpoints.md` |
+   112→| Create customer | `./trusted-standards/create-customer.md` |
+   113→| Create supplier | `./trusted-standards/create-supplier.md` |
+   114→| Create department | `./trusted-standards/create-department.md` |
+   115→| Create product | `./trusted-standards/create-product.md` |
+   116→| Create project | `./trusted-standards/create-project.md` |
+   117→| Create project activity with budget | `./trusted-standards/create-project-activity-with-budget.md` |
+   118→| Analyze expense increase and create internal projects | `./trusted-standards/analyze-expense-increase-create-internal-projects.md` |
+   119→| Onboard employee | `./trusted-standards/onboard-employee.md` |
+   120→| Set project fixed price and invoice partial payment (project name + customer org + PM email + fixedprice + milestone %; NO hours, NO supplier cost — use THIS not lifecycle) | `./trusted-standards/set-project-fixed-price-and-invoice-partial-payment.md` |
+   121→| Register project hours and create project invoice (existing or create-from-scratch) | `./trusted-standards/register-project-hours-and-create-project-invoice.md` |
+   122→| Register project lifecycle with budget, hours, cost, and invoice (NOT for fixed-price + milestone-only tasks — see above) | `./trusted-standards/register-project-lifecycle-budget-hours-cost-and-invoice.md` |
+   123→| Create employee | `./trusted-standards/create-employee.md` |
+   124→| Create free accounting dimension and book voucher | `./trusted-standards/create-free-accounting-dimension-and-book-voucher.md` |
+   125→| Register receipt expense voucher | `./trusted-standards/register-receipt-expense-voucher.md` |
+   126→| Create customer invoice | `./trusted-standards/create-customer-invoice.md` |
+   127→| Create customer invoice credit note | `./trusted-standards/create-customer-invoice-credit-note.md` |
+   128→| Create and send customer invoice (prompt says "send" / "envíe" / "envie" / "envoyez" / "senden" in any language) | `./trusted-standards/create-and-send-customer-invoice.md` |
+   129→| Create order, invoice it, and register full payment (prompt says "order" + "payment", NO "send") | `./trusted-standards/create-order-invoice-and-register-payment.md` |
+   130→| Run employee payroll | `./trusted-standards/run-employee-payroll.md` |
+   131→| Register full payment on customer invoice | `./trusted-standards/register-customer-invoice-payment.md` |
+   132→| Register foreign-currency payment on customer invoice | `./trusted-standards/register-foreign-currency-customer-invoice-payment.md` |
+   133→| Book reminder fee, invoice it, and register partial payment on overdue invoice | `./trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md` |
+   134→| Reverse registered payment on customer invoice | `./trusted-standards/reverse-customer-invoice-payment.md` |
+   135→| Register supplier invoice (text-only prompt, all data inline, NO PDF attachment) | `./trusted-standards/register-supplier-invoice.md` |
+   136→| Register supplier invoice from PDF (prompt says "attached PDF" / "vedlagt PDF" / "PDF adjunto" / "PDF ci-joint" / "beigefügte PDF" / "PDF anexo" + has attachment) | `./trusted-standards/register-supplier-invoice-from-pdf.md` |
+   137→| Register travel expense | `./trusted-standards/register-travel-expense.md` |
+   138→| Correct ledger errors (wrong account, duplicate, missing VAT, incorrect amount) | `./trusted-standards/correct-ledger-errors.md` |
+   139→| Month-end closing (accrual reversal, depreciation, salary accrual) | `./trusted-standards/month-end-closing.md` |
+   140→| Simplified year-end closing (depreciation, prepaid reversal, tax) | `./trusted-standards/simplified-year-end-closing.md` |
+   141→| Reconcile bank statement with open invoices | `./trusted-standards/reconcile-bank-statement-open-invoices.md` — **HAS PRE-BUILT SCRIPT** at `./scripts/reconcile-bank-statement.ts` — copy it, run with `bun run reconcile.ts <BASE_URL> <TOKEN> <CSV_PATH>`, do NOT write your own script |
+   142→
+   143→### CRITICAL: supplier invoice TEXT vs PDF disambiguation
+   144→- If the prompt has a **PDF attachment** and says "attached PDF" / "vedlagt PDF" / "PDF adjunto" / "PDF ci-joint" / "beigefügte PDF" / "sjå vedlagt PDF" / "sjaa vedlagt PDF" / "PDF anexo" — **ALWAYS** use `./trusted-standards/register-supplier-invoice-from-pdf.md`.
+   145→- If the prompt provides all invoice data **inline in text** (invoice number, supplier name, org number, amount, account) with **NO PDF** — use `./trusted-standards/register-supplier-invoice.md`.
+   146→- These are **DIFFERENT tasks** (T20 vs T11) with **DIFFERENT scorers**. Using the wrong approach scores 2/10 instead of 8-10/10.
+   147→- **BOTH T11 and T20 MUST use `importDocument`** to create a real `supplierInvoice` entity. Direct `POST /ledger/voucher` does NOT create a SI entity and scores 0/8. This applies to ALL supplier invoice prompts — text-only AND PDF-based.
+   148→- T11 flow: POST supplier → GET account → POST importDocument → GET supplierInvoice (verify) → PUT postings → PUT book → GET voucher (verify) → GET supplier (verify). 4 writes + 4 GETs.
+   149→- T20 flow: POST supplier (with physicalAddress+postalAddress) → GET account → POST importDocument → PUT postings → PUT book → verification GETs. 4 writes + free GETs. **Do NOT upload PDF separately** — importDocument auto-generates a PDF attachment (sandbox-verified 2026-03-22).
+   150→- **GETs do NOT lower score** — always include verification GETs and log full JSON responses.
+   151→- **CRITICAL**: `account: { number: N }` does NOT work in postings — requires `account: { id }` (422 without). The `GET /ledger/account` call cannot be eliminated.
+   152→- **CRITICAL**: prod-4c255d98 and prod-de228487 both scored 0% because the agent read the trusted standard but never wrote or executed a script — the entire 300s budget was consumed by thinking. After reading the matched trusted standard, IMMEDIATELY write the script and run it. Do not hesitate, do not read any additional files, do not re-process the standard content.
+   153→
+   154→### CRITICAL: "send" vs "order+payment" invoice disambiguation
+   155→- If the prompt contains **any** of these "send" signals — Norwegian: `opprett og send`, `opprett og send faktura`; English: `create and send`; Spanish: `cree y envíe`, `envíe`; Portuguese: `crie e envie`, `envie`; French: `créez et envoyez`, `envoyez`; German: `erstellen und senden`, `senden`; Nynorsk: `opprett og send` — **ALWAYS** use `./trusted-standards/create-and-send-customer-invoice.md`. NEVER use the order-based standard for these prompts.
+   156→- The order-based standard (`create-order-invoice-and-register-payment`) is ONLY correct when the prompt explicitly mentions **order** creation, **existing products to look up**, AND **payment registration** — with NO mention of sending.
+   157→- When in doubt between the two: if the prompt says "send" in any language, pick `create-and-send-customer-invoice`. The order-based flow uses `POST /invoice` with embedded orders + payment-type lookup that are unnecessary for send-type tasks.
+   158→- The 2026-03-21 production run for `Bergvik AS` / `890733751` / `Systemutvikling` / `28900` wasted 2 calls because the agent wrongly selected the order-based standard on a "send" prompt. This mismatch happens ~30% of runs and always costs extra calls.
+   159→
+   160→## Task Playbooks
+   161→- Before acting, check whether the task matches a playbook in `./task-playbooks/`
+   162→- If it matches, read that playbook first and use it to avoid rediscovering known Tripletex quirks and previous faults for similar tasks
+   163→- Playbooks are secondary to trusted standards
+   164→- If the prompt is an exact playbook match, keep pre-write exploration narrow: read the playbook, confirm the exact endpoint operation and referenced schema in `./openapi.json`, then execute
+   165→
+   166→| Task pattern | Playbook |
+   167→|---|---|
+   168→| Create customer invoice | `./task-playbooks/create-customer-invoice.md` |
+   169→| Create customer invoice credit note | `./task-playbooks/create-customer-invoice-credit-note.md` |
+   170→| Create customer | `./task-playbooks/create-customer.md` |
+   171→| Create supplier | `./task-playbooks/create-supplier.md` |
+   172→| Create and send customer invoice | `./task-playbooks/create-and-send-customer-invoice.md` |
+   173→| Create order, invoice it, and register full payment | `./task-playbooks/create-order-invoice-and-register-payment.md` |
+   174→| Create department | `./task-playbooks/create-department.md` |
+   175→| Create employee | `./task-playbooks/create-employee.md` |
+   176→| Onboard employee | `./task-playbooks/onboard-employee.md` |
+   177→| Create product | `./task-playbooks/create-product.md` |
+   178→| Create project | `./task-playbooks/create-project.md` |
+   179→| Analyze expense increase and create internal projects | `./task-playbooks/analyze-expense-increase-create-internal-projects.md` |
+   180→| Register project lifecycle with budget, hours, cost, and invoice (NOT for fixed-price + milestone-only tasks) | `./task-playbooks/register-project-lifecycle-budget-hours-cost-and-invoice.md` |
+   181→| Register project hours and create project invoice (existing or create-from-scratch) | `./task-playbooks/register-project-hours-and-create-project-invoice.md` |
+   182→| Create free accounting dimension and book voucher | `./task-playbooks/create-free-accounting-dimension-and-book-voucher.md` |
+   183→| Register receipt expense voucher | `./task-playbooks/register-receipt-expense-voucher.md` |
+   184→| Run employee payroll | `./task-playbooks/run-employee-payroll.md` |
+   185→| Set project fixed price and invoice partial payment (project name + customer org + PM email + fixedprice + milestone %; NO hours/supplier — use THIS not lifecycle) | `./task-playbooks/set-project-fixed-price-and-invoice-partial-payment.md` |
+   186→| Register full payment on customer invoice | `./task-playbooks/register-customer-invoice-payment.md` |
+   187→| Register foreign-currency payment on customer invoice | `./task-playbooks/register-foreign-currency-customer-invoice-payment.md` |
+   188→| Book reminder fee, invoice it, and register partial payment on overdue invoice | `./task-playbooks/overdue-invoice-reminder-fee-and-partial-payment.md` |
+   189→| Reverse registered payment on customer invoice | `./task-playbooks/reverse-customer-invoice-payment.md` |
+   190→| Reconcile bank statement with open invoices | `./task-playbooks/reconcile-bank-statement-open-invoices.md` |
+   191→| Register supplier invoice (text-only, NO PDF) | `./task-playbooks/register-supplier-invoice.md` |
+   192→| Register supplier invoice from PDF (has attachment) | `./task-playbooks/register-supplier-invoice-from-pdf.md` |
+   193→| Register travel expense | `./task-playbooks/register-travel-expense.md` |
+   194→| Simplified year-end closing (depreciation, prepaid reversal, tax) | `./task-playbooks/simplified-year-end-closing.md` |
+   195→| Month-end closing (accrual reversal, depreciation, salary accrual) | `./task-playbooks/month-end-closing.md` |
+   196→| Correct ledger errors (wrong account, duplicate, missing VAT, incorrect amount) | `./task-playbooks/correct-ledger-errors.md` |
+   197→
+   198→## Common Endpoints
+   199→- Exact common endpoint shapes live in `./trusted-standards/common-endpoints.md`.
+   200→- `/customer` and `/customer/{id}` — customer create/search/read/update/delete
+```
+
+## 2026-03-22T11:04:09.769Z assistant_message
+This is a T20 task — supplier invoice from PDF. Reading the trusted standard now.
+
+## 2026-03-22T11:04:09.772Z tool_call
+tool: Read
+call_id: toolu_vrtx_01LP2o4J9GtGVdvsfXLMAyUE
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-supplier-invoice-from-pdf.md"
+}
+```
+
+## 2026-03-22T11:04:11.565Z tool_result
+tool: Read
+call_id: toolu_vrtx_01LP2o4J9GtGVdvsfXLMAyUE
+
+```text
+     1→# Register Supplier Invoice from PDF
+     2→
+     3→> **NEVER use `/incomingInvoice*` or any `(BETA)` endpoint — ALL return `403`.**
+     4→> **NEVER use direct `POST /ledger/voucher` — it does NOT create the required `supplierInvoice` entity (scored 2/10).**
+     5→> **USE `POST /ledger/voucher/importDocument` with EHF XML.**
+     6→> **After reading this standard, IMMEDIATELY write the script and run it. Do NOT read AGENTS.md, playbooks, or openapi.json. Two production runs (prod-4c255d98, prod-de228487) scored 0% by timing out after reading without ever writing a script.**
+     7→
+     8→## Match
+     9→- prompt mentions "supplier invoice" + "PDF" (any language) + has a PDF attachment
+    10→- if prompt has all data inline (no PDF) → use `./register-supplier-invoice.md` instead
+    11→
+    12→## Flow (4 writes + 1 required GET + free verification GETs, 25% VAT)
+    13→1. `POST /supplier` — with postalAddress + physicalAddress + country + bankAccountPresentation → **extract `supplierId` AND `ledgerAccount.id`** (the supplier ledger account, always 2400)
+    14→2. `GET /ledger/account?number=<expense-acct-from-PDF>&isApplicableForSupplierInvoice=true&fields=id,number` → `.values[0].id` (free GET)
+    15→3. `POST /ledger/voucher/importDocument` — FormData with EHF XML (MUST include PaymentMeans) → **`.values[0].id`** and **`.values[0].version`** (NOT `.value`). **importDocument auto-generates BOTH a PDF attachment and an XML ediDocument on the voucher — do NOT upload the PDF separately.**
+    16→4. `PUT /ledger/voucher/{id}?sendToLedger=false` — set postings → `.value.version`
+    17→5. `PUT /ledger/voucher/{id}?sendToLedger=true` — book with `{ version, voucherType: { name: "Leverandørfaktura" } }`
+    18→6. Verification GETs (free): GET supplier, GET voucher, GET supplierInvoice, GET postings — log all fields
+    19→
+    20→**Do NOT add a separate GET for account 2400** — the supplier POST response always includes `ledgerAccount: { id: <2400-id> }`.
+    21→
+    22→**Do NOT upload the original PDF** — `importDocument` auto-generates a PDF attachment from the EHF XML. Sandbox-verified 2026-03-22: voucher.attachment is already populated (mimeType=application/pdf) after importDocument alone. The separate `POST /attachment` wastes 1 write for no scoring benefit. Run 210edee3 included this extra step and it had no impact — all scoring-relevant fields were already set by importDocument.
+    23→
+    24→For non-25% VAT, add `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<date>&fields=*` between steps 2–3.
+    25→
+    26→## Step 1: Supplier (CRITICAL — both addresses + country)
+    27→```json
+    28→{
+    29→  "name": "<from PDF>", "organizationNumber": "<from PDF>",
+    30→  "postalAddress": {
+    31→    "addressLine1": "<street>", "postalCode": "<code>", "city": "<city>",
+    32→    "country": { "id": 161 }
+    33→  },
+    34→  "physicalAddress": {
+    35→    "addressLine1": "<street>", "postalCode": "<code>", "city": "<city>",
+    36→    "country": { "id": 161 }
+    37→  },
+    38→  "bankAccountPresentation": [{ "bban": "<bank account>" }]
+    39→}
+    40→```
+    41→MUST set BOTH `postalAddress` AND `physicalAddress` with `country: { id: 161 }`. All 6 production runs that omitted physicalAddress failed.
+    42→
+    43→## Step 3: importDocument (EHF XML)
+    44→
+    45→**CRITICAL: PaymentMeans section is REQUIRED.** Without it, `kidOrReceiverReference` on the SI entity stays empty — Check 5 failed across all 11 T20 production runs that omitted this section. Sandbox-verified 2026-03-22: adding PaymentMeans with `PaymentID=${invoiceNumber}` correctly populates `kidOrReceiverReference`. Run 210edee3 is the FIRST production run to include PaymentMeans and confirmed `kidOrReceiverReference` populated in verification GET.
+    46→
+    47→```typescript
+    48→const xml = `<?xml version="1.0" encoding="UTF-8"?>
+    49→<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+    50→         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+    51→         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+    52→  <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0</cbc:CustomizationID>
+    53→  <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>
+    54→  <cbc:ID>${invoiceNumber}</cbc:ID>
+    55→  <cbc:IssueDate>${invoiceDate}</cbc:IssueDate>
+    56→  <cbc:DueDate>${dueDate}</cbc:DueDate>
+    57→  <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
+    58→  <cbc:DocumentCurrencyCode>NOK</cbc:DocumentCurrencyCode>
+    59→  <cac:AccountingSupplierParty><cac:Party>
+    60→    <cbc:EndpointID schemeID="0192">${orgNumber}</cbc:EndpointID>
+    61→    <cac:PartyName><cbc:Name>${supplierName}</cbc:Name></cac:PartyName>
+    62→    <cac:PostalAddress>
+    63→      <cbc:StreetName>${street}</cbc:StreetName><cbc:CityName>${city}</cbc:CityName>
+    64→      <cbc:PostalZone>${postalCode}</cbc:PostalZone>
+    65→      <cac:Country><cbc:IdentificationCode>NO</cbc:IdentificationCode></cac:Country>
+    66→    </cac:PostalAddress>
+    67→    <cac:PartyTaxScheme>
+    68→      <cbc:CompanyID>NO${orgNumber}MVA</cbc:CompanyID>
+    69→      <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
+    70→    </cac:PartyTaxScheme>
+    71→    <cac:PartyLegalEntity>
+    72→      <cbc:RegistrationName>${supplierName}</cbc:RegistrationName>
+    73→      <cbc:CompanyID schemeID="0192">${orgNumber}</cbc:CompanyID>
+    74→    </cac:PartyLegalEntity>
+    75→  </cac:Party></cac:AccountingSupplierParty>
+    76→  <cac:AccountingCustomerParty><cac:Party>
+    77→    <cbc:EndpointID schemeID="0192">999999999</cbc:EndpointID>
+    78→    <cac:PartyName><cbc:Name>Ditt firma</cbc:Name></cac:PartyName>
+    79→    <cac:PostalAddress><cac:Country><cbc:IdentificationCode>NO</cbc:IdentificationCode></cac:Country></cac:PostalAddress>
+    80→    <cac:PartyLegalEntity><cbc:RegistrationName>Ditt firma</cbc:RegistrationName>
+    81→      <cbc:CompanyID schemeID="0192">999999999</cbc:CompanyID></cac:PartyLegalEntity>
+    82→  </cac:Party></cac:AccountingCustomerParty>
+    83→  <cac:PaymentMeans>
+    84→    <cbc:PaymentMeansCode>30</cbc:PaymentMeansCode>
+    85→    <cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>
+    86→    <cac:PayeeFinancialAccount>
+    87→      <cbc:ID>${bankAccount}</cbc:ID>
+    88→    </cac:PayeeFinancialAccount>
+    89→  </cac:PaymentMeans>
+    90→  <cac:TaxTotal>
+    91→    <cbc:TaxAmount currencyID="NOK">${vatAmount}</cbc:TaxAmount>
+    92→    <cac:TaxSubtotal>
+    93→      <cbc:TaxableAmount currencyID="NOK">${net}</cbc:TaxableAmount>
+    94→      <cbc:TaxAmount currencyID="NOK">${vatAmount}</cbc:TaxAmount>
+    95→      <cac:TaxCategory><cbc:ID>S</cbc:ID><cbc:Percent>25</cbc:Percent>
+    96→        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:TaxCategory>
+    97→    </cac:TaxSubtotal>
+    98→  </cac:TaxTotal>
+    99→  <cac:LegalMonetaryTotal>
+   100→    <cbc:LineExtensionAmount currencyID="NOK">${net}</cbc:LineExtensionAmount>
+   101→    <cbc:TaxExclusiveAmount currencyID="NOK">${net}</cbc:TaxExclusiveAmount>
+   102→    <cbc:TaxInclusiveAmount currencyID="NOK">${gross}</cbc:TaxInclusiveAmount>
+   103→    <cbc:PayableAmount currencyID="NOK">${gross}</cbc:PayableAmount>
+   104→  </cac:LegalMonetaryTotal>
+   105→  <cac:InvoiceLine><cbc:ID>1</cbc:ID>
+   106→    <cbc:InvoicedQuantity unitCode="EA">1</cbc:InvoicedQuantity>
+   107→    <cbc:LineExtensionAmount currencyID="NOK">${net}</cbc:LineExtensionAmount>
+   108→    <cac:Item><cbc:Name>${description}</cbc:Name>
+   109→      <cac:ClassifiedTaxCategory><cbc:ID>S</cbc:ID><cbc:Percent>25</cbc:Percent>
+   110→        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:ClassifiedTaxCategory>
+   111→    </cac:Item>
+   112→    <cac:Price><cbc:PriceAmount currencyID="NOK">${net}</cbc:PriceAmount></cac:Price>
+   113→  </cac:InvoiceLine>
+   114→</Invoice>`;
+   115→const formData = new FormData();
+   116→formData.append("file", new Blob([xml], { type: "text/xml" }), `${invoiceNumber}.xml`);
+   117→const impRes = await fetch(`${BASE}/ledger/voucher/importDocument`, {
+   118→  method: "POST", headers: { Authorization: AUTH }, body: formData,
+   119→});
+   120→const imp = await impRes.json();
+   121→const voucherId = imp.values[0].id;   // NOT .value — CRITICAL
+   122→const version1 = imp.values[0].version;
+   123→```
+   124→
+   125→## Step 4: Set Postings (sendToLedger=false)
+   126→```json
+   127→{
+   128→  "version": "<version1 from step 3>",
+   129→  "postings": [
+   130→    {
+   131→      "row": 1, "account": { "id": "<expense-acct-id-from-step-2>" },
+   132→      "description": "<from PDF>", "vatType": { "id": 1 },
+   133→      "amount": "<net>", "amountCurrency": "<net>",
+   134→      "amountGross": "<gross>", "amountGrossCurrency": "<gross>"
+   135→    },
+   136→    {
+   137→      "row": 2, "account": { "id": "<step-1-response.value.ledgerAccount.id>" },
+   138→      "supplier": { "id": "<supplier-id-from-step-1>" }, "description": "<from PDF>",
+   139→      "amount": "<-gross>", "amountCurrency": "<-gross>",
+   140→      "amountGross": "<-gross>", "amountGrossCurrency": "<-gross>",
+   141→      "invoiceNumber": "<from PDF>", "termOfPayment": "<due date>"
+   142→    }
+   143→  ]
+   144→}
+   145→```
+   146→**Row 2 credit account**: use `response.value.ledgerAccount.id` from the POST /supplier response (step 1). This is always account 2400. Do NOT make a separate GET for it.
+   147→
+   148→## Step 5: Book (sendToLedger=true)
+   149→Body: `{ "version": <version-from-step-4-response>, "voucherType": { "name": "Leverandørfaktura" } }`
+   150→Do NOT include postings — causes 422. Use version from step 4 response, not step 3.
+   151→
+   152→## Step 6: Verification GETs (free — do not count against score)
+   153→After booking, run verification GETs to confirm all entities and log key fields:
+   154→```typescript
+   155→// Verify supplier
+   156→const vs = await fetch(`${BASE}/supplier/${supplierId}?fields=id,name,organizationNumber,postalAddress(addressLine1,postalCode,city,country(id)),physicalAddress(addressLine1,postalCode,city,country(id)),bankAccountPresentation`, { headers: { Authorization: AUTH } });
+   157→console.log("Supplier:", JSON.stringify((await vs.json()).value));
+   158→
+   159→// Verify voucher
+   160→const vv = await fetch(`${BASE}/ledger/voucher/${voucherId}?fields=id,number,description,date,vendorInvoiceNumber,document,attachment,ediDocument,voucherType(id,name)`, { headers: { Authorization: AUTH } });
+   161→console.log("Voucher:", JSON.stringify((await vv.json()).value));
+   162→
+   163→// Verify supplierInvoice (search by invoiceNumber — supplierId filter may lag)
+   164→const si = await fetch(`${BASE}/supplierInvoice?invoiceDateFrom=2025-01-01&invoiceDateTo=2027-12-31&invoiceNumber=${invoiceNumber}&fields=id,invoiceNumber,invoiceDate,invoiceDueDate,amount,amountCurrency,amountExcludingVat,amountExcludingVatCurrency,outstandingAmount,kidOrReceiverReference,isCreditNote,supplier(id,name),voucher(id,number),orderLines(id,description)`, { headers: { Authorization: AUTH } });
+   165→const siData = await si.json();
+   166→console.log("SupplierInvoice:", JSON.stringify(siData.values?.[0]));
+   167→console.log("kidOrReceiverReference:", siData.values?.[0]?.kidOrReceiverReference);
+   168→```
+   169→**IMPORTANT**: Search supplierInvoice by `invoiceNumber`, NOT by `supplierId` — the supplierId filter has a timing issue and may return 0 results immediately after booking.
+   170→
+   171→## Pitfalls
+   172→- **TIMEOUT KILLS**: Two production runs (prod-4c255d98, prod-de228487) scored 0% with 0 API calls because the agent read the standard then stalled in thinking for 5 minutes. After reading this file, IMMEDIATELY write the script and execute it. Do not read any other files.
+   173→- **PaymentMeans is REQUIRED in the XML** — without it, `kidOrReceiverReference` on the SI entity stays empty and Check 5 fails. This was the ONLY failing check across 11 T20 runs that all scored 8/10 or less. Add `<cac:PaymentMeans>` with `<cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>` and `<cac:PayeeFinancialAccount><cbc:ID>${bankAccount}</cbc:ID></cac:PayeeFinancialAccount>`. Sandbox-verified 2026-03-22. Run 210edee3 is the first production run to include PaymentMeans — verification GET confirmed `kidOrReceiverReference` populated.
+   174→- **Do NOT upload the original PDF** — `importDocument` auto-generates a PDF attachment from the EHF XML (sandbox-verified: `attachment.mimeType=application/pdf` is populated after importDocument alone). The separate `POST /attachment` wastes 1 write for zero scoring benefit.
+   175→- `importDocument` response is `.values[0]` (plural) — `.value` crashes and creates orphaned SI entity
+   176→- Row 0 is reserved — use row 1 and 2
+   177→- `account: { number: N }` → 422; MUST use `account: { id }` from GET
+   178→- Do NOT combine postings + sendToLedger=true in one PUT — 422
+   179→- `bankAccounts` string array is deprecated — use `bankAccountPresentation: [{ bban }]`
+   180→- Preserve exact description casing from PDF
+   181→- Do NOT make a separate GET for account 2400 — extract `ledgerAccount.id` from POST /supplier response
+   182→- **4 writes is the proven optimal flow** — sandbox-verified 2026-03-22: combining steps 4+5 → 422; using `account:{number}` without id → 422. GETs are free and do not count.
+   183→
+```
+
+## 2026-03-22T11:04:59.468Z tool_call
+tool: Write
+call_id: toolu_vrtx_01WveeVv4P7khDi5Cd7P9nWL
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-110344510Z-4a96e18a/scripts/sandbox-register-si.ts",
+  "content": "const BASE = \"https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2\";\nconst TOKEN = \"E92T6l0_OhgQV3lZo7RnPo-joIvqUQT1sw9j6iN9egY\";\nconst AUTH = \"Basic \" + btoa(`0:${TOKEN}`);\n\n// Invoice data from PDF\nconst supplierName = \"Océan SARL\";\nconst orgNumber = \"862116178\";\nconst street = \"Industriveien 77\";\nconst postalCode = \"4611\";\nconst city = \"Kristiansand\";\nconst invoiceNumber = \"INV-2026-8242\";\nconst invoiceDate = \"2026-03-01\";\nconst dueDate = \"2026-03-31\";\nconst description = \"IT-konsulenttjenester\";\nconst net = 38700;\nconst vatAmount = 9675;\nconst gross = 48375;\nconst expenseAccount = 6300;\nconst bankAccount = \"57877166343\";\n\nasync function run() {\n  // Step 1: Create supplier\n  console.log(\"=== Step 1: POST /supplier ===\");\n  const supplierRes = await fetch(`${BASE}/supplier`, {\n    method: \"POST\",\n    headers: { Authorization: AUTH, \"Content-Type\": \"application/json\" },\n    body: JSON.stringify({\n      name: supplierName,\n      organizationNumber: orgNumber,\n      postalAddress: {\n        addressLine1: street, postalCode, city,\n        country: { id: 161 }\n      },\n      physicalAddress: {\n        addressLine1: street, postalCode, city,\n        country: { id: 161 }\n      },\n      bankAccountPresentation: [{ bban: bankAccount }]\n    })\n  });\n  const supplierData = await supplierRes.json();\n  console.log(\"Supplier response:\", JSON.stringify(supplierData, null, 2));\n  const supplierId = supplierData.value.id;\n  const ledgerAccountId = supplierData.value.ledgerAccount.id;\n  console.log(`supplierId=${supplierId}, ledgerAccountId(2400)=${ledgerAccountId}`);\n\n  // Step 2: GET expense account id\n  console.log(\"\\n=== Step 2: GET /ledger/account ===\");\n  const acctRes = await fetch(`${BASE}/ledger/account?number=${expenseAccount}&isApplicableForSupplierInvoice=true&fields=id,number`, {\n    headers: { Authorization: AUTH }\n  });\n  const acctData = await acctRes.json();\n  console.log(\"Account response:\", JSON.stringify(acctData));\n  const expenseAccountId = acctData.values[0].id;\n  console.log(`expenseAccountId=${expenseAccountId}`);\n\n  // Step 3: importDocument with EHF XML\n  console.log(\"\\n=== Step 3: POST /ledger/voucher/importDocument ===\");\n  const xml = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Invoice xmlns=\"urn:oasis:names:specification:ubl:schema:xsd:Invoice-2\"\n         xmlns:cac=\"urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2\"\n         xmlns:cbc=\"urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2\">\n  <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0</cbc:CustomizationID>\n  <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>\n  <cbc:ID>${invoiceNumber}</cbc:ID>\n  <cbc:IssueDate>${invoiceDate}</cbc:IssueDate>\n  <cbc:DueDate>${dueDate}</cbc:DueDate>\n  <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>\n  <cbc:DocumentCurrencyCode>NOK</cbc:DocumentCurrencyCode>\n  <cac:AccountingSupplierParty><cac:Party>\n    <cbc:EndpointID schemeID=\"0192\">${orgNumber}</cbc:EndpointID>\n    <cac:PartyName><cbc:Name>${supplierName}</cbc:Name></cac:PartyName>\n    <cac:PostalAddress>\n      <cbc:StreetName>${street}</cbc:StreetName><cbc:CityName>${city}</cbc:CityName>\n      <cbc:PostalZone>${postalCode}</cbc:PostalZone>\n      <cac:Country><cbc:IdentificationCode>NO</cbc:IdentificationCode></cac:Country>\n    </cac:PostalAddress>\n    <cac:PartyTaxScheme>\n      <cbc:CompanyID>NO${orgNumber}MVA</cbc:CompanyID>\n      <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>\n    </cac:PartyTaxScheme>\n    <cac:PartyLegalEntity>\n      <cbc:RegistrationName>${supplierName}</cbc:RegistrationName>\n      <cbc:CompanyID schemeID=\"0192\">${orgNumber}</cbc:CompanyID>\n    </cac:PartyLegalEntity>\n  </cac:Party></cac:AccountingSupplierParty>\n  <cac:AccountingCustomerParty><cac:Party>\n    <cbc:EndpointID schemeID=\"0192\">999999999</cbc:EndpointID>\n    <cac:PartyName><cbc:Name>Ditt firma</cbc:Name></cac:PartyName>\n    <cac:PostalAddress><cac:Country><cbc:IdentificationCode>NO</cbc:IdentificationCode></cac:Country></cac:PostalAddress>\n    <cac:PartyLegalEntity><cbc:RegistrationName>Ditt firma</cbc:RegistrationName>\n      <cbc:CompanyID schemeID=\"0192\">999999999</cbc:CompanyID></cac:PartyLegalEntity>\n  </cac:Party></cac:AccountingCustomerParty>\n  <cac:PaymentMeans>\n    <cbc:PaymentMeansCode>30</cbc:PaymentMeansCode>\n    <cbc:PaymentID>${invoiceNumber}</cbc:PaymentID>\n    <cac:PayeeFinancialAccount>\n      <cbc:ID>${bankAccount}</cbc:ID>\n    </cac:PayeeFinancialAccount>\n  </cac:PaymentMeans>\n  <cac:TaxTotal>\n    <cbc:TaxAmount currencyID=\"NOK\">${vatAmount}</cbc:TaxAmount>\n    <cac:TaxSubtotal>\n      <cbc:TaxableAmount currencyID=\"NOK\">${net}</cbc:TaxableAmount>\n      <cbc:TaxAmount currencyID=\"NOK\">${vatAmount}</cbc:TaxAmount>\n      <cac:TaxCategory><cbc:ID>S</cbc:ID><cbc:Percent>25</cbc:Percent>\n        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:TaxCategory>\n    </cac:TaxSubtotal>\n  </cac:TaxTotal>\n  <cac:LegalMonetaryTotal>\n    <cbc:LineExtensionAmount currencyID=\"NOK\">${net}</cbc:LineExtensionAmount>\n    <cbc:TaxExclusiveAmount currencyID=\"NOK\">${net}</cbc:TaxExclusiveAmount>\n    <cbc:TaxInclusiveAmount currencyID=\"NOK\">${gross}</cbc:TaxInclusiveAmount>\n    <cbc:PayableAmount currencyID=\"NOK\">${gross}</cbc:PayableAmount>\n  </cac:LegalMonetaryTotal>\n  <cac:InvoiceLine><cbc:ID>1</cbc:ID>\n    <cbc:InvoicedQuantity unitCode=\"EA\">1</cbc:InvoicedQuantity>\n    <cbc:LineExtensionAmount currencyID=\"NOK\">${net}</cbc:LineExtensionAmount>\n    <cac:Item><cbc:Name>${description}</cbc:Name>\n      <cac:ClassifiedTaxCategory><cbc:ID>S</cbc:ID><cbc:Percent>25</cbc:Percent>\n        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:ClassifiedTaxCategory>\n    </cac:Item>\n    <cac:Price><cbc:PriceAmount currencyID=\"NOK\">${net}</cbc:PriceAmount></cac:Price>\n  </cac:InvoiceLine>\n</Invoice>`;\n\n  const formData = new FormData();\n  formData.append(\"file\", new Blob([xml], { type: \"text/xml\" }), `${invoiceNumber}.xml`);\n  const impRes = await fetch(`${BASE}/ledger/voucher/importDocument`, {\n    method: \"POST\", headers: { Authorization: AUTH }, body: formData,\n  });\n  const imp = await impRes.json();\n  console.log(\"importDocument response:\", JSON.stringify(imp, null, 2));\n  const voucherId = imp.values[0].id;\n  const version1 = imp.values[0].version;\n  console.log(`voucherId=${voucherId}, version1=${version1}`);\n\n  // Step 4: PUT postings (sendToLedger=false)\n  console.log(\"\\n=== Step 4: PUT /ledger/voucher postings ===\");\n  const putPostingsRes = await fetch(`${BASE}/ledger/voucher/${voucherId}?sendToLedger=false`, {\n    method: \"PUT\",\n    headers: { Authorization: AUTH, \"Content-Type\": \"application/json\" },\n    body: JSON.stringify({\n      version: version1,\n      postings: [\n        {\n          row: 1,\n          account: { id: expenseAccountId },\n          description,\n          vatType: { id: 1 },\n          amount: net,\n          amountCurrency: net,\n          amountGross: gross,\n          amountGrossCurrency: gross\n        },\n        {\n          row: 2,\n          account: { id: ledgerAccountId },\n          supplier: { id: supplierId },\n          description,\n          amount: -gross,\n          amountCurrency: -gross,\n          amountGross: -gross,\n          amountGrossCurrency: -gross,\n          invoiceNumber,\n          termOfPayment: dueDate\n        }\n      ]\n    })\n  });\n  const putPostingsData = await putPostingsRes.json();\n  console.log(\"PUT postings response:\", JSON.stringify(putPostingsData, null, 2));\n  const version2 = putPostingsData.value.version;\n  console.log(`version2=${version2}`);\n\n  // Step 5: Book (sendToLedger=true)\n  console.log(\"\\n=== Step 5: PUT /ledger/voucher book ===\");\n  const bookRes = await fetch(`${BASE}/ledger/voucher/${voucherId}?sendToLedger=true`, {\n    method: \"PUT\",\n    headers: { Authorization: AUTH, \"Content-Type\": \"application/json\" },\n    body: JSON.stringify({\n      version: version2,\n      voucherType: { name: \"Leverandørfaktura\" }\n    })\n  });\n  const bookData = await bookRes.json();\n  console.log(\"Book response:\", JSON.stringify(bookData, null, 2));\n\n  // Step 6: Verification GETs\n  console.log(\"\\n=== Verification GETs ===\");\n\n  const vs = await fetch(`${BASE}/supplier/${supplierId}?fields=id,name,organizationNumber,postalAddress(addressLine1,postalCode,city,country(id)),physicalAddress(addressLine1,postalCode,city,country(id)),bankAccountPresentation`, { headers: { Authorization: AUTH } });\n  console.log(\"Supplier:\", JSON.stringify((await vs.json()).value));\n\n  const vv = await fetch(`${BASE}/ledger/voucher/${voucherId}?fields=id,number,description,date,vendorInvoiceNumber,document,attachment,ediDocument,voucherType(id,name)`, { headers: { Authorization: AUTH } });\n  console.log(\"Voucher:\", JSON.stringify((await vv.json()).value));\n\n  const si = await fetch(`${BASE}/supplierInvoice?invoiceDateFrom=2025-01-01&invoiceDateTo=2027-12-31&invoiceNumber=${invoiceNumber}&fields=id,invoiceNumber,invoiceDate,invoiceDueDate,amount,amountCurrency,amountExcludingVat,amountExcludingVatCurrency,outstandingAmount,kidOrReceiverReference,isCreditNote,supplier(id,name),voucher(id,number),orderLines(id,description)`, { headers: { Authorization: AUTH } });\n  const siData = await si.json();\n  console.log(\"SupplierInvoice:\", JSON.stringify(siData.values?.[0]));\n  console.log(\"kidOrReceiverReference:\", siData.values?.[0]?.kidOrReceiverReference);\n\n  // GET postings for logging\n  const postingsRes = await fetch(`${BASE}/ledger/voucher/${voucherId}?fields=postings(*)`, { headers: { Authorization: AUTH } });\n  console.log(\"Postings:\", JSON.stringify((await postingsRes.json()).value));\n\n  console.log(\"\\n=== DONE ===\");\n}\n\nrun().catch(e => { console.error(\"FATAL:\", e); process.exit(1); });\n"
+}
+```
+
+## 2026-03-22T11:04:59.535Z tool_result
+tool: Write
+call_id: toolu_vrtx_01WveeVv4P7khDi5Cd7P9nWL
+
+```text
+File created successfully at: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-110344510Z-4a96e18a/scripts/sandbox-register-si.ts
+```
+
+## 2026-03-22T11:05:05.893Z tool_call
+tool: Bash
+call_id: toolu_vrtx_01PNFVKuZvtJfZbFFPrya4Ad
+
+```json
+{
+  "command": "cd /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-110344510Z-4a96e18a/scripts && bun run sandbox-register-si.ts 2>&1",
+  "description": "Run supplier invoice registration script",
+  "timeout": 120000
+}
+```
+
+## 2026-03-22T11:05:28.744Z tool_result
+tool: Bash
+call_id: toolu_vrtx_01PNFVKuZvtJfZbFFPrya4Ad
+
+```text
+=== Step 1: POST /supplier ===
+Supplier response: {
+  "value": {
+    "id": 108589821,
+    "version": 2,
+    "url": "kkpqfuj-amager.tripletex.dev/v2/supplier/108589821",
+    "name": "Océan SARL",
+    "organizationNumber": "862116178",
+    "supplierNumber": 20001,
+    "customerNumber": 0,
+    "isSupplier": true,
+    "isCustomer": false,
+    "isInactive": false,
+    "email": "",
+    "invoiceEmail": "",
+    "overdueNoticeEmail": "",
+    "phoneNumber": "",
+    "phoneNumberMobile": "",
+    "description": "",
+    "isPrivateIndividual": false,
+    "showProducts": false,
+    "accountManager": null,
+    "postalAddress": {
+      "id": 406024882,
+      "version": 0,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/address/406024882",
+      "addressLine1": "Industriveien 77",
+      "addressLine2": "",
+      "postalCode": "4611",
+      "city": "Kristiansand",
+      "country": {
+        "id": 161,
+        "url": "kkpqfuj-amager.tripletex.dev/v2/country/161"
+      },
+      "displayName": "Océan SARL, Industriveien 77, 4611 Kristiansand, Norge",
+      "addressAsString": "Industriveien 77, 4611 Kristiansand, Norge",
+      "displayNameInklMatrikkel": "Océan SARL, Industriveien 77, 4611 Kristiansand, Norge",
+      "knr": 0,
+      "gnr": 0,
+      "bnr": 0,
+      "fnr": 0,
+      "snr": 0,
+      "unitNumber": ""
+    },
+    "physicalAddress": {
+      "id": 406024881,
+      "version": 0,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/address/406024881",
+      "addressLine1": "Industriveien 77",
+      "addressLine2": "",
+      "postalCode": "4611",
+      "city": "Kristiansand",
+      "country": {
+        "id": 161,
+        "url": "kkpqfuj-amager.tripletex.dev/v2/country/161"
+      },
+      "displayName": "Océan SARL, Industriveien 77, 4611 Kristiansand, Norge",
+      "addressAsString": "Industriveien 77, 4611 Kristiansand, Norge",
+      "displayNameInklMatrikkel": "Océan SARL, Industriveien 77, 4611 Kristiansand, Norge",
+      "knr": 0,
+      "gnr": 0,
+      "bnr": 0,
+      "fnr": 0,
+      "snr": 0,
+      "unitNumber": ""
+    },
+    "deliveryAddress": null,
+    "category1": null,
+    "category2": null,
+    "category3": null,
+    "bankAccountPresentation": [
+      {
+        "iban": "",
+        "bban": "57877166343",
+        "bic": "",
+        "country": {
+          "id": 161,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/country/161"
+        },
+        "provider": "AUTOPAY"
+      }
+    ],
+    "currency": {
+      "id": 1,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/currency/1"
+    },
+    "ledgerAccount": {
+      "id": 499753371,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/account/499753371"
+    },
+    "language": "NO",
+    "isWholesaler": false,
+    "displayName": "Océan SARL (20001)",
+    "locale": "no_NO",
+    "website": ""
+  }
+}
+supplierId=108589821, ledgerAccountId(2400)=499753371
+
+=== Step 2: GET /ledger/account ===
+Account response: {"fullResultSize":1,"from":0,"count":1,"versionDigest":"'If-None-Match' header not specified","values":[{"id":499753567,"number":6300}]}
+expenseAccountId=499753567
+
+=== Step 3: POST /ledger/voucher/importDocument ===
+importDocument response: {
+  "fullResultSize": 0,
+  "from": 0,
+  "count": 1,
+  "versionDigest": null,
+  "values": [
+    {
+      "id": 609411142,
+      "version": 1,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609411142",
+      "date": "2026-03-01",
+      "number": 0,
+      "tempNumber": 1,
+      "year": 2026,
+      "description": "Faktura nummer INV-2026-8242 fra Océan SARL",
+      "voucherType": {
+        "id": 12172969,
+        "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucherType/12172969"
+      },
+      "reverseVoucher": null,
+      "postings": [],
+      "document": null,
+      "attachment": {
+        "id": 1024374103,
+        "url": "kkpqfuj-amager.tripletex.dev/v2/document/1024374103"
+      },
+      "externalVoucherNumber": "",
+      "ediDocument": {
+        "id": 1024374102,
+        "url": "kkpqfuj-amager.tripletex.dev/v2/document/1024374102"
+      },
+      "supplierVoucherType": null,
+      "wasAutoMatched": false,
+      "vendorInvoiceNumber": "INV-2026-8242",
+      "numberAsString": "<Ikke bokført 1>"
+    }
+  ]
+}
+voucherId=609411142, version1=1
+
+=== Step 4: PUT /ledger/voucher postings ===
+PUT postings response: {
+  "value": {
+    "id": 609411142,
+    "version": 3,
+    "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609411142",
+    "date": "2026-03-01",
+    "number": 0,
+    "tempNumber": 1,
+    "year": 2026,
+    "description": "Faktura nummer INV-2026-8242 fra Océan SARL",
+    "voucherType": {
+      "id": 12172969,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucherType/12172969"
+    },
+    "reverseVoucher": null,
+    "postings": [
+      {
+        "id": 3846489426,
+        "version": 1,
+        "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846489426",
+        "voucher": {
+          "id": 609411142,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609411142"
+        },
+        "date": "2026-03-01",
+        "description": "IT-konsulenttjenester",
+        "account": {
+          "id": 499753567,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/account/499753567"
+        },
+        "amortizationAccount": null,
+        "amortizationStartDate": null,
+        "amortizationEndDate": null,
+        "customer": null,
+        "supplier": null,
+        "employee": null,
+        "project": null,
+        "product": null,
+        "department": null,
+        "vatType": {
+          "id": 1,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/vatType/1"
+        },
+        "amount": 38700,
+        "amountCurrency": 38700,
+        "amountGross": 48375,
+        "amountGrossCurrency": 48375,
+        "currency": {
+          "id": 1,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/currency/1"
+        },
+        "closeGroup": null,
+        "invoiceNumber": "",
+        "termOfPayment": null,
+        "row": 1,
+        "type": null,
+        "externalRef": "",
+        "systemGenerated": false,
+        "taxTransactionType": "(Ikke valgt)",
+        "taxTransactionTypeId": 0,
+        "matched": false,
+        "quantityAmount1": 0,
+        "quantityType1": null,
+        "quantityAmount2": 0,
+        "quantityType2": null,
+        "isVatReadonly": false,
+        "isAmountVatClosed": false,
+        "postingRuleId": 0,
+        "freeAccountingDimension1": null,
+        "freeAccountingDimension2": null,
+        "freeAccountingDimension3": null,
+        "asset": null
+      },
+      {
+        "id": 3846489427,
+        "version": 0,
+        "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846489427",
+        "voucher": {
+          "id": 609411142,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609411142"
+        },
+        "date": "2026-03-01",
+        "description": "IT-konsulenttjenester",
+        "account": {
+          "id": 499753371,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/account/499753371"
+        },
+        "amortizationAccount": null,
+        "amortizationStartDate": null,
+        "amortizationEndDate": null,
+        "customer": null,
+        "supplier": {
+          "id": 108589821,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/supplier/108589821"
+        },
+        "employee": null,
+        "project": null,
+        "product": null,
+        "department": null,
+        "vatType": {
+          "id": 0,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/vatType/0"
+        },
+        "amount": -48375,
+        "amountCurrency": -48375,
+        "amountGross": -48375,
+        "amountGrossCurrency": -48375,
+        "currency": {
+          "id": 1,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/currency/1"
+        },
+        "closeGroup": null,
+        "invoiceNumber": "INV-2026-8242",
+        "termOfPayment": "2026-03-31",
+        "row": 2,
+        "type": null,
+        "externalRef": "",
+        "systemGenerated": false,
+        "taxTransactionType": "(Ikke valgt)",
+        "taxTransactionTypeId": 0,
+        "matched": false,
+        "quantityAmount1": 0,
+        "quantityType1": null,
+        "quantityAmount2": 0,
+        "quantityType2": null,
+        "isVatReadonly": false,
+        "isAmountVatClosed": false,
+        "postingRuleId": 0,
+        "freeAccountingDimension1": null,
+        "freeAccountingDimension2": null,
+        "freeAccountingDimension3": null,
+        "asset": null
+      },
+      {
+        "id": 3846489441,
+        "version": 0,
+        "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846489441",
+        "voucher": {
+          "id": 609411142,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609411142"
+        },
+        "date": "2026-03-01",
+        "description": "IT-konsulenttjenester",
+        "account": {
+          "id": 499753393,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/account/499753393"
+        },
+        "amortizationAccount": null,
+        "amortizationStartDate": null,
+        "amortizationEndDate": null,
+        "customer": null,
+        "supplier": null,
+        "employee": null,
+        "project": null,
+        "product": null,
+        "department": null,
+        "vatType": {
+          "id": 0,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/vatType/0"
+        },
+        "amount": 9675,
+        "amountCurrency": 9675,
+        "amountGross": 9675,
+        "amountGrossCurrency": 9675,
+        "currency": {
+          "id": 1,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/currency/1"
+        },
+        "closeGroup": null,
+        "invoiceNumber": "",
+        "termOfPayment": null,
+        "row": 0,
+        "type": null,
+        "externalRef": "",
+        "systemGenerated": true,
+        "taxTransactionType": "(Ikke valgt)",
+        "taxTransactionTypeId": 0,
+        "matched": false,
+        "quantityAmount1": 0,
+        "quantityType1": null,
+        "quantityAmount2": 0,
+        "quantityType2": null,
+        "isVatReadonly": false,
+        "isAmountVatClosed": false,
+        "postingRuleId": 0,
+        "freeAccountingDimension1": null,
+        "freeAccountingDimension2": null,
+        "freeAccountingDimension3": null,
+        "asset": null
+      }
+    ],
+    "document": null,
+    "attachment": {
+      "id": 1024374103,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/document/1024374103"
+    },
+    "externalVoucherNumber": "",
+    "ediDocument": {
+      "id": 1024374102,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/document/1024374102"
+    },
+    "supplierVoucherType": null,
+    "wasAutoMatched": false,
+    "vendorInvoiceNumber": "INV-2026-8242",
+    "numberAsString": "<Ikke bokført 1>"
+  }
+}
+version2=3
+
+=== Step 5: PUT /ledger/voucher book ===
+Book response: {
+  "value": {
+    "id": 609411142,
+    "version": 6,
+    "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609411142",
+    "date": "2026-03-01",
+    "number": 1,
+    "tempNumber": 1,
+    "year": 2026,
+    "description": "Faktura nummer INV-2026-8242 fra Océan SARL",
+    "voucherType": {
+      "id": 12172969,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucherType/12172969"
+    },
+    "reverseVoucher": null,
+    "postings": [
+      {
+        "id": 3846489426,
+        "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846489426"
+      },
+      {
+        "id": 3846489427,
+        "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846489427"
+      },
+      {
+        "id": 3846489486,
+        "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846489486"
+      }
+    ],
+    "document": null,
+    "attachment": {
+      "id": 1024374103,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/document/1024374103"
+    },
+    "externalVoucherNumber": "",
+    "ediDocument": {
+      "id": 1024374102,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/document/1024374102"
+    },
+    "supplierVoucherType": null,
+    "wasAutoMatched": false,
+    "vendorInvoiceNumber": "INV-2026-8242",
+    "numberAsString": "1-2026"
+  }
+}
+
+=== Verification GETs ===
+Supplier: {"id":108589821,"name":"Océan SARL","organizationNumber":"862116178","postalAddress":{"addressLine1":"Industriveien 77","postalCode":"4611","city":"Kristiansand","country":{"id":161}},"physicalAddress":{"addressLine1":"Industriveien 77","postalCode":"4611","city":"Kristiansand","country":{"id":161}},"bankAccountPresentation":[{"iban":"","bban":"57877166343","bic":"","country":{"id":161,"url":"kkpqfuj-amager.tripletex.dev/v2/country/161"},"provider":"AUTOPAY"}]}
+Voucher: {"id":609411142,"date":"2026-03-01","number":1,"description":"Faktura nummer INV-2026-8242 fra Océan SARL","voucherType":{"id":12172969,"name":"Leverandørfaktura"},"document":null,"attachment":{"id":1024374103,"version":1,"url":"kkpqfuj-amager.tripletex.dev/v2/document/1024374103","fileName":"invoice-INV-2026-8242.pdf","size":51620,"mimeType":"application/pdf"},"ediDocument":{"id":1024374102,"version":1,"url":"kkpqfuj-amager.tripletex.dev/v2/document/1024374102","fileName":"invoice-INV-2026-8242.xml","size":3609,"mimeType":"application/vnd.difi.ehf.invoice"},"vendorInvoiceNumber":"INV-2026-8242"}
+SupplierInvoice: {"id":2147698207,"invoiceNumber":"INV-2026-8242","invoiceDate":"2026-03-01","supplier":{"id":108589821,"name":"Océan SARL"},"invoiceDueDate":"2026-03-31","kidOrReceiverReference":"INV-2026-8242","voucher":{"id":609411142,"number":1},"amount":-48375,"amountCurrency":-48375,"amountExcludingVat":-38700,"amountExcludingVatCurrency":-38700,"isCreditNote":false,"orderLines":[{"id":1607612976,"description":"IT-konsulenttjenester"}],"outstandingAmount":48375}
+kidOrReceiverReference: INV-2026-8242
+Postings: {"postings":[{"id":3846489426,"version":2,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846489426","voucher":{"id":609411142,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609411142"},"date":"2026-03-01","description":"IT-konsulenttjenester","account":{"id":499753567,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/account/499753567"},"amortizationAccount":null,"amortizationStartDate":null,"amortizationEndDate":null,"customer":null,"supplier":null,"employee":null,"project":null,"product":null,"department":null,"vatType":{"id":1,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/vatType/1"},"amount":38700,"amountCurrency":38700,"amountGross":48375,"amountGrossCurrency":48375,"currency":{"id":1,"url":"kkpqfuj-amager.tripletex.dev/v2/currency/1"},"closeGroup":null,"invoiceNumber":"","termOfPayment":null,"row":1,"type":null,"externalRef":"","systemGenerated":false,"taxTransactionType":"(Ikke valgt)","taxTransactionTypeId":0,"matched":false,"quantityAmount1":0,"quantityType1":null,"quantityAmount2":0,"quantityType2":null,"isVatReadonly":false,"isAmountVatClosed":false,"postingRuleId":0,"freeAccountingDimension1":null,"freeAccountingDimension2":null,"freeAccountingDimension3":null,"asset":null},{"id":3846489427,"version":1,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846489427","voucher":{"id":609411142,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609411142"},"date":"2026-03-01","description":"IT-konsulenttjenester","account":{"id":499753371,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/account/499753371"},"amortizationAccount":null,"amortizationStartDate":null,"amortizationEndDate":null,"customer":null,"supplier":{"id":108589821,"url":"kkpqfuj-amager.tripletex.dev/v2/supplier/108589821"},"employee":null,"project":null,"product":null,"department":null,"vatType":{"id":0,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/vatType/0"},"amount":-48375,"amountCurrency":-48375,"amountGross":-48375,"amountGrossCurrency":-48375,"currency":{"id":1,"url":"kkpqfuj-amager.tripletex.dev/v2/currency/1"},"closeGroup":null,"invoiceNumber":"INV-2026-8242","termOfPayment":"2026-03-31","row":2,"type":null,"externalRef":"","systemGenerated":false,"taxTransactionType":"(Ikke valgt)","taxTransactionTypeId":0,"matched":false,"quantityAmount1":0,"quantityType1":null,"quantityAmount2":0,"quantityType2":null,"isVatReadonly":true,"isAmountVatClosed":false,"postingRuleId":0,"freeAccountingDimension1":null,"freeAccountingDimension2":null,"freeAccountingDimension3":null,"asset":null},{"id":3846489486,"version":0,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846489486","voucher":{"id":609411142,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609411142"},"date":"2026-03-01","description":"IT-konsulenttjenester","account":{"id":499753393,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/account/499753393"},"amortizationAccount":null,"amortizationStartDate":null,"amortizationEndDate":null,"customer":null,"supplier":null,"employee":null,"project":null,"product":null,"department":null,"vatType":{"id":0,"url":"kkpqfuj-amager.tripletex.dev/v2/ledger/vatType/0"},"amount":9675,"amountCurrency":9675,"amountGross":9675,"amountGrossCurrency":9675,"currency":{"id":1,"url":"kkpqfuj-amager.tripletex.dev/v2/currency/1"},"closeGroup":null,"invoiceNumber":"","termOfPayment":null,"row":0,"type":null,"externalRef":"","systemGenerated":true,"taxTransactionType":"(Ikke valgt)","taxTransactionTypeId":0,"matched":false,"quantityAmount1":0,"quantityType1":null,"quantityAmount2":0,"quantityType2":null,"isVatReadonly":true,"isAmountVatClosed":false,"postingRuleId":0,"freeAccountingDimension1":null,"freeAccountingDimension2":null,"freeAccountingDimension3":null,"asset":null}]}
+
+=== DONE ===
+```
+
+## 2026-03-22T11:05:40.766Z assistant_message
+All 4 writes succeeded with 0 errors. Verification confirms:
+
+- **Supplier**: Océan SARL (862116178), both addresses + bank account set
+- **Voucher**: booked as Leverandørfaktura #1-2026, auto-generated PDF + EHF XML attachments
+- **SupplierInvoice**: INV-2026-8242, date 2026-03-01, due 2026-03-31, amount 48375, excl VAT 38700, `kidOrReceiverReference=INV-2026-8242`
+- **Postings**: 6300 debit 38700 (vatType 1), 2400 credit -48375 (supplier linked), system-generated VAT 9675

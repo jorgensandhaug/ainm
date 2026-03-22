@@ -1,0 +1,8 @@
+{
+  "prompt": "Legen Sie einen Festpreis von 415050 NOK für das Projekt \"ERP-Implementierung\" für Sonnental GmbH (Org.-Nr. 896608479) fest. Projektleiter ist Mia Meyer (mia.meyer@example.org). Stellen Sie dem Kunden 50 % des Festpreises als Meilensteinzahlung in Rechnung.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "kvmZzakHReoZg5Ut7E95e5UEr2KBD_KG1gJL3M21MbQ"
+  }
+}

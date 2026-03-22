@@ -1,0 +1,8 @@
+{
+  "prompt": "Registrer 5 timer for Ingrid Nilsen (ingrid.nilsen@example.org) på aktiviteten \"Analyse\" i prosjektet \"Plattformintegrasjon\" for Bergvik AS (org.nr 989231898). Timesats: 1400 kr/t. Generer en prosjektfaktura til kunden basert på de registrerte timene.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "5h9SSTNfBESKVQzhWc_4imdg9WNCoDK-n8JYYpwEc_0"
+  }
+}

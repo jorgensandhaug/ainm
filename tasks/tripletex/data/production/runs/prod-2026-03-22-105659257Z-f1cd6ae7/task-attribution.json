@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-105659257Z-f1cd6ae7",
+  "request_id": "135ab2d9",
+  "prompt_raw": "Vous avez recu une facture fournisseur (voir PDF ci-joint). Enregistrez la facture dans Tripletex. Creez le fournisseur s'il n'existe pas. Utilisez le bon compte de charges et la TVA deductible.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T10:58:33Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T10:56:59.388Z",
+  "after_captured_at": "2026-03-22T10:59:04.222Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T10:59:04.223Z"
+}
