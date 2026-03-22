@@ -410,7 +410,18 @@ Carries through to triple blend: 83.46 (was 83.33, +0.13)
 | 0.001 | 83.50 | 65.39 |
 | 0.005 | 83.02 | 64.94 |
 
-**Total improvement: 78.38 → 83.59 (+5.21 points)**
+**Extended ridge sweep (score monotonically improves with lower ridge):**
+
+| DT Ridge | Score |
+|----------|-------|
+| **1e-5** | **83.71** |
+| 5e-5 | 83.70 |
+| 0.0001 | 83.69 |
+| 0.0005 | 83.59 |
+| 0.001 | 83.50 |
+| 0.005 | 83.02 |
+
+**Total improvement: 78.38 → 83.71 (+5.33 points)**
 
 ## Final Summary
 
