@@ -42,7 +42,8 @@
 | de228487 | DE | 0 | **0/10** | — | Agent timed out reading standard |
 | 7c4183ab | PT | 4 | 8/10 | 5 | Both addresses+country+booking, no PaymentMeans |
 | 4c22beb6 | NB | 4 | 8/10 | 5 | Both addresses+country+booking, no PaymentMeans |
-| **210edee3** | **NN** | **5** | **pending** | **pending** | **FIRST run with PaymentMeans; kidOrReceiverReference populated in verification GET; included unnecessary PDF upload (+1 write)** |
+| 210edee3 | NN | 5 | 9/10 | pending | FIRST run with PaymentMeans; kidOrReceiverReference populated; included unnecessary PDF upload (+1 write) |
+| **4a96e18a** | **FR** | **4** | **pending** | **pending** | **Clean 4-write run: PaymentMeans + both addresses + no PDF upload; 0 errors; all verification GETs confirmed correct state** |
 
 **ROOT CAUSE of persistent Check 5 failure**: Missing `<cac:PaymentMeans>` in the EHF XML leaves `kidOrReceiverReference` empty on the supplierInvoice entity. Fix: add PaymentMeans with `PaymentID=${invoiceNumber}` and `PayeeFinancialAccount/ID=${bankAccount}`. Sandbox-verified 2026-03-22.
 
