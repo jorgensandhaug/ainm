@@ -129,3 +129,22 @@ Include all fields in the same `POST /supplier` — zero extra API calls.
 
 ### voucher update without currency amounts
 - produces 500 — keep amountCurrency and amountGrossCurrency on both rows
+
+## Production Run History
+
+### 2026-03-22 prod-9b27a332 (English prompt, 25% VAT) — OPTIMAL 3-call run
+- `Oakwood Ltd` / `948453436` / `INV-2026-2823` / gross `56750` / account `6340` / `25%`
+- 3 calls (POST supplier → GET account → POST voucher), 0 errors
+- Voucher 609291942 auto-booked as number 1-2026
+- FIRST production run to achieve the documented 3-call floor
+- Supplier created with postalAddress + physicalAddress + bankAccountPresentation
+- Description "Programvarelisens" preserved exactly
+
+### 2026-03-22 prod-c290243c (French prompt, 25% VAT) — 4 calls (1 wasted)
+- `Lumière SARL` / `904564184` / `INV-2026-5683` / gross `75500` / account `7140` / `25%`
+- 4 calls (wasted GET /ledger/voucherType), 0 errors
+- Voucher 609263595 auto-booked as number 1
+
+### 2026-03-21 (ALL importDocument runs — ALL scored 0/8)
+- 10+ runs using importDocument — every single one scored 0/8
+- importDocument path is permanently BANNED

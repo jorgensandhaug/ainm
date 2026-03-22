@@ -192,5 +192,11 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
   - `Lumière SARL` / `904564184` / `INV-2026-5683` / `75500` / `7140` / `25%`
   - used 4 calls (with unnecessary GET /ledger/voucherType) — next run should use 3
   - voucher 609263595 auto-booked as number 1
+- 2026-03-22 production run (9b27a332, English prompt, 25% VAT):
+  - `Oakwood Ltd` / `948453436` / `INV-2026-2823` / `56750` / `6340` / `25%`
+  - used optimal **3 calls** (POST supplier → GET account → POST voucher), **0 errors**
+  - voucher 609291942 auto-booked as number 1
+  - FIRST production run to achieve the 3-call floor; supplier included postalAddress + physicalAddress + bankAccountPresentation
+  - description "Programvarelisens" preserved exactly; invoiceNumber "INV-2026-2823" + termOfPayment "2026-06-23" on credit posting
 - 2026-03-21 production runs (ALL using importDocument -- ALL scored 0/8):
   - 10+ runs scored 0/8 — importDocument path is BANNED
