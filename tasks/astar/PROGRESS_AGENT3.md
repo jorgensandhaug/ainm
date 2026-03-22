@@ -5206,7 +5206,30 @@ Per-round best (avg 10 eval):
 5. Cross-entropy objective → -0.30
 6. More trees / deeper trees beyond d10 → diminishing returns
 
-539. Next experiments:
+539. Seed ensemble (5 model seeds × 10 episode seeds): 90.15 (identical to single seed)
+   - Random seed variation adds no information - models already well-regularized
+   - 5× training time for 0.00 improvement
+
+## FINAL BEST MODEL (2026-03-22 session)
+
+**LGB d10, 800 trees, lr=0.02, 3 train eps, 10 eval avg, exploration, no blend = 90.15**
+
+Key components:
+1. LightGBM (800 trees, depth 10, lr 0.02) per-class regressors
+2. Entropy-weighted training (focusing capacity on uncertain cells)
+3. Multi-episode variance features (10 episodes capture within-round stochastic variation)
+4. Multi-episode training augmentation (3 different evidence episodes per round)
+5. Prediction averaging (geometric mean of 10 episode-specific predictions)
+6. Exploration policy (coverage + 5 diagnostic repeats)
+7. Features: map geometry + viewport evidence + cross-seed + settlement proximity + activity heatmap + multi-episode variance
+
+Scripts:
+- `scripts/precompute_episodes.py` - pre-compute episode observations
+- `scripts/agent3_multiep_avg_v1.py` - the best model benchmark script
+- `scripts/agent3_multiep_v1.py` - variance features
+- `scripts/agent3_catboost_v2.py` - cached episode benchmarking
+
+540. Next experiments:
 
 ## Open Questions
 
