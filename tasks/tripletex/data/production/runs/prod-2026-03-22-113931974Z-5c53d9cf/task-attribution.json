@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-113931974Z-5c53d9cf",
+  "request_id": "b18c6e4a",
+  "prompt_raw": "Crea el producto \"Mantenimiento\" con número de producto 4508. El precio es 41500 NOK sin IVA, utilizando la tasa estándar del 25 %.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:40:09Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:39:32.181Z",
+  "after_captured_at": "2026-03-22T11:40:40.867Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "03",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T11:40:40.871Z"
+}

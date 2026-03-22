@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-113739345Z-dcf3ce59",
+  "request_id": "56f5141a",
+  "prompt_raw": "Registrer 5 timer for Silje Strand (silje.strand@example.org) på aktiviteten \"Design\" i prosjektet \"Skytjeneste-oppsett\" for Nordhav AS (org.nr 912074005). Timesats: 1750 kr/t. Generer en prosjektfaktura til kunden basert på de registrerte timene.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:39:09Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:37:39.831Z",
+  "after_captured_at": "2026-03-22T11:39:40.331Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "16",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T11:39:40.332Z"
+}

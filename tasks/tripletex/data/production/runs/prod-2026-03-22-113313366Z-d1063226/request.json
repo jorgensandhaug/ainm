@@ -1,0 +1,8 @@
+{
+  "prompt": "Registe 11 horas para Inês Rodrigues (ines.rodrigues@example.org) na atividade \"Design\" do projeto \"Redesign do site\" para Estrela Lda (org. nº 930325325). Taxa horária: 1000 NOK/h. Gere uma fatura de projeto ao cliente com base nas horas registadas.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "AwNPhBnolLISA_4rAKncBI3lp-05MaS-oDlkdB07lWA"
+  }
+}

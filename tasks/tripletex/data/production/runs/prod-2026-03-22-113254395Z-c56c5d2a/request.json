@@ -1,0 +1,8 @@
+{
+  "prompt": "Erstellen Sie das Produkt \"Fachbuch\" mit der Produktnummer 2237. Der Preis beträgt 5650 NOK ohne MwSt., mit dem MwSt.-Satz von 0 % für Bücher.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "LpgJdu3kEssLbofWoif-r9y2W_ltEEsaoFLEYKsWzlA"
+  }
+}
