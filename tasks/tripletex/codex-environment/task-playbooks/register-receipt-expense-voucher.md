@@ -32,7 +32,7 @@ Read the receipt line text from the prompt. Pick the FIRST matching branch:
 | Receipt line text | Branch | Account | VAT rate | GROSS formula (NET receipt) |
 |---|---|---|---|---|
 | `Forretningslunsj`, `Kundemøte lunsj`, business lunch, restaurant meal | **A** | `7360` | 0% (vatLocked) | NET × 1.25 |
-| `Kontorstoler`, `Whiteboard`, office furniture/equipment | **B** | `6540` | 25% (vatType id from acct) | NET × 1.25 |
+| `Kontorstoler`, `Whiteboard`, `Tastatur`, `Skrivebordlampe`, office furniture/equipment, IT peripherals | **B** | `6540` | 25% (vatType id from acct) | NET × 1.25 |
 | `Togbillett`, `Flybillett`, `Overnatting`, train/flight/hotel | **C** | `7140` | **12%** (vatType id=`12`) | **NET × 1.12** |
 | `Kaffemøte`, coffee meeting, internal meeting, course, seminar | **D** | `6860` | 25% (vatType id=`1`) | NET × 1.25 |
 
@@ -242,3 +242,4 @@ H1 and H4 both produce amount(net)=8750. The scorer checks vatType and VAT accou
 | 01420e60 | A (Kundemøte lunsj) | 0/10 | NET as GROSS + missing sendToLedger |
 | 67d4ddca | C (Overnatting) | 0/10 | Missing sendToLedger |
 | 1519c2a7 | C (Togbillett) | 0/10 | Missing sendToLedger + NET as GROSS |
+| e89025d1 | B (Tastatur) | expected 10/10 | Clean run: 4 calls, 0 errors, exact standard match |

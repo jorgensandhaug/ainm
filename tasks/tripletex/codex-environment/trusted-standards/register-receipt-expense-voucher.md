@@ -47,7 +47,7 @@ Read the receipt line text from the prompt. Match to one of 4 branches:
 | Receipt line keyword | Branch | Account | VAT rate | GROSS (for NET receipt) |
 |---|---|---|---|---|
 | `Forretningslunsj`, `Kundemøte lunsj`, business lunch, customer entertainment | **A** | `7360` | 0% (vatLocked, no deduction) | NET × 1.25 |
-| `Kontorstoler`, `Whiteboard`, office furniture/equipment/supplies | **B** | `6540` | 25% incoming (vatType from acct) | NET × 1.25 |
+| `Kontorstoler`, `Whiteboard`, `Tastatur`, `Skrivebordlampe`, office furniture/equipment/supplies, IT peripherals | **B** | `6540` | 25% incoming (vatType from acct) | NET × 1.25 |
 | `Togbillett`, `Flybillett`, `Overnatting`, train/flight/hotel | **C** | `7140` | **12% incoming** (vatType id=`12`) | **NET × 1.12** |
 | `Kaffemøte`, coffee meeting, course, seminar, internal meeting | **D** | `6860` | 25% incoming (vatType id=`1`) | NET × 1.25 |
 
@@ -257,7 +257,7 @@ Where GROSS = NET × 1.12 and vatType.id = from account (typically 12).
 | Account | Name | vatLocked | Default vatType | Use for |
 |---|---|---|---|---|
 | 7360 | Representasjon, ikke fradragsberettiget | true | 0 (0%) | Forretningslunsj, Kundemøte lunsj |
-| 6540 | Inventar | false | 1 (25%) | Kontorstoler, Whiteboard, furniture |
+| 6540 | Inventar | false | 1 (25%) | Kontorstoler, Whiteboard, Tastatur, Skrivebordlampe, furniture, IT peripherals |
 | 7140 | Reisekostnad, ikke oppgavepliktig | false | 12 (12%) | Togbillett, Flybillett, Overnatting |
 | 6860 | Møte, kurs, oppdatering o.l. | false | 1 (25%) | Kaffemøte, courses, seminars |
 
@@ -309,3 +309,11 @@ The POST /ledger/voucher response proves all 5 scoring checks — no extra GET n
 | D (Kaffemøte) | 6860 | 8250 | 1 (25%) | 6600 | 1650 | 2710 | all pass |
 
 Production E2E (Branch C, run 3373fbc9 prompt): 5/5 checks, 4 calls, 0 errors → expected 10/10.
+
+### Production run e89025d1 (2026-03-22, French prompt, Branch B — Tastatur)
+- Receipt: Elkjøp, date 2026-05-19, Tastatur NET=6900, total NET=7780, MVA=1945
+- Branch B: account 6540, vatType=1 (25%), GROSS=8625
+- Department: Utvikling (POST created, fresh account)
+- 4 calls, 0 errors: POST dept → GET accounts → POST voucher → POST attachment
+- Voucher id=609304794, number=1; auto-VAT posting: 1725 on 2710
+- All 5 checks expected to pass
