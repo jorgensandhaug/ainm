@@ -80,8 +80,9 @@ def main():
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--onnx", default=None)
-    parser.add_argument("--conf-thres", type=float, default=0.0003)
+    parser.add_argument("--conf-thres", type=float, default=0.005)
     parser.add_argument("--nms-iou", type=float, default=0.55)
+    parser.add_argument("--max-predictions", type=int, default=49000)
     parser.add_argument("--flip-tta", action="store_true", default=True)
     parser.add_argument("--no-flip-tta", dest="flip_tta", action="store_false")
     args = parser.parse_args()
@@ -157,6 +158,11 @@ def main():
                 "bbox": [round(x1, 1), round(y1, 1), w, h],
                 "score": round(float(scores[i]), 6),
             })
+
+    # Safety cap: competition limit is 50,000 predictions
+    if args.max_predictions > 0 and len(predictions) > args.max_predictions:
+        predictions.sort(key=lambda p: p["score"], reverse=True)
+        predictions = predictions[:args.max_predictions]
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
