@@ -125,10 +125,13 @@ export type FullProjectLifecycleTaskUnderstandingResult =
 
 export async function loadTaskModule(): Promise<FullProjectLifecycleTaskModule> {
   const { strategy } = await import("./strategies/full-project-lifecycle");
+  const { strategy: strategyV2 } = await import(
+    "./strategies/full-project-lifecycle-v2"
+  );
 
   return {
     task,
-    strategies: [strategy],
+    strategies: [strategy, strategyV2],
   };
 }
 
