@@ -138,6 +138,10 @@ Do not use for:
   - products carried `vatType.id` values `3` (25%), `31` (15%), `6` (0%); reusing them with explicit `vatType: { id: product.vatType.id }` produced correct totals `amountExcludingVatCurrency=34800` / `amountCurrency=42260`
   - no `/ledger/vatType` call was needed since the products already carried the intended VAT
   - fifth optimal 6-call path (3 core + 3 bank-account repair); second Spanish-language confirmation for this task shape
+- the 2026-03-22 production run for `Solmar SL` / `829487888` / products `Sesión de formación (6042)` + `Mantenimiento (5211)` + `Licencia de software (8022)` / VAT `25%` + `15% alimentos` + `0% exento` (Spanish prompt) succeeded with the reactive 6-call path and 0 avoidable errors:
+  - `GET /customer` -> `GET /product?number=6042,5211,8022` -> `POST /invoice` (422 bank-account) -> `GET /ledger/account` -> `PUT /ledger/account/{id}` -> retry `POST /invoice` (201)
+  - seventh production confirmation of comma-separated `number=X,Y,Z`; products carried `vatType.id` `3`/`31`/`6`; totals `amountExcludingVatCurrency=19800` / `amountCurrency=20860`
+  - **post-run finding**: proactive bank-account check (free GET before POST /invoice) would have avoided the 422, reducing to 2 writes and 0 errors instead of 3 writes and 1 error; trusted standard and playbook updated to recommend proactive approach
 
 ## Minimal Flow
 
@@ -159,20 +163,25 @@ Do not use for:
    - for exact existing-product create-only prompts, a sparse `product.vatType` link is still enough to keep the low-call branch: reuse `product.vatType.id` directly or omit explicit line `vatType` and inherit from the product
    - only if the task must force VAT independently of the resolved product, or the product read lacks even a reusable `vatType.id`, do one filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<invoice-date>&fields=*`
    - do not spend `/ledger/vatType` just because the prompt text repeats VAT percentages that are already implied by the exact resolved products
-5. Create the invoice directly
+5. Proactive bank-account check (GETs are free, 4xx errors hurt scoring)
+   - `GET /ledger/account?isBankAccount=true&fields=*` (free)
+   - find the invoice account (`isInvoiceAccount=true` or first result)
+   - if `bankAccountNumber` is falsy: `PUT /ledger/account/{id}` with `{ ...acct, bankAccountNumber: "12345678903" }`
+   - this prevents the 422 "bankkontonummer" error that hit 7/8 recent production runs
+6. Create the invoice directly
    - `POST /invoice?sendToCustomer=false`
    - include `invoiceDate`, `invoiceDueDate`, `customer`
    - create lines under `orders[].orderLines`
    - for product-linked lines, prefer `product: { "id": ... }`, `description`, `count`, and the requested unit price
    - if the filtered outgoing VAT lookup returns a valid id for the prompt percentage, prefer sending explicit line `vatType: { "id": ... }` so the write payload itself fixes the scored VAT field
-6. Reuse the invoice write response
+7. Reuse the invoice write response
    - trust the returned `id`, `invoiceNumber`, and totals
    - if the payload already fixed `product`, `description`, `count`, `unitPriceExcludingVatCurrency`, and any needed explicit line `vatType`, and the write response already proves the totals, stop
-7. If exact line-level verification is needed and the write response is sparse, do one immediate read
+8. If exact line-level verification is needed and the write response is sparse, do one immediate read
    - `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
    - treat the response as sparse not only when `orderLines` is empty, but also when the entries are link-only objects without `product.number`, `description`, `unitPriceExcludingVatCurrency`, and `vatType.percentage`
    - do not add this read merely because the write response kept `orderLines` sparse if the write response totals already prove the intended create-only financial outcome
-8. Only if `POST /invoice` fails with the company-bank-account validation, repair that prerequisite and retry once
+9. Only if `POST /invoice` still fails with the company-bank-account validation despite step 5, repair and retry once (see Bank Account — Reactive Fallback)
 
 ## Exact-Match Fast Path
 
@@ -182,9 +191,11 @@ Do not use for:
   - asks only to create the invoice, not send it
   - gives explicit VAT percentages that must be respected
 - the winning path is usually:
-  1. `GET /customer?organizationNumber=...&fields=*`
-  2. `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated refs, OR semantics
-  3. `POST /invoice?sendToCustomer=false`
+  1. `GET /customer?organizationNumber=...&fields=*` (free)
+  2. `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated refs, OR semantics (free)
+  3. `GET /ledger/account?isBankAccount=true&fields=*` — proactive bank-account check (free)
+  4. (conditional) `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` if `bankAccountNumber` is falsy
+  5. `POST /invoice?sendToCustomer=false`
   - on that write, use `product: { id }` and either:
     - explicit `vatType: { id: product.vatType.id }` copied from the resolved product read, or
     - no explicit line `vatType`, letting the invoice line inherit VAT from the resolved product
@@ -196,10 +207,12 @@ Do not use for:
   - asks only to create the invoice, not send it
   - does not force an extra VAT confirmation step beyond what the product read already proves
 - the winning path is usually:
-  1. `GET /customer?organizationNumber=...&fields=*`
-  2. `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated refs, OR semantics; fall back to `count=1000` if any are missing
-  3. `POST /invoice?sendToCustomer=false`
-  4. optional immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` only if you still need exact line proof
+  1. `GET /customer?organizationNumber=...&fields=*` (free)
+  2. `GET /product?number=<ref1>,<ref2>&fields=*` — comma-separated refs, OR semantics; fall back to `count=1000` if any are missing (free)
+  3. `GET /ledger/account?isBankAccount=true&fields=*` — proactive bank-account check (free)
+  4. (conditional) `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` if `bankAccountNumber` is falsy
+  5. `POST /invoice?sendToCustomer=false`
+  6. optional immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))` only if you still need exact line proof
 - For the explicit-VAT variant where `GET /product?fields=*` leaves `vatType` sparse as only `id`/`url`:
   - the lower-call winning path is usually four calls:
   1. `GET /customer?organizationNumber=...&fields=*`
@@ -216,7 +229,7 @@ Do not use for:
   5. immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
 - if the catalog read is ambiguous or step 2 still does not uniquely settle the products, then use the documented numeric fallback chain before deciding the refs are unresolved
 - if a speculative first product resolver misses one line, do not restart from `GET /customer`; continue in the same script and reuse already-known ids/results
-- Do not insert an automatic `GET /ledger/account` before the first invoice write
+- DO insert a proactive `GET /ledger/account?isBankAccount=true&fields=*` before the first invoice write (GETs are free; the 422 bank-account error costs 1 extra write + 1 error penalty)
 - Do not call `PUT /invoice/{id}/:send`
 - Do not add a delayed verification read in a separate later script/session if you already know you need line-level proof; do the one decisive `GET /invoice/{id}` immediately while the same token is still in use
 - Do not treat sparse `orderLines` in the write response as an automatic reason to spend `GET /invoice/{id}`; first check whether the write response totals already prove the outcome
@@ -301,26 +314,28 @@ on that `orderLines[]` item.
 - if you need the exact line details, do one immediate `GET /invoice/{id}` with expanded `fields` and stop there
 - if the write payload already fixed the scored line fields and the write response totals already prove the intended VAT outcome, the minimal create-only path stops without that extra read
 
-## Bank Account Repair Branch
+## Bank Account — Proactive Check (Preferred)
 
-If `POST /invoice` fails with:
+Since GETs are free and 4xx errors hurt scoring, check and fix the bank account BEFORE `POST /invoice`:
 
-`Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`
+1. `GET /ledger/account?isBankAccount=true&fields=*` (free GET)
+2. find the invoice account (usually `number=1920`, `isInvoiceAccount=true`)
+3. if `bankAccountNumber` is falsy (null, empty string, undefined):
+   - `PUT /ledger/account/{id}` with `{ ...acct, bankAccountNumber: "12345678903" }`
+4. then `POST /invoice?sendToCustomer=false` — succeeds first try, 0 errors
 
-then the practical repair path is:
+This replaces the old reactive pattern (POST → 422 → GET → PUT → retry POST) which cost 1 extra write and 1 avoidable 422 error. 7/8 recent production runs needed bank-account repair; the proactive approach would have eliminated the 422 in all of them.
 
-1. `GET /ledger/account?isBankAccount=true&fields=*`
-2. choose the existing invoice bank account, usually `1920` / `isInvoiceAccount=true`
-3. `PUT /ledger/account/{id}` with:
+Sandbox-verified 2026-03-22: proactive check + no-repair (bank already set) → POST /invoice succeeded first try.
 
-```json
-{
-  "bankAccountNumber": "12345678903"
-}
-```
+## Bank Account Repair — Reactive Fallback
 
-4. retry `POST /invoice` once
-5. keep the same invoice payload on that retry; do not re-read customer, products, or `vatType` if the only failure was the company-bank-account validation
+If `POST /invoice` still fails with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.` despite the proactive check:
+
+1. `GET /ledger/account?isBankAccount=true&fields=*` (if not already done)
+2. `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"`
+3. retry `POST /invoice` once
+4. keep the same invoice payload; do not re-read customer, products, or `vatType`
 
 ## Avoidable Mistakes
 

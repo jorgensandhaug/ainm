@@ -29,9 +29,16 @@
 3. for product-linked create-only prompts, treat the resolved product VAT as the default line VAT
    - if the product read already returns a reusable `product.vatType.id`, either reuse that same id on the line or omit explicit line `vatType` and inherit from the product
    - only resolve `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*` when the task must force a VAT different from the resolved product, the product read lacks even a reusable `vatType.id`, or the line is not product-linked
-4. `POST /invoice?sendToCustomer=false`
-5. only if the write response omits decisive totals or later logic truly needs readback-only line details, do one immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
-6. stop
+4. proactive bank-account check (GETs are free, 4xx errors hurt scoring):
+   - `GET /ledger/account?isBankAccount=true&fields=*`
+   - find the invoice account (usually `number=1920`, `isInvoiceAccount=true`)
+   - if `bankAccountNumber` is falsy (null, empty, undefined), fix it BEFORE the invoice write:
+     `PUT /ledger/account/{id}` with `{ ...acct, bankAccountNumber: "12345678903" }`
+   - this eliminates the 422 "bankkontonummer" error entirely — 7/8 recent production runs needed this repair, and every one suffered an avoidable 422 + retry
+   - sandbox-verified 2026-03-22: proactive check + conditional PUT → POST /invoice succeeds first try, 0 errors
+5. `POST /invoice?sendToCustomer=false`
+6. only if the write response omits decisive totals or later logic truly needs readback-only line details, do one immediate `GET /invoice/{id}?fields=*,customer(*),orders(*,orderLines(*,product(*),vatType(*))),orderLines(*,product(*),vatType(*))`
+7. stop
 
 ## Payload Rules
 - include:
@@ -65,8 +72,9 @@ Log: invoiceNumber, amountExcludingVatCurrency, amountCurrency, customer, each o
 
 ## Known Recovery Branches
 - if the first attempted API call returns `403` with body `{"error":"Invalid or expired token"}`, stop; the run is blocked by unusable credentials, not by invoice-flow uncertainty
-- if invoice creation fails with missing company bank account:
-  - `GET /ledger/account?isBankAccount=true&fields=*`
+- bank-account repair is now PROACTIVE (see Standard Flow step 4) — check and fix BEFORE POST /invoice to avoid the 422 entirely
+- if invoice creation still fails with missing company bank account despite the proactive check (edge case):
+  - `GET /ledger/account?isBankAccount=true&fields=*` (if not already done)
   - update existing invoice account with `PUT /ledger/account/{id}`
   - retry invoice write once
   - keep the same invoice payload on that retry; do not re-read customer, products, or `vatType` after a bank-account-only validation failure
@@ -158,3 +166,5 @@ Log: invoiceNumber, amountExcludingVatCurrency, amountCurrency, customer, each o
   - fifth production run achieving the optimal 6-call path (3 core + 3 bank-account repair); second Spanish-language confirmation for this task shape
   - this is the second production run with the exact customer/product combination `861379760` + `2109/1175/9974` — the first (2026-03-20) used a suboptimal path with extra `/ledger/vatType`; this run achieved the optimal path
   - persistent sandbox re-proof on 2026-03-22 with same products `2109`, `1175`, `9974` and comma-separated query confirmed the 3-call core path; invoice returned `amountExcludingVatCurrency=34800` / `amountCurrency=34800` (sandbox 0% only); readback confirmed all products linked with correct numbers, descriptions, and unit prices
+- the 2026-03-22 production run for `Solmar SL` / `829487888` / products `6042` + `5211` + `8022` / VAT `25%` + `15%` + `0%` (Spanish prompt) succeeded with 6 calls (3 core + 3 bank-account repair), seventh production confirmation of comma-separated `number=X,Y,Z`; totals `amountExcludingVatCurrency=19800` / `amountCurrency=20860`
+  - post-run analysis: proactive bank-account check (free GET before POST /invoice) would have eliminated the 422, reducing writes from 3 to 2 and errors from 1 to 0; Standard Flow updated with proactive bank-account check as step 4; sandbox-verified 2026-03-22
