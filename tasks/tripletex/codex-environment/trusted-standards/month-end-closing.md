@@ -179,6 +179,16 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
 - First 7-year useful life (84 months) confirmation
 - Confirmed language variants: nb, nn, en, es, fr, pt, de
 
+### Run 10 (2026-03-22, 1710→6390 + 6030→1209 variant, Nynorsk prompt, 3 calls — optimal)
+- Task: March 2026, prepaid 4650 (1710→6390), depreciation 242900/4yr (6030→1209), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET (accounts) + 1 POST (batch create 6030+1209) + 1 POST (combined 6-line voucher)
+- 0 errors. Depreciation: Math.round((242900/48)*100)/100 = 5060.42
+- Missing accounts: 6030, 1209. Existing: 1710, 5000, 2900, 6390
+- **First optimal 6030→1209 production run**: batch-created both missing accounts in 1 call (Run 7 used 4 calls with individual creates)
+- Nynorsk prompt: "kostnadskonto" correctly mapped to 6390 via 1710 source mapping
+- Confirms dynamic missing-account detection + batch create saves 1 call vs hardcoded approach
+- Language variants confirmed: nb, nn, en, es, fr, pt, de (all 7 produce correct results)
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `account: { number: 5000 }` without `id` → 422 "postings.account.name: Kan ikke være null."
@@ -198,3 +208,4 @@ Positive = debit, negative = credit. For zero-VAT manual vouchers, `amountGross`
   - **ID range analysis**: default chart accounts have ids ~424190xxx; accounts with ids ~462xxxxxx were created during testing and do NOT exist in fresh instances
   - 1710→6390 + 6020→1029 with 144950/9yr (dep 1342.13) sandbox-verified: 6 postings created successfully
   - 1700→6300 + 6020→1029 with 289700/7yr (dep 3448.81) sandbox-verified: 6 postings created successfully (German prompt variant)
+  - 1710→6390 + 6030→1209 with 242900/4yr (dep 5060.42) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero, voucher deleted after verification

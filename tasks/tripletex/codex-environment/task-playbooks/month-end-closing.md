@@ -213,6 +213,16 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - First 7-year useful life (84 months): Math.round((289700/84)*100)/100 = 3448.81
 - Confirmed language variants: nb, nn, en, es, fr, pt, de
 
+### Run 11 (1710→6390 + 6030→1209 variant, Nynorsk prompt, 3 calls — optimal)
+- Task: March 2026, prepaid 4650 (1710→6390), depreciation 242900/4yr (6030→1209), salary accrual (5000→2900, 45000 default)
+- Used 3 calls: 1 GET + 1 POST (batch create 6030+1209) + 1 POST (combined 6-line voucher)
+- 0 errors. Depreciation: Math.round((242900/48)*100)/100 = 5060.42
+- Missing: 6030, 1209. Existing: 1710, 5000, 2900, 6390
+- **First optimal 6030→1209 production run** — batch-created both missing accounts in 1 call (Run 8 used 4 calls with individual creates)
+- Nynorsk "kostnadskonto" correctly mapped to 6390 via 1710 source mapping
+- Confirms dynamic missing-account detection + batch create saves 1 call vs hardcoded approach
+- 7th consecutive optimal run overall; all language variants (nb, nn, en, es, fr, pt, de) produce correct results
+
 ### Sandbox confirmations
 - `account.number` + `account.name` without `id` → 422 (id is mandatory)
 - Combined 6-line voucher works, 2-call path verified when all accounts exist
@@ -225,3 +235,4 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - Portuguese "conta 1710 para despesa" maps to 1710→6390 (confirmed Run 9)
 - German "Rechnungsabgrenzung von Konto 1700 auf Aufwand" maps to 1700→6300 (confirmed Run 10)
 - Account 1249 named "Andre transportmidler" in default chart; works correctly as accumulated depreciation target
+- 1710→6390 + 6030→1209 with 242900/4yr (dep 5060.42) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero
