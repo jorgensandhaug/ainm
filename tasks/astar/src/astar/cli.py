@@ -110,6 +110,7 @@ from astar.student.predictor.cell_type_transfer_specs import supported_cell_type
 from astar.student.predictor.hazard_posterior_v2_port_specs import supported_hazard_posterior_v2_port_model_names
 from astar.student.predictor.ensemble_specs import supported_ensemble_model_names
 from astar.student.predictor.adaptive_ensemble_specs import supported_adaptive_ensemble_model_names
+from astar.student.predictor.ffam_mode_config import available_ffam_mode_model_names
 from astar.workflows.compare_synthetic_benchmarks import compare_benchmark_artifacts
 from astar.workflows.compare_historical_benchmarks import compare_historical_benchmark_artifacts
 from astar.workflows.corpus_summary import summarize_learning_corpus
@@ -184,6 +185,7 @@ def build_parser() -> argparse.ArgumentParser:
         *supported_hazard_posterior_v2_port_model_names(),
         *supported_ensemble_model_names(),
         *supported_adaptive_ensemble_model_names(),
+        *available_ffam_mode_model_names(),
         *supported_query_residual_model_names(),
     ]
     historical_models = [

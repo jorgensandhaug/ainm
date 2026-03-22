@@ -107,6 +107,11 @@ from astar.student.predictor.adaptive_ensemble_specs import (
     resolve_adaptive_ensemble_model_spec,
     supported_adaptive_ensemble_model_names,
 )
+from astar.student.predictor.ffam_mode import FFAMModePredictor
+from astar.student.predictor.ffam_mode_config import (
+    available_ffam_mode_model_names,
+    is_ffam_mode_model_name,
+)
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -634,6 +639,18 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    if is_ffam_mode_model_name(normalized):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = FFAMModePredictor.fit_named_from_workspace(
+            workspace_paths,
+            model_name=normalized,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=policy_name,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     msg = f"unsupported online predictor: {model_name}"
     raise ValueError(msg)
 
@@ -660,4 +677,5 @@ __all__ = [
     "supported_hazard_posterior_v2_port_model_names",
     "supported_ensemble_model_names",
     "supported_adaptive_ensemble_model_names",
+    "available_ffam_mode_model_names",
 ]

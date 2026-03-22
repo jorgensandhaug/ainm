@@ -125,12 +125,14 @@ def _cached_synthetic_dataset_name(
     policy_name: str,
     samples_per_round: int,
     round_ids: Sequence[str] | None = None,
+    dataset_version: str = "v1",
 ) -> str:
     normalized_policy = policy_name.strip().lower()
     scope_token = _round_scope_token(round_ids)
+    version_suffix = "" if dataset_version == "v1" else f"__dsver={dataset_version}"
     return (
         f"query_residual_synthetic_live__policy={normalized_policy}"
-        f"__samples={samples_per_round}__rounds={scope_token}"
+        f"__samples={samples_per_round}__rounds={scope_token}{version_suffix}"
     )
 
 
@@ -151,19 +153,22 @@ def _ensure_synthetic_dataset(
     *,
     policy_name: str,
     samples_per_round: int,
+    dataset_version: str = "v1",
     round_ids: Sequence[str] | None = None,
 ) -> Path:
     from astar.history.datasets.synthetic_live import build_synthetic_live_dataset
 
     legacy_dataset_name = f"synthetic_live_{policy_name.strip().lower()}_v1"
-    if samples_per_round == 1:
+    if samples_per_round == 1 and dataset_version == "v1":
         try:
             _, index_path = _load_synthetic_dataset_ref(paths, legacy_dataset_name)
             return index_path
         except FileNotFoundError:
             pass
 
-    dataset_name = _cached_synthetic_dataset_name(policy_name, samples_per_round, round_ids)
+    dataset_name = _cached_synthetic_dataset_name(
+        policy_name, samples_per_round, round_ids, dataset_version
+    )
     try:
         _, index_path = _load_synthetic_dataset_ref(paths, dataset_name)
         return index_path
@@ -1167,7 +1172,8 @@ def _feature_variant_summary_lengths(feature_variant: str) -> tuple[int, int]:
     raise ValueError(f"unsupported query_residual feature variant: {feature_variant}")
 
 
-def _regime_input_names(feature_variant: str) -> list[str]:
+def _regime_input_names(feature_variant: str | None = None, *, variant: str | None = None) -> list[str]:
+    feature_variant = feature_variant or variant or "v1"
     global_len, seed_len = _feature_variant_summary_lengths(feature_variant)
     global_names = _global_summary_names()[:global_len]
     seed_names = _seed_summary_names()[:seed_len]
@@ -1339,8 +1345,10 @@ def _interaction_tensor(
 def _regime_input_vector(
     derived: TranscriptDerivedFeatures,
     *,
-    feature_variant: str,
+    feature_variant: str | None = None,
+    variant: str | None = None,
 ) -> np.ndarray:
+    feature_variant = feature_variant or variant or "v1"
     global_len, seed_len = _feature_variant_summary_lengths(feature_variant)
     ordered_seed_indexes = sorted(derived.seed_summaries)
     seed_stack = np.stack(

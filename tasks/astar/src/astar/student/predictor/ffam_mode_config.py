@@ -1,0 +1,499 @@
+from __future__ import annotations
+
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from astar.student.predictor.query_residual_config import RegimeInputVariant
+
+SummaryVariant = Literal["v1", "v2", "v3"]
+
+
+class FFAMModeConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    model_name: str
+    policy_name: str = "exploration_r3"
+    samples_per_round: int = Field(default=1, ge=1)
+    cells_per_seed: int = Field(default=512, ge=1)
+    budget_prefixes: tuple[int, ...] = (0, 5, 10, 20, 35, 50)
+    operator_ridge_lambda: float = Field(default=8.0, ge=0.0)
+    posterior_ridge_lambda: float = Field(default=8.0, gt=0.0)
+    projected_mode_dim: int = Field(default=3, ge=1)
+    probability_floor: float = Field(default=0.01, gt=0.0, lt=1.0)
+    temperature: float = Field(default=1.02, gt=0.0)
+    prior_blend: float = Field(default=0.15, ge=0.0, le=1.0)
+    residual_class_scale: tuple[float, ...] = (1.0, 0.8, 0.7, 0.7, 0.95, 1.0)
+    beta_min: float = Field(default=2.0, ge=0.0)
+    beta_scale: float = Field(default=8.0, ge=0.0)
+    beta_repeat_discount: float = Field(default=0.0, ge=0.0)
+    delta_clip: float = Field(default=4.0, gt=0.0)
+    include_interactions: bool = False
+    operator_target: str = "logit_delta"
+    entropy_weight_power: float = Field(default=1.0, ge=0.0)
+    spatial_smooth_sigma: float = Field(default=0.0, ge=0.0)
+    delta_smooth_sigma: float = Field(default=0.0, ge=0.0)
+    synthetic_dataset_version: str = "v2"
+    regime_input_variant: RegimeInputVariant = "motif_v1"
+    posterior_input_source: str = "regime_input"
+    posterior_summary_variant: SummaryVariant = "v3"
+    posterior_method: str = "particle_mixture"
+    posterior_residual_hidden_dim: int = Field(default=0, ge=0)
+    posterior_residual_steps: int = Field(default=0, ge=0)
+    posterior_residual_learning_rate: float = Field(default=0.0, ge=0.0)
+    posterior_residual_weight_decay: float = Field(default=0.0, ge=0.0)
+    posterior_residual_scale: float = Field(default=1.0, ge=0.0)
+    posterior_residual_seed: int = Field(default=0, ge=0)
+    posterior_residual_ensemble_seeds: int = Field(default=1, ge=1)
+    decoder_method: str = "mode_projection"
+    decoder_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
+    decoder_particle_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
+    hazard_decoder_blend: float = Field(default=0.0, ge=0.0, le=1.0)
+    hazard_decoder_ood_scale: float = Field(default=0.0, ge=0.0, le=1.0)
+    posterior_metric_dim: int = Field(default=8, ge=1)
+    posterior_neighbor_count: int = Field(default=16, ge=1)
+    posterior_bandwidth: float = Field(default=1.0, gt=0.0)
+    posterior_particle_blend: float = Field(default=0.5, ge=0.0, le=1.0)
+    posterior_ood_prior_blend: float = Field(default=0.0, ge=0.0, le=1.0)
+    posterior_metric_method: str = "pca"
+    cluster_count: int = Field(default=1, ge=1)
+    evidence_smooth_sigma: float = Field(default=0.0, ge=0.0)
+    evidence_propagation_beta_scale: float = Field(default=0.0, ge=0.0)
+
+
+FFAM_MODE_DEFAULT_ALIAS = "ffam_mode_v214"
+
+
+# Agent7's champion config and key variants
+FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {
+    # Simple baseline
+    "ffam_mode_v1": FFAMModeConfig(
+        model_name="ffam_mode_v1",
+        projected_mode_dim=3,
+        posterior_method="particle_mixture",
+        posterior_metric_dim=8,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.0,
+        prior_blend=0.15,
+        posterior_ood_prior_blend=0.45,
+    ),
+    # Agent7 champion: 87.65 score (with s6)
+    "ffam_mode_v214": FFAMModeConfig(
+        model_name="ffam_mode_v214",
+        samples_per_round=6,
+        projected_mode_dim=5,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=32,
+        posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid",
+        decoder_particle_blend=0.08,
+        decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=12,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.0,
+        posterior_ood_prior_blend=0.0,
+        operator_ridge_lambda=4.0,
+        temperature=1.0,
+        posterior_ridge_lambda=0.05,
+        probability_floor=0.0003,
+        beta_min=12.0,
+        beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        cells_per_seed=768,
+        spatial_smooth_sigma=0.3,
+    ),
+    # Agent6 sweep: try q=4
+    "ffam_mode_a6_v1": FFAMModeConfig(
+        model_name="ffam_mode_a6_v1",
+        samples_per_round=6,
+        projected_mode_dim=4,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=32,
+        posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid",
+        decoder_particle_blend=0.08,
+        decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=12,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.0,
+        posterior_ood_prior_blend=0.0,
+        operator_ridge_lambda=4.0,
+        temperature=1.0,
+        posterior_ridge_lambda=0.05,
+        probability_floor=0.0003,
+        beta_min=12.0,
+        beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        cells_per_seed=768,
+        spatial_smooth_sigma=0.3,
+    ),
+    # Agent6 sweep: q=6
+    "ffam_mode_a6_v2": FFAMModeConfig(
+        model_name="ffam_mode_a6_v2",
+        samples_per_round=6,
+        projected_mode_dim=6,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=32,
+        posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid",
+        decoder_particle_blend=0.08,
+        decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=12,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.0,
+        posterior_ood_prior_blend=0.0,
+        operator_ridge_lambda=4.0,
+        temperature=1.0,
+        posterior_ridge_lambda=0.05,
+        probability_floor=0.0003,
+        beta_min=12.0,
+        beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        cells_per_seed=768,
+        spatial_smooth_sigma=0.3,
+    ),
+    # Agent6 sweep: 3 clusters
+    "ffam_mode_a6_v3": FFAMModeConfig(
+        model_name="ffam_mode_a6_v3",
+        samples_per_round=6,
+        projected_mode_dim=5,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=32,
+        posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid",
+        decoder_particle_blend=0.08,
+        decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised",
+        cluster_count=3,
+        posterior_metric_dim=12,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.0,
+        posterior_ood_prior_blend=0.0,
+        operator_ridge_lambda=4.0,
+        temperature=1.0,
+        posterior_ridge_lambda=0.05,
+        probability_floor=0.0003,
+        beta_min=12.0,
+        beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        cells_per_seed=768,
+        spatial_smooth_sigma=0.3,
+    ),
+    # Agent6 sweep: 4 clusters (agent7's best R7)
+    "ffam_mode_a6_v4": FFAMModeConfig(
+        model_name="ffam_mode_a6_v4",
+        samples_per_round=6,
+        projected_mode_dim=5,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=32,
+        posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid",
+        decoder_particle_blend=0.08,
+        decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised",
+        cluster_count=4,
+        posterior_metric_dim=12,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.0,
+        posterior_ood_prior_blend=0.0,
+        operator_ridge_lambda=4.0,
+        temperature=1.0,
+        posterior_ridge_lambda=0.05,
+        probability_floor=0.0003,
+        beta_min=12.0,
+        beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        cells_per_seed=768,
+        spatial_smooth_sigma=0.3,
+    ),
+    # Agent6 sweep: bigger MLP hidden=48
+    "ffam_mode_a6_v5": FFAMModeConfig(
+        model_name="ffam_mode_a6_v5",
+        samples_per_round=6,
+        projected_mode_dim=5,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=48,
+        posterior_residual_steps=600,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid",
+        decoder_particle_blend=0.08,
+        decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=12,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.0,
+        posterior_ood_prior_blend=0.0,
+        operator_ridge_lambda=4.0,
+        temperature=1.0,
+        posterior_ridge_lambda=0.05,
+        probability_floor=0.0003,
+        beta_min=12.0,
+        beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        cells_per_seed=768,
+        spatial_smooth_sigma=0.3,
+    ),
+    # Agent6 sweep: deeper MLP 2-layer with hidden=64
+    "ffam_mode_a6_v6": FFAMModeConfig(
+        model_name="ffam_mode_a6_v6",
+        samples_per_round=6,
+        projected_mode_dim=5,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=64,
+        posterior_residual_steps=700,
+        posterior_residual_learning_rate=0.015,
+        posterior_residual_weight_decay=0.025,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid",
+        decoder_particle_blend=0.08,
+        decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=12,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.0,
+        posterior_ood_prior_blend=0.0,
+        operator_ridge_lambda=4.0,
+        temperature=1.0,
+        posterior_ridge_lambda=0.05,
+        probability_floor=0.0003,
+        beta_min=12.0,
+        beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        cells_per_seed=768,
+        spatial_smooth_sigma=0.3,
+    ),
+    # Agent6 novel: lower prob floor
+    "ffam_mode_a6_v7": FFAMModeConfig(
+        model_name="ffam_mode_a6_v7",
+        samples_per_round=6,
+        projected_mode_dim=5,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=32,
+        posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid",
+        decoder_particle_blend=0.08,
+        decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=12,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.0,
+        posterior_ood_prior_blend=0.0,
+        operator_ridge_lambda=4.0,
+        temperature=1.0,
+        posterior_ridge_lambda=0.05,
+        probability_floor=0.0001,
+        beta_min=12.0,
+        beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        cells_per_seed=768,
+        spatial_smooth_sigma=0.3,
+    ),
+    # Agent6 novel: higher prob floor
+    "ffam_mode_a6_v8": FFAMModeConfig(
+        model_name="ffam_mode_a6_v8",
+        samples_per_round=6,
+        projected_mode_dim=5,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=32,
+        posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid",
+        decoder_particle_blend=0.08,
+        decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=12,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.0,
+        posterior_ood_prior_blend=0.0,
+        operator_ridge_lambda=4.0,
+        temperature=1.0,
+        posterior_ridge_lambda=0.05,
+        probability_floor=0.0005,
+        beta_min=12.0,
+        beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        cells_per_seed=768,
+        spatial_smooth_sigma=0.3,
+    ),
+    # Agent6 novel: more cells per seed
+    "ffam_mode_a6_v9": FFAMModeConfig(
+        model_name="ffam_mode_a6_v9",
+        samples_per_round=6,
+        projected_mode_dim=5,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=32,
+        posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid",
+        decoder_particle_blend=0.08,
+        decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=12,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.0,
+        posterior_ood_prior_blend=0.0,
+        operator_ridge_lambda=4.0,
+        temperature=1.0,
+        posterior_ridge_lambda=0.05,
+        probability_floor=0.0003,
+        beta_min=12.0,
+        beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        cells_per_seed=900,
+        spatial_smooth_sigma=0.3,
+    ),
+    # Agent6 novel: operator ridge=2
+    "ffam_mode_a6_v10": FFAMModeConfig(
+        model_name="ffam_mode_a6_v10",
+        samples_per_round=6,
+        projected_mode_dim=5,
+        posterior_input_source="summary_input",
+        posterior_summary_variant="v3",
+        posterior_method="residual_mlp",
+        posterior_residual_hidden_dim=32,
+        posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02,
+        posterior_residual_weight_decay=0.02,
+        posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid",
+        decoder_particle_blend=0.08,
+        decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised",
+        cluster_count=2,
+        posterior_metric_dim=12,
+        posterior_neighbor_count=24,
+        posterior_bandwidth=1.1,
+        prior_blend=0.0,
+        posterior_ood_prior_blend=0.0,
+        operator_ridge_lambda=2.0,
+        temperature=1.0,
+        posterior_ridge_lambda=0.05,
+        probability_floor=0.0003,
+        beta_min=12.0,
+        beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        cells_per_seed=768,
+        spatial_smooth_sigma=0.3,
+    ),
+}
+
+
+def available_ffam_mode_model_names() -> list[str]:
+    return ["ffam_mode", *sorted(FFAM_MODE_CONFIGS)]
+
+
+def is_ffam_mode_model_name(model_name: str) -> bool:
+    normalized = model_name.strip().lower()
+    return normalized == "ffam_mode" or normalized in FFAM_MODE_CONFIGS
+
+
+def resolve_ffam_mode_config(
+    model_name: str,
+    *,
+    policy_name: str | None = None,
+    samples_per_round: int | None = None,
+) -> FFAMModeConfig:
+    normalized = model_name.strip().lower()
+    resolved_name = FFAM_MODE_DEFAULT_ALIAS if normalized == "ffam_mode" else normalized
+    if resolved_name not in FFAM_MODE_CONFIGS:
+        raise ValueError(f"unsupported ffam mode model: {model_name}")
+    config = FFAM_MODE_CONFIGS[resolved_name]
+    updates: dict[str, object] = {}
+    if policy_name is not None:
+        updates["policy_name"] = policy_name.strip().lower()
+    if samples_per_round is not None:
+        updates["samples_per_round"] = samples_per_round
+    return config if not updates else config.model_copy(update=updates)
+
+
+def ffam_mode_checkpoint_name(
+    model_name: str,
+    *,
+    policy_name: str,
+    samples_per_round: int | None = None,
+) -> str:
+    config = resolve_ffam_mode_config(
+        model_name,
+        policy_name=policy_name,
+        samples_per_round=samples_per_round,
+    )
+    suffix = f"{config.model_name}__policy={config.policy_name}"
+    if config.samples_per_round != 1:
+        suffix += f"__samples={config.samples_per_round}"
+    return suffix
+
+
+__all__ = [
+    "FFAM_MODE_CONFIGS",
+    "FFAM_MODE_DEFAULT_ALIAS",
+    "FFAMModeConfig",
+    "available_ffam_mode_model_names",
+    "ffam_mode_checkpoint_name",
+    "is_ffam_mode_model_name",
+    "resolve_ffam_mode_config",
+]

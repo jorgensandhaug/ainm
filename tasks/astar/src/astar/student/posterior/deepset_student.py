@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
-from astar.core.terrain import CLASS_COUNT, collapse_internal_grid
+from astar.core.grid import MapShape, coverage_counts
+from astar.core.terrain import CLASS_COUNT, buildable_mask, collapse_internal_grid
 from astar.core.trajectory import LiveQueryObs
+from astar.features.coasts import coast_mask as build_coast_mask
 from astar.history.datasets.base import SyntheticEpisodeDatasetRef
 from astar.history.datasets.synthetic_live import (
     load_synthetic_episode,
@@ -23,6 +26,8 @@ from astar.observe.evidence import (
 from astar.student.predictor.base import LiveInferenceContext
 from astar.teacher.dynamics.hazard_teacher import HazardTeacher
 from astar.teacher.regime.base import RegimePosteriorState
+
+SummaryVariant = Literal["v1", "v2", "v3"]
 
 SUPPORTED_SUMMARY_FEATURE_VARIANTS = ("basic", "stress_v1")
 
@@ -153,6 +158,231 @@ def _artifact_seed_summary_components(
         _optional_float(settlement_summary["q25_defense"]),
         _optional_float(settlement_summary["q75_defense"]),
     ]
+
+
+def _seed_summary_block_size(variant: SummaryVariant) -> int:
+    base = 1 + CLASS_COUNT + 4
+    if variant == "v1":
+        return base
+    if variant == "v2":
+        return base + 10
+    return base + 26
+
+
+def _summary_vector_from_observations(
+    observations: tuple[LiveQueryObs, ...],
+    *,
+    seed_count: int,
+    map_width: int,
+    map_height: int,
+    variant: SummaryVariant,
+    initial_grids: tuple[np.ndarray, ...] | None = None,
+) -> np.ndarray:
+    if variant == "v3":
+        if initial_grids is None or len(initial_grids) < seed_count:
+            raise ValueError("summary variant v3 requires initial grids")
+        per_seed_initial = {
+            seed_index: (
+                collapse_internal_grid(np.asarray(initial_grids[seed_index], dtype=np.int64)),
+                build_coast_mask(np.asarray(initial_grids[seed_index], dtype=np.int64)).astype(bool),
+                (
+                    buildable_mask(np.asarray(initial_grids[seed_index], dtype=np.int64))
+                    & ~build_coast_mask(np.asarray(initial_grids[seed_index], dtype=np.int64))
+                ).astype(bool),
+            )
+            for seed_index in range(seed_count)
+        }
+    else:
+        per_seed_initial = {}
+
+    grouped: dict[int, list[LiveQueryObs]] = {seed_index: [] for seed_index in range(seed_count)}
+    for observation in observations:
+        grouped.setdefault(observation.seed_index, []).append(observation)
+
+    components: list[float] = []
+    area_denominator = float(max(map_width * map_height, 1))
+
+    for seed_index in range(seed_count):
+        seed_observations = grouped.get(seed_index, [])
+        class_counts = np.zeros(CLASS_COUNT, dtype=np.float64)
+        populations: list[float] = []
+        foods: list[float] = []
+        wealths: list[float] = []
+        defenses: list[float] = []
+
+        settlement_counts: list[float] = []
+        alive_share: list[float] = []
+        port_share: list[float] = []
+        center_x: list[float] = []
+        center_y: list[float] = []
+        area_share: list[float] = []
+
+        initial_empty_count = 0.0
+        initial_forest_count = 0.0
+        initial_coast_count = 0.0
+        initial_inland_count = 0.0
+        built_on_initial_empty = 0.0
+        port_on_initial_empty = 0.0
+        ruin_on_initial_empty = 0.0
+        forest_on_initial_empty = 0.0
+        built_on_initial_forest = 0.0
+        ruin_on_initial_forest = 0.0
+        forest_on_initial_forest = 0.0
+        built_on_initial_coast = 0.0
+        port_on_initial_coast = 0.0
+        ruin_on_initial_coast = 0.0
+        built_on_initial_inland = 0.0
+        changed_cell_count = 0.0
+        observed_cell_count = 0.0
+
+        for observation in seed_observations:
+            collapsed = collapse_internal_grid(observation.grid)
+            bincount = np.bincount(collapsed.reshape(-1), minlength=CLASS_COUNT).astype(np.float64)
+            class_counts += bincount
+
+            settlements = observation.settlements
+            settlement_counts.append(float(len(settlements)))
+            if settlements:
+                alive_total = sum(1 for settlement in settlements if settlement.alive)
+                port_total = sum(1 for settlement in settlements if settlement.has_port)
+                alive_share.append(alive_total / float(len(settlements)))
+                port_share.append(port_total / float(len(settlements)))
+            else:
+                alive_share.append(0.0)
+                port_share.append(0.0)
+
+            center_x.append(
+                float(observation.viewport.x + (0.5 * observation.viewport.w)) / float(max(map_width, 1)),
+            )
+            center_y.append(
+                float(observation.viewport.y + (0.5 * observation.viewport.h)) / float(max(map_height, 1)),
+            )
+            area_share.append(
+                float(observation.viewport.w * observation.viewport.h) / area_denominator,
+            )
+
+            if variant == "v3":
+                initial_collapsed, initial_coast_mask, initial_inland_mask = per_seed_initial[seed_index]
+                y0 = int(observation.viewport.y)
+                y1 = y0 + int(observation.viewport.h)
+                x0 = int(observation.viewport.x)
+                x1 = x0 + int(observation.viewport.w)
+                initial_patch = initial_collapsed[y0:y1, x0:x1]
+                coast_patch = initial_coast_mask[y0:y1, x0:x1]
+                inland_patch = initial_inland_mask[y0:y1, x0:x1]
+
+                empty_patch = initial_patch == 0
+                forest_patch = initial_patch == 4
+                built_patch = np.isin(collapsed, (1, 2, 3))
+                port_patch = collapsed == 2
+                ruin_patch = collapsed == 3
+                forest_final_patch = collapsed == 4
+
+                observed_cell_count += float(collapsed.size)
+                initial_empty_count += float(np.count_nonzero(empty_patch))
+                initial_forest_count += float(np.count_nonzero(forest_patch))
+                initial_coast_count += float(np.count_nonzero(coast_patch))
+                initial_inland_count += float(np.count_nonzero(inland_patch))
+                built_on_initial_empty += float(np.count_nonzero(built_patch & empty_patch))
+                port_on_initial_empty += float(np.count_nonzero(port_patch & empty_patch))
+                ruin_on_initial_empty += float(np.count_nonzero(ruin_patch & empty_patch))
+                forest_on_initial_empty += float(np.count_nonzero(forest_final_patch & empty_patch))
+                built_on_initial_forest += float(np.count_nonzero(built_patch & forest_patch))
+                ruin_on_initial_forest += float(np.count_nonzero(ruin_patch & forest_patch))
+                forest_on_initial_forest += float(np.count_nonzero(forest_final_patch & forest_patch))
+                built_on_initial_coast += float(np.count_nonzero(built_patch & coast_patch))
+                port_on_initial_coast += float(np.count_nonzero(port_patch & coast_patch))
+                ruin_on_initial_coast += float(np.count_nonzero(ruin_patch & coast_patch))
+                built_on_initial_inland += float(np.count_nonzero(built_patch & inland_patch))
+                changed_cell_count += float(np.count_nonzero(collapsed != initial_patch))
+
+            for settlement in settlements:
+                if settlement.population is not None:
+                    populations.append(float(settlement.population))
+                if settlement.food is not None:
+                    foods.append(float(settlement.food))
+                if settlement.wealth is not None:
+                    wealths.append(float(settlement.wealth))
+                if settlement.defense is not None:
+                    defenses.append(float(settlement.defense))
+
+        total = float(np.sum(class_counts))
+        class_frequencies = (
+            class_counts / total if total > 0 else np.zeros(CLASS_COUNT, dtype=np.float64)
+        )
+        components.append(float(len(seed_observations)))
+        components.extend(class_frequencies.tolist())
+        components.append(float(np.mean(populations)) if populations else 0.0)
+        components.append(float(np.mean(foods)) if foods else 0.0)
+        components.append(float(np.mean(wealths)) if wealths else 0.0)
+        components.append(float(np.mean(defenses)) if defenses else 0.0)
+
+        if variant == "v2":
+            if seed_observations:
+                coverage = coverage_counts(
+                    MapShape(width=map_width, height=map_height),
+                    [item.viewport for item in seed_observations],
+                ).astype(np.float64)
+                covered = coverage > 0.0
+                repeated = coverage > 1.0
+                components.extend(
+                    [
+                        float(np.mean(settlement_counts)),
+                        float(np.mean(alive_share)),
+                        float(np.mean(port_share)),
+                        float(np.mean(center_x)),
+                        float(np.mean(center_y)),
+                        float(np.std(center_x)),
+                        float(np.std(center_y)),
+                        float(np.mean(area_share)),
+                        float(np.mean(covered)),
+                        float(np.mean(repeated)),
+                    ],
+                )
+            else:
+                components.extend([0.0] * 10)
+        elif variant == "v3":
+            if seed_observations:
+                coverage = coverage_counts(
+                    MapShape(width=map_width, height=map_height),
+                    [item.viewport for item in seed_observations],
+                ).astype(np.float64)
+                covered = coverage > 0.0
+                repeated = coverage > 1.0
+                components.extend(
+                    [
+                        float(np.mean(settlement_counts)),
+                        float(np.mean(alive_share)),
+                        float(np.mean(port_share)),
+                        float(np.mean(center_x)),
+                        float(np.mean(center_y)),
+                        float(np.std(center_x)),
+                        float(np.std(center_y)),
+                        float(np.mean(area_share)),
+                        float(np.mean(covered)),
+                        float(np.mean(repeated)),
+                        initial_empty_count / max(observed_cell_count, 1.0),
+                        initial_forest_count / max(observed_cell_count, 1.0),
+                        initial_coast_count / max(observed_cell_count, 1.0),
+                        initial_inland_count / max(observed_cell_count, 1.0),
+                        built_on_initial_empty / max(initial_empty_count, 1.0),
+                        port_on_initial_empty / max(initial_empty_count, 1.0),
+                        ruin_on_initial_empty / max(initial_empty_count, 1.0),
+                        forest_on_initial_empty / max(initial_empty_count, 1.0),
+                        built_on_initial_forest / max(initial_forest_count, 1.0),
+                        ruin_on_initial_forest / max(initial_forest_count, 1.0),
+                        forest_on_initial_forest / max(initial_forest_count, 1.0),
+                        built_on_initial_coast / max(initial_coast_count, 1.0),
+                        port_on_initial_coast / max(initial_coast_count, 1.0),
+                        ruin_on_initial_coast / max(initial_coast_count, 1.0),
+                        built_on_initial_inland / max(initial_inland_count, 1.0),
+                        changed_cell_count / max(observed_cell_count, 1.0),
+                    ],
+                )
+            else:
+                components.extend([0.0] * 26)
+
+    return np.asarray(components, dtype=np.float64)
 
 
 def _summary_vector_from_evidence(
