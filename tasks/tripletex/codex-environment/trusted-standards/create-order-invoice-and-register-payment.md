@@ -109,6 +109,11 @@
   - used comma-separated `number=5700,2680` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed, `pts[0]` payment type selection
   - 5 calls, 0 errors, outstanding=0 — 5th confirmation of the canonical 5-call path
   - confirms Spanish-language prompt triggers no endpoint deviation
+- production confirmation on 2026-03-22 for French prompt `Colline SARL` / `953795493` / `Rapport d'analyse (6272)` + `Heures de conseil (7628)` / prices `30600` + `2350`:
+  - used comma-separated `number=6272,7628` product lookup, `String(p.number)` comparison, `paidAmount=0.01` seed, `pts[0]` payment type selection
+  - 5 calls, 0 errors, outstanding=0 — 6th confirmation of the canonical 5-call path
+  - confirms French-language prompt triggers no endpoint deviation
+  - FIRST French-language production confirmation on this task shape
 - sandbox investigation on 2026-03-21 disproved three call-reduction hypotheses:
   - `POST /order` with `product: { number: "..." }` instead of `product: { id }`: accepted (201) but creates orphaned order lines — product fields are null in readback, no linkage to existing product
   - `POST /order` with `customer: { organizationNumber: "..." }` instead of `customer: { id }`: rejected (422, "customer.name: Kan ikke være null") — API treats it as creating a new customer
