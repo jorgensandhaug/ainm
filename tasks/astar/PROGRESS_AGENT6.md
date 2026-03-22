@@ -4658,9 +4658,22 @@ The only way to significantly beat 87.65 would be:
 **Key finding**: 5% kNN blend is optimal. The kNN adds cell-level diversity.
 4-cluster mode (v234) is marginally better than 2-cluster (v214) for ensemble.
 
+### A6 Ensemble Sweep (our novel combinations)
+| Model | Score | Mode Model | Blend |
+|-------|-------|-----------|-------|
+| **a6_v7** | **87.712** | a6_v19 (slow MLP) | 96/4 |
+| **a6_v1** | **87.711** | a6_v19 (slow MLP) | 95/5 |
+| a6_v3 | 87.709 | a6_v24 (v19+4c) | 95/5 |
+| a6_v6 | 87.708 | a6_v19 | 97/3 |
+| a6_v8 | 87.707 | a6_v19 | 94/6 |
+| a6_v4 | 87.706 | a6_v25 (3-seed) | 95/5 |
+| a6_v2 | 87.704 | a6_v23 (v19+3c) | 95/5 |
+| a6_v5 | 87.699 | a6_v19 | 93/7 |
+
 ### Total Experiments Summary
 - **ffam_mode variants**: 35+ tested, all within ±0.4 of 87.65
-- **ffam_ensemble variants**: 9+ tested, best at 87.70
+- **ffam_ensemble variants**: 20+ tested, best at 87.71
 - **Cross-architecture ensembles**: 5 tested (ffam + old models), all worse than pure ffam
-- **Total**: 50+ experiments this session
-- **Score improvement**: 80.17 → 87.70 (+7.53 points, +9.4%)
+- **Total**: 60+ experiments this session
+- **Score improvement**: 80.17 → 87.71 (+7.54 points, +9.4%)
+- **Beats agent7's best** (87.70) by +0.011 points
