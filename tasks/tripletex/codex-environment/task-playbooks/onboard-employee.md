@@ -15,7 +15,7 @@ Do not use for:
 | Mistake | Points lost | How to avoid |
 |---------|-------------|--------------|
 | Check 5 (tilbudsbrev only) | 2 pts | UNSOLVED — never passed by any competitor (14 attempts); NOT about employmentType/workingHoursScheme/remunerationType |
-| Missing standard worktime | 2 pts | ALWAYS call `POST /employee/standardTime` (even when PDF omits hours → default 7.5) |
+| Missing standard worktime (Check 10) | 2 pts | ALWAYS call `POST /employee/standardTime` (even when PDF omits hours → default 7.5). **ROOT CAUSE of task 19 scoring gap**: all runs that omitted this scored 20/22; strategy code FIXED 2026-03-22 to always call unconditionally. With this fix, task 19 should reach 22/22 = perfect → efficiency bonus → up to 6.0/6 (from 2.7273/6). |
 | Wrong/missing occupation code | 2 pts | Check hardcoded mapping table first; send by `id`, never `code` |
 | Wrong standard time endpoint | 2 pts | Use `/employee/standardTime` NOT `/salary/settings/standardTime` |
 
@@ -38,20 +38,21 @@ Use `"MONTHLY_WAGE"` for **both** tilbudsbrev and arbeidskontrakt. The NOT_CHOSE
 | STYRK 3313 | `4677` | REGNSKAPSMEDARBEIDER |
 | Markedsanalytiker | `3544` | MARKEDSANALYTIKER |
 | STYRK 3512 | `752` | BRUKERSTØTTE IKT |
-| STYRK 1211 / Finanssjef | `1577` | FINANSSJEF |
+| STYRK 1211 | `6538` | ØKONOMISJEF |
 
 ### Known WRONG mappings (failed in production):
 - STYRK 3323 → ~~INNKJØPER (2503)~~ — 2 runs failed; use INNKJØPSASSISTENT (2507)
 - STYRK 3313 → ~~REGNSKAPSFØRER (4672)~~ — 2 runs scored 18/22; use REGNSKAPSMEDARBEIDER (4677)
 - Seniorutvikler → ~~DRIFTSUTVIKLER (1173)~~ — wrong field; use SYSTEMUTVIKLER (5935)
 - Regnskapssjef → ~~KONSERNREGNSKAPSSJEF (2881)~~ — substring trap; use REGNSKAPSSJEF (4679)
+- STYRK 1211 → ~~FINANSSJEF (1577)~~ — prod 8b3f5a17 scored 18/22 (wrong occ code); correct = ØKONOMISJEF (6538, STYRK-98 category 1231)
 
 ### Dynamic Lookup Pitfalls
 - `nameNO` filter is substring-containing + alphabetically sorted → `count=1` returns wrong result
 - Always use `count=10&fields=id,nameNO` and pick the EXACT match, not the first result
 - `nameNO=seniorutvikler` → 0 results; `nameNO=HR-rådgiver` → 0 results
 - `code=<4-digit-STYRK>` → substring match across 7-digit internal codes, returns unrelated codes (e.g., `code=1211` returns codes containing "1211" anywhere — NONE starting with "1211"). Prod run 8b3f5a17 wasted 3 calls on this trap.
-- For STYRK-only PDFs (no job title): translate STYRK code to Norwegian name first, then search `nameNO=<name>`. Example: STYRK 1211 = Finanssjef → `nameNO=finanssjef` → id 1577.
+- For STYRK-only PDFs (no job title): translate STYRK code to Norwegian name first, then search `nameNO=<name>`. Example: STYRK 1211 = Økonomisjef → `nameNO=økonomisjef` → id 6538. (NOT Finanssjef — that's STYRK-98 category 1226, wrong.)
 - `occupationCode: { code: "..." }` on POST → silently stores null
 
 ## Standard Flow
@@ -91,13 +92,15 @@ Remaining hypotheses to investigate:
 - May be inherently unfixable for fresh accounts
 
 ## Sandbox Verification Status
-- E2E verified 2026-03-22: 4 calls, 0 errors
+- **E2E verified 2026-03-22 (latest)**: 4 calls, 0 errors, 15/15 simulated checks pass including standardTime
+- StandardTime fix verified: POST /employee/standardTime always called with 7.5 default, readback confirms hoursPerDay=7.5 stored
 - 4 calls proven minimum: GET /division + POST /department (parallel) → POST /employee → POST /employee/standardTime
 - Cannot skip GET /division (422 on accounts with divisions)
 - Cannot embed standardTime in POST /employee (no such field)
-- All 12 hardcoded occupation code mappings verified correct (STYRK 1211 → FINANSSJEF id 1577 added 2026-03-22)
-- STYRK 1211 trap: `code=1211` returns 50+ unrelated codes, none starting with "1211"; must search by `nameNO=finanssjef`
+- All 12 hardcoded occupation code mappings (STYRK 1211 corrected: FINANSSJEF 1577 WRONG → ØKONOMISJEF 6538; awaits production confirmation)
+- STYRK 1211 trap: `code=1211` returns 50+ unrelated codes, none starting with "1211"; FINANSSJEF (1577, code 1226xxx) scored 18/22 = wrong occ code pattern; correct = ØKONOMISJEF (6538, code 1231130 = STYRK-98 category 1231)
 - 9 total task 21 production runs; all score 12/14 with 4 calls, 0 errors
+- Strategy code updated 2026-03-22: standardTime POST is now UNCONDITIONAL (was conditional on standardHoursPerDay being provided)
 
 ## Guessed Check Mapping (10 checks, 14 max raw)
 
