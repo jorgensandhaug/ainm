@@ -512,6 +512,86 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_scale=2.0,
         blend_space="logodds",
     ),
+    # === Round 4: Different kNN variants ===
+    # a5_e17: Moderate beta + kNN v7 (k=150, bw=1.5)
+    "ffam_ensemble_a5_e17": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e17",
+        mode_model="ffam_mode_a5_v8",
+        knn_model="ffam_knn_v7",
+        mode_weight=0.84,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e18: Moderate beta + kNN v4 (k=50, bw=0.5)
+    "ffam_ensemble_a5_e18": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e18",
+        mode_model="ffam_mode_a5_v8",
+        knn_model="ffam_knn_v4",
+        mode_weight=0.84,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e19: Moderate beta + kNN v9 (k=75, cells=1600)
+    "ffam_ensemble_a5_e19": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e19",
+        mode_model="ffam_mode_a5_v8",
+        knn_model="ffam_knn_v9",
+        mode_weight=0.84,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e20: Moderate beta + pooled v1 (entirely different diversity source)
+    "ffam_ensemble_a5_e20": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e20",
+        mode_model="ffam_mode_a5_v8",
+        knn_model="ffam_pooled_v1",
+        mode_weight=0.84,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e21: Sweep mode_weight around best (83%)
+    "ffam_ensemble_a5_e21": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e21",
+        mode_model="ffam_mode_a5_v8",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.83,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e22: Sweep mode_weight (82%)
+    "ffam_ensemble_a5_e22": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e22",
+        mode_model="ffam_mode_a5_v8",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.82,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+    ),
+    # a5_e23: Sweep adaptive_scale (3.0)
+    "ffam_ensemble_a5_e23": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e23",
+        mode_model="ffam_mode_a5_v8",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.84,
+        adaptive_blend=True,
+        adaptive_scale=3.0,
+        blend_space="logodds",
+    ),
+    # a5_e24: No adaptive blend (simpler)
+    "ffam_ensemble_a5_e24": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a5_e24",
+        mode_model="ffam_mode_a5_v8",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.84,
+        adaptive_blend=False,
+        blend_space="logodds",
+    ),
 }
 
 
