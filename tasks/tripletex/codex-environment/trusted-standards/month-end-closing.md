@@ -241,6 +241,15 @@ Log all non-zero `balanceOut` accounts. The voucher postings are balanced by con
 - 2nd production confirmation of 1720→6300 + 6020→1029 combination (first was Run 4)
 - 15 production runs total: 13 optimal, 1 blocked (creds), 1 suboptimal (Run 7, 4 calls — batch-create fix applied in Run 10)
 
+### Run 15 (2026-03-22, 1710→6390 + 6010→1249 variant, English prompt, 2 calls — optimal)
+- Task: March 2026, prepaid 12400 (1710→6390), depreciation 164250/6yr (6010→1249), salary accrual (5000→2900, 45000 default)
+- Used 2 calls: 1 GET (accounts) + 1 POST (combined 6-line voucher)
+- 0 errors. Depreciation: Math.round((164250/72)*100)/100 = 2281.25
+- All 6 accounts existed in fresh Tripletex: 1710, 6390, 6010, 1249, 5000, 2900
+- 3rd optimal 2-call 6010→1249 production run (first was Run 2, then Run 11)
+- Included 2 FREE verification GETs: voucher readback with expanded postings + balance sheet (18 non-zero accounts logged)
+- 16 production runs total: 14 optimal, 1 blocked (creds), 1 suboptimal (Run 7, 4 calls — batch-create fix applied in Run 10)
+
 ## Sandbox Verification (2026-03-21)
 - Persistent sandbox `kkpqfuj-amager.tripletex.dev` confirmed:
   - `account: { number: 5000 }` without `id` → 422 "postings.account.name: Kan ikke være null."

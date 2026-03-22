@@ -62,12 +62,12 @@ monthly_depreciation = acquisition_cost / (useful_life_years * 12)
   - 1209: "Akk. avskr. maskiner og anlegg"
   - 6030: "Avskr. maskiner og anlegg"
 
-## Minimum API Flow (2-3 calls — combined voucher, NO trial balance GET)
+## Minimum API Flow (2-3 writes — combined voucher, plus FREE verification GETs)
 
 All three entries can be combined into a single voucher with 6 posting lines.
 This is the recommended approach unless the task explicitly requires separate vouchers ("eget bilag").
 
-**Do NOT GET the trial balance.** The trial balance GET does not create any state — scoring is based on actual ledger postings, not on whether you queried balanceSheet. Skipping the trial balance GET saves 1 call and improves the efficiency score. The voucher postings are inherently balanced, so the trial balance will be zero by construction on a fresh Tripletex account.
+**GETs are FREE** — always include verification GETs after writes. After the voucher POST, do a GET readback of the voucher with expanded postings, and optionally GET the trial balance to verify zero sum. These GETs provide critical logging data at zero scoring cost.
 
 ### Step 1: Account lookup (1 GET)
 ```
@@ -103,7 +103,16 @@ Check which accounts were returned. If any are missing (especially accumulated d
 
 Use the last day of the closing month as the voucher date.
 
-**That's it. Do NOT call GET /balanceSheet.**
+### Step 3: Verification GETs (FREE — always include)
+```
+GET /ledger/voucher/{id}?fields=id,number,date,description,postings(row,account(number,name),amountGross,amountGrossCurrency)
+```
+Log every posting — account number, name, amount. Confirm 6 postings with correct accounts and amounts.
+
+```
+GET /balanceSheet?dateFrom=YYYY-MM-01&dateTo=YYYY-MM+1-01&accountNumberFrom=1000&accountNumberTo=9999&fields=account(number,name),balanceOut&count=500
+```
+Log all non-zero `balanceOut` accounts. Confirm trial balance sums to zero.
 
 ## Separate Vouchers Alternative (4 calls)
 
@@ -117,7 +126,7 @@ Total: 1 GET (accounts) + 0-1 POST (create accounts) + 3 POST (vouchers) = 4-5 c
 - Separate vouchers: add 2 more POST calls
 
 ## Critical Pitfalls
-- **Do NOT GET trial balance**: `GET /balanceSheet` does not change state. Scoring only checks ledger postings. The trial balance GET wastes 1 call and lowers efficiency score. Confirmed: production run 2026-03-21 scored 4.5 with the extra GET; skipping it would score higher.
+- **GETs are FREE**: Always include verification GETs after writes. GET /balanceSheet and GET /ledger/voucher readbacks provide critical logging data at zero scoring cost.
 - **row=0 is reserved**: Postings MUST use `row: 1`, `row: 2`, etc. Row 0 is system-generated and triggers `422`.
 - **Account IDs required**: Number-only or number+name account refs on voucher postings fail with `422 Internt felt (account): Feltet må fylles ut.`. Always resolve account IDs first via GET. Confirmed in sandbox 2026-03-21: `account: { number: 5000, name: "Lønn til ansatte" }` without `id` → 422.
 - **Missing accounts**: Accounts 1029, 1109, 1209, and 6030 are confirmed missing in fresh Tripletex. Do NOT assume only accumulated depreciation accounts can be missing — 6030 (depreciation expense) is also missing. Dynamically detect ALL missing accounts from GET response and batch-create them.
@@ -262,6 +271,16 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - 8th optimal run for 6020→1029 variant (Runs 2, 5, 6, 7, 9, 10, 13, 15)
 - 2nd production confirmation of 1720→6300 + 6020→1029 combination (first was Run 5)
 - 15 production runs total: 13 optimal, 1 blocked (creds), 1 suboptimal (Run 8, batch-create fix applied in Run 11)
+
+### Run 16 (1710→6390 + 6010→1249 variant, English prompt, 2 calls — optimal)
+- Task: March 2026, prepaid 12400 (1710→6390), depreciation 164250/6yr (6010→1249), salary accrual (5000→2900, 45000 default)
+- Used 2 calls: 1 GET (accounts) + 1 POST (combined 6-line voucher)
+- 0 errors, theoretical minimum call count achieved
+- All 6 accounts existed: 1710, 6390, 6010, 1249, 5000, 2900
+- 3rd optimal 2-call 6010→1249 production run (first was Run 3, then Run 12)
+- Depreciation: Math.round((164250/72)*100)/100 = 2281.25
+- Included 2 FREE verification GETs: voucher readback + balance sheet (all 18 balance accounts logged)
+- 16 production runs total: 14 optimal, 1 blocked (creds), 1 suboptimal (Run 8, batch-create fix applied in Run 11)
 
 ### Sandbox confirmations
 - `account.number` + `account.name` without `id` → 422 (id is mandatory)
