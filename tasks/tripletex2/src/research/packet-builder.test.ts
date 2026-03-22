@@ -92,6 +92,17 @@ test("buildTaskPacket exposes optimization objective and context locator for man
     packet.contextLocator.runtimeEvidence.openapiPath,
     path.join(process.cwd(), "openapi.json"),
   );
+  assert.ok((packet.productionRuns?.length ?? 0) > 0);
+  assert.equal(
+    packet.productionRuns?.[0]?.path.includes(
+      `${path.sep}tasks${path.sep}tripletex${path.sep}data${path.sep}production${path.sep}runs${path.sep}prod-`,
+    ),
+    true,
+  );
+  assert.equal(
+    packet.productionRuns?.[0]?.timestamp >= (packet.productionRuns?.[1]?.timestamp ?? ""),
+    true,
+  );
   assert.ok(
     packet.contextLocator.offlineEvidence.additionalEvidencePaths.length === 0,
   );
@@ -99,10 +110,12 @@ test("buildTaskPacket exposes optimization objective and context locator for man
   const writtenPacket = JSON.parse(await readFile(packetPath, "utf8")) as {
     optimizationObjective?: { bestKnownCallBudget?: number };
     contextLocator?: { proof?: { verificationCommand?: string } };
+    productionRuns?: Array<{ score?: string }>;
   };
   assert.equal(writtenPacket.optimizationObjective?.bestKnownCallBudget, 5);
   assert.equal(
     writtenPacket.contextLocator?.proof?.verificationCommand,
     packet.contextLocator.proof.verificationCommand,
   );
+  assert.equal(writtenPacket.productionRuns?.[0]?.score?.includes("/"), true);
 });
