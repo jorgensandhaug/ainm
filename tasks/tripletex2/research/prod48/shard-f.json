@@ -1,0 +1,290 @@
+{
+  "shard": "f",
+  "generatedAt": "2026-03-22T02:30:00Z",
+  "runCount": 8,
+  "distinctTxTaskIds": ["01", "02", "11", "13", "14", "18"],
+  "criticalFinding": "tx_task_id_mapping_errors",
+  "mappingErrors": [
+    {
+      "txTaskId": "01",
+      "currentCanonicalTaskId": "01",
+      "currentCanonicalSlug": "create-customer",
+      "actualSemantics": "create-employee",
+      "correctCanonicalTaskId": "06",
+      "correctCanonicalSlug": "create-employee",
+      "evidenceRunIds": ["4032eb04-is-not-evidence-for-01"],
+      "confidence": "high",
+      "evidenceNote": "Run e9e115f1 prompt explicitly creates employee André Almeida with birth date and start date. POST /employee used, not POST /customer."
+    },
+    {
+      "txTaskId": "02",
+      "currentCanonicalTaskId": "02",
+      "currentCanonicalSlug": "create-supplier",
+      "actualSemantics": "create-customer",
+      "correctCanonicalTaskId": "01",
+      "correctCanonicalSlug": "create-customer",
+      "evidenceRunIds": ["7d01d632", "de7f6ef9"],
+      "confidence": "high",
+      "evidenceNote": "Both runs POST /customer with customer name, org number, postal address. No supplier semantics whatsoever."
+    },
+    {
+      "txTaskId": "11",
+      "currentCanonicalTaskId": "11",
+      "currentCanonicalSlug": "create-order-invoice-and-register-payment",
+      "actualSemantics": "register-supplier-invoice",
+      "correctCanonicalTaskId": "16",
+      "correctCanonicalSlug": "register-supplier-invoice",
+      "evidenceRunIds": ["c290243c"],
+      "confidence": "high",
+      "evidenceNote": "Run c290243c prompt explicitly registers a supplier invoice (Lumière SARL, INV-2026-5683, account 7140). Uses POST /supplier + POST /ledger/voucher, not order→invoice→payment."
+    },
+    {
+      "txTaskId": "14",
+      "currentCanonicalTaskId": "14",
+      "currentCanonicalSlug": "set-project-fixed-price-and-invoice-milestone",
+      "actualSemantics": "issue-full-credit-note",
+      "correctCanonicalTaskId": "10",
+      "correctCanonicalSlug": "issue-full-credit-note",
+      "evidenceRunIds": ["4032eb04"],
+      "confidence": "high",
+      "evidenceNote": "Run 4032eb04 prompt explicitly requests a Gutschrift (credit note) cancelling an invoice. Uses PUT /invoice/:createCreditNote, no project/milestone APIs."
+    }
+  ],
+  "confirmedCorrectMappings": [
+    {
+      "txTaskId": "13",
+      "canonicalTaskId": "13",
+      "canonicalSlug": "register-travel-expense",
+      "evidenceRunIds": ["32d11eeb"],
+      "confidence": "high"
+    },
+    {
+      "txTaskId": "18",
+      "canonicalTaskId": "18",
+      "canonicalSlug": "reverse-customer-invoice-payment",
+      "evidenceRunIds": ["8c1a4192", "6714382c"],
+      "confidence": "high"
+    }
+  ],
+  "runs": [
+    {
+      "runId": "4032eb04",
+      "directory": "prod-2026-03-21-233648738Z-4032eb04",
+      "txTaskId": "14",
+      "inferenceStatus": "unique_attempt_delta",
+      "scoreRaw": 8,
+      "scoreMax": 8,
+      "normalizedScore": 4,
+      "checksTotal": 5,
+      "checksPassed": 5,
+      "allChecksPassed": true,
+      "apiCalls": 2,
+      "apiErrors": 0,
+      "durationMs": 49200,
+      "promptLanguage": "de",
+      "semanticAction": "issue-full-credit-note",
+      "promptEntity": "Brückentor GmbH (901668566)",
+      "mappingConflict": true
+    },
+    {
+      "runId": "8c1a4192",
+      "directory": "prod-2026-03-21-233732739Z-8c1a4192",
+      "txTaskId": "18",
+      "inferenceStatus": "unique_attempt_delta",
+      "scoreRaw": 8,
+      "scoreMax": 8,
+      "normalizedScore": 4,
+      "checksTotal": 3,
+      "checksPassed": 3,
+      "allChecksPassed": true,
+      "apiCalls": 2,
+      "apiErrors": 0,
+      "durationMs": 49100,
+      "promptLanguage": "en",
+      "semanticAction": "reverse-customer-invoice-payment",
+      "promptEntity": "Windmill Ltd (858237033)",
+      "mappingConflict": false
+    },
+    {
+      "runId": "6714382c",
+      "directory": "prod-2026-03-21-233821110Z-6714382c",
+      "txTaskId": "18",
+      "inferenceStatus": "unique_attempt_delta",
+      "scoreRaw": 8,
+      "scoreMax": 8,
+      "normalizedScore": 4,
+      "checksTotal": 3,
+      "checksPassed": 3,
+      "allChecksPassed": true,
+      "apiCalls": 2,
+      "apiErrors": 0,
+      "durationMs": 63300,
+      "promptLanguage": "nn",
+      "semanticAction": "reverse-customer-invoice-payment",
+      "promptEntity": "Strandvik AS (859256333)",
+      "mappingConflict": false
+    },
+    {
+      "runId": "7d01d632",
+      "directory": "prod-2026-03-21-233933567Z-7d01d632",
+      "txTaskId": "02",
+      "inferenceStatus": "unique_attempt_delta",
+      "scoreRaw": 8,
+      "scoreMax": 8,
+      "normalizedScore": 2,
+      "checksTotal": 7,
+      "checksPassed": 7,
+      "allChecksPassed": true,
+      "apiCalls": 1,
+      "apiErrors": 0,
+      "durationMs": 29500,
+      "promptLanguage": "en",
+      "semanticAction": "create-customer",
+      "promptEntity": "Greenfield Ltd (872154442)",
+      "mappingConflict": true
+    },
+    {
+      "runId": "e9e115f1",
+      "directory": "prod-2026-03-21-234011317Z-e9e115f1",
+      "txTaskId": "01",
+      "inferenceStatus": "unique_attempt_delta",
+      "scoreRaw": 8,
+      "scoreMax": 8,
+      "normalizedScore": 1.2222,
+      "checksTotal": 7,
+      "checksPassed": 7,
+      "allChecksPassed": true,
+      "apiCalls": 4,
+      "apiErrors": 2,
+      "durationMs": 89000,
+      "promptLanguage": "pt",
+      "semanticAction": "create-employee",
+      "promptEntity": "André Almeida (andre.almeida@example.org)",
+      "mappingConflict": true
+    },
+    {
+      "runId": "32d11eeb",
+      "directory": "prod-2026-03-21-234149727Z-32d11eeb",
+      "txTaskId": "13",
+      "inferenceStatus": "unique_attempt_delta",
+      "scoreRaw": 4.5,
+      "scoreMax": 8,
+      "normalizedScore": 1.125,
+      "checksTotal": 6,
+      "checksPassed": 3,
+      "allChecksPassed": false,
+      "apiCalls": 6,
+      "apiErrors": 0,
+      "durationMs": 110700,
+      "promptLanguage": "nn",
+      "semanticAction": "register-travel-expense",
+      "promptEntity": "Svein Berge (svein.berge@example.org)",
+      "mappingConflict": false,
+      "failedChecks": [2, 3, 6],
+      "failureNotes": "Per-diem count=4 overnights for 5-day trip; first run using category-default vatType id=12"
+    },
+    {
+      "runId": "de7f6ef9",
+      "directory": "prod-2026-03-21-234345624Z-de7f6ef9",
+      "txTaskId": "02",
+      "inferenceStatus": "unique_attempt_delta",
+      "scoreRaw": 8,
+      "scoreMax": 8,
+      "normalizedScore": 2,
+      "checksTotal": 7,
+      "checksPassed": 7,
+      "allChecksPassed": true,
+      "apiCalls": 1,
+      "apiErrors": 0,
+      "durationMs": 28900,
+      "promptLanguage": "en",
+      "semanticAction": "create-customer",
+      "promptEntity": "Windmill Ltd (884659876)",
+      "mappingConflict": true
+    },
+    {
+      "runId": "c290243c",
+      "directory": "prod-2026-03-22-013352179Z-c290243c",
+      "txTaskId": "11",
+      "inferenceStatus": "unique_attempt_delta",
+      "scoreRaw": 0,
+      "scoreMax": 8,
+      "normalizedScore": 0,
+      "checksTotal": 4,
+      "checksPassed": 0,
+      "allChecksPassed": false,
+      "apiCalls": 4,
+      "apiErrors": 0,
+      "durationMs": 86500,
+      "promptLanguage": "fr",
+      "semanticAction": "register-supplier-invoice",
+      "promptEntity": "Lumière SARL (904564184)",
+      "mappingConflict": true,
+      "failedChecks": [1, 2, 3, 4],
+      "failureNotes": "All checks failed despite 0 HTTP errors. Used 4-call path including GET /ledger/voucherType which has since been removed from playbook. Posting structure or VAT calculation likely wrong."
+    }
+  ],
+  "strategyMaturity": {
+    "mature": [
+      {
+        "txTaskId": "18",
+        "slug": "reverse-customer-invoice-payment",
+        "canonicalCalls": 2,
+        "pattern": "GET /invoice → PUT /ledger/voucher/:reverse",
+        "perfectRuns": 2
+      },
+      {
+        "txTaskId": "02",
+        "slug": "create-customer",
+        "canonicalCalls": 1,
+        "pattern": "POST /customer",
+        "perfectRuns": 2
+      },
+      {
+        "txTaskId": "14",
+        "slug": "issue-full-credit-note",
+        "canonicalCalls": 2,
+        "pattern": "GET /invoice → PUT /invoice/:createCreditNote",
+        "perfectRuns": 1
+      }
+    ],
+    "fragile": [
+      {
+        "txTaskId": "01",
+        "slug": "create-employee",
+        "canonicalCalls": 2,
+        "actualCalls": 4,
+        "pattern": "GET /department → POST /employee (with repair branch)",
+        "issue": "Department placement confusion causes 422 errors"
+      }
+    ],
+    "immature": [
+      {
+        "txTaskId": "13",
+        "slug": "register-travel-expense",
+        "score": "1.125/4",
+        "issue": "Per-diem calculation and VAT handling on cost lines"
+      }
+    ],
+    "broken": [
+      {
+        "txTaskId": "11",
+        "slug": "register-supplier-invoice",
+        "score": "0/4",
+        "issue": "All checks fail despite successful API calls. Posting structure or amount/VAT calculation wrong."
+      }
+    ]
+  },
+  "candidateStrategy": null,
+  "candidateStrategyReason": "No novel reusable pattern discovered. Successful runs use existing strategy shapes. Failing runs need debugging within current strategies, not new patterns.",
+  "languageCoverage": ["de", "en", "nn", "pt", "fr"],
+  "aggregateStats": {
+    "totalRuns": 8,
+    "perfectRuns": 6,
+    "partialRuns": 1,
+    "failedRuns": 1,
+    "avgDurationMs": 63275,
+    "totalApiCalls": 22,
+    "totalApiErrors": 2
+  }
+}
