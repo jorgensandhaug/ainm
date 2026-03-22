@@ -2856,6 +2856,20 @@ All of these have been systematically swept and are near-optimal:
 - total improvement from v44: **+9.89 points** (77.76 → 87.65, +12.7%)
 - 214 variants tested
 
+### 2026-03-22T00:30Z approx
+
+- Investigated why only 48/50 queries used:
+  - exploration_r3: 45 coverage + 3 diagnostic repeats = 48
+  - 2 queries "wasted" vs 50 budget
+- Created 6 r5 policy variants that use ALL 50 queries
+- **ALL r5 variants scored WORSE than r3!**
+  - r3 (48 queries): 87.65
+  - r5_frontier (50): 86.85, r5_entropy (50): 86.43, r5 (50): 86.27
+  - r5_port (50): 86.25, hybrid_r5 (50): 85.48, r5_global (50): 84.39
+- **Key insight**: More repeat queries ADD NOISE that misleads the posterior
+  - 3 high-quality diagnostic repeats > 5 noisier ones
+  - The "wasted" queries are actually optimal behavior
+
 ## Complete Experiment Summary
 
 **170+ variants tested across these axes:**
