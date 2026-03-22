@@ -376,6 +376,35 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         knn_model="ffam_knn_v1",
         mode_weight=0.95,
     ),
+    # Agent6 further exploration around a6_v1 (best so far)
+    # a6_v5: v19 + kNN at 93/7 blend
+    "ffam_ensemble_a6_v5": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v5",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.93,
+    ),
+    # a6_v6: v19 + kNN at 97/3 blend
+    "ffam_ensemble_a6_v6": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v6",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.97,
+    ),
+    # a6_v7: v19 + kNN at 96/4 blend
+    "ffam_ensemble_a6_v7": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v7",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.96,
+    ),
+    # a6_v8: v19 + kNN at 94/6 blend
+    "ffam_ensemble_a6_v8": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_a6_v8",
+        mode_model="ffam_mode_a6_v19",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.94,
+    ),
 }
 
 
