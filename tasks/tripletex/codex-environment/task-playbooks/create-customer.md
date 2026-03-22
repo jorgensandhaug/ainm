@@ -66,6 +66,7 @@ This was verified in sandbox:
 - re-verified on 2026-03-22 in persistent sandbox with unique payload `Windmill Reflection de7f6ef9 Ltd`, `post-reflection-de7f6ef9@windmill.no`, `999767609`, and `postalAddress` `Parkveien 124`, `7010`, `Trondheim`; the same single `POST /customer` returned customer `id=108465324`, preserved all postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 - re-verified on 2026-03-22 in production for the Portuguese-language prompt `Oceano Lda`, `945727098`, `post@oceano.no`, and `Industriveien 56, 4611 Kristiansand`; one `POST /customer` returned customer `id=108587209`, preserved all scored fields including postal address, 1 call 0 errors
 - re-verified on 2026-03-22 in persistent sandbox with unique payload `Oceano Reflection f7493600 Lda`, `post-reflection-f7493600@oceano.no`, `999749360`, and `postalAddress` `Industriveien 56`, `4611`, `Kristiansand`; the same single `POST /customer` returned customer `id=108587634`, preserved all postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-22 in production for the English-language prompt `Oakwood Ltd`, `980094863`, `post@oakwood.no`, and `Torggata 10, 6003 Ålesund`; one `POST /customer` returned customer `id=108606814`, preserved all scored fields including Unicode city, 1 write + 1 verification GET, 0 errors
 
 ## Minimal Flow
 

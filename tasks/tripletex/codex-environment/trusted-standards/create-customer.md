@@ -63,6 +63,8 @@ GET /customer/{id}?fields=*
 ```
 Log: id, name, email, organizationNumber, postalAddress, physicalAddress, invoiceSendMethod, description. Confirm all scored fields match the prompt.
 
+**Address expansion note**: `GET /customer/{id}?fields=*` returns `postalAddress` as a sparse link (id/url only, no addressLine1/postalCode/city). For full address verification on readback, use `fields=*,postalAddress(*)`. However, the `POST /customer` 201 response already includes the fully expanded postalAddress, so the POST response is preferred for address field verification.
+
 The `201` response body also proves state, but the readback GET provides complete confirmation.
 
 ## Known Recovery Branches
@@ -115,3 +117,5 @@ The `201` response body also proves state, but the readback GET provides complet
 - re-verified on 2026-03-22 in persistent sandbox with unique payload `Windmill Reflection de7f6ef9 Ltd`, `post-reflection-de7f6ef9@windmill.no`, `999767609`, and `postalAddress` `Parkveien 124`, `7010`, `Trondheim`; the same single `POST /customer` returned customer `id=108465324`, preserved all postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
 - re-verified on 2026-03-22 in production for the Portuguese-language prompt `Oceano Lda`, `945727098`, `post@oceano.no`, and `Industriveien 56, 4611 Kristiansand`; one `POST /customer` returned customer `id=108587209`, preserved all scored fields including postal address, 1 call 0 errors
 - re-verified on 2026-03-22 in persistent sandbox with unique payload `Oceano Reflection f7493600 Lda`, `post-reflection-f7493600@oceano.no`, `999749360`, and `postalAddress` `Industriveien 56`, `4611`, `Kristiansand`; the same single `POST /customer` returned customer `id=108587634`, preserved all postal fields, auto-returned a sparse `physicalAddress` link, and still needed no follow-up read
+- re-verified on 2026-03-22 in production for the English-language prompt `Oakwood Ltd`, `980094863`, `post@oakwood.no`, and `Torggata 10, 6003 Ålesund`; one `POST /customer` returned customer `id=108606814`, preserved all scored fields including Unicode city `Ålesund`, 1 write + 1 verification GET, 0 errors; confirmed that `GET /customer/{id}?fields=*` returns postalAddress as sparse link while POST 201 response includes fully expanded postalAddress
+- re-verified on 2026-03-22 in persistent sandbox with unique payload `Oakwood Reflection 658671 Ltd`, `post-reflection-658671@oakwood.no`, `999658671`, and `postalAddress` `Torggata 10`, `6003`, `Ålesund`; the same single `POST /customer` returned customer `id=108607088`, preserved all postal fields in POST response, confirmed GET sparse-link behavior for postalAddress
