@@ -69,15 +69,16 @@ export const strategy = {
   hypothesis:
     "Production evidence from task-20 PDF-variant runs shows that sendToLedger=true unlocks an additional scoring check (6/6 vs 5/6). Applying the same change to the non-PDF variant should improve score within the same 5-call budget.",
   expectedCallProfile: {
-    targetCalls: 5,
-    maxCalls: 6,
+    targetCalls: 6,
+    maxCalls: 7,
   },
   stepOutline: [
     "API call 1: POST /supplier for fresh-account-like prompts, or GET /supplier when the prompt explicitly says the supplier already exists.",
     "API call 2: GET /ledger/account by expense account number with isApplicableForSupplierInvoice=true.",
     "API call 3: GET /ledger/vatType for an incoming VAT type on the invoice date.",
     "API call 4: POST /ledger/voucher/importDocument with a valid minimal EHF/UBL XML invoice.",
-    "API call 5: PUT /ledger/voucher/{id}?sendToLedger=true with version and postings — books the voucher in a single call.",
+    "API call 5: PUT /ledger/voucher/{id}?sendToLedger=false with version and postings — sets postings first.",
+    "API call 6: PUT /ledger/voucher/{id}?sendToLedger=true with only version — books the voucher.",
     "Optional recovery call: if an explicit existing-supplier lookup returns zero hits, POST /supplier once and continue.",
   ],
   status: "draft",
@@ -185,7 +186,7 @@ export const strategy = {
       `/ledger/voucher/${voucherId}`,
       {
         query: {
-          sendToLedger: true,
+          sendToLedger: false,
         },
         body: {
           version: importedVoucherVersion,
@@ -232,6 +233,23 @@ export const strategy = {
       invoiceNumber: input.invoiceNumber,
       dueDate,
     });
+
+    const postingsVersion = requireNumber(
+      updateResponse.value?.version,
+      "voucher version after posting update",
+    );
+
+    await ctx.tripletex.put<ResponseWrapper<VoucherSummary>>(
+      `/ledger/voucher/${voucherId}`,
+      {
+        query: {
+          sendToLedger: true,
+        },
+        body: {
+          version: postingsVersion,
+        },
+      },
+    );
 
     const notes: string[] = [];
     if (supplier.created) {
