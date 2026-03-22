@@ -89,6 +89,12 @@ PRIOR_OPERATOR_Z2_V001 = "prior_operator_z2_v001"
 PRIOR_OPERATOR_Z2_V002 = "prior_operator_z2_v002"
 PRIOR_OPERATOR_Z2_V003 = "prior_operator_z2_v003"
 PRIOR_OP_OBSBLEND_V001 = "prior_op_obsblend_v001"
+TRIPLE_BLEND_V001 = "triple_blend_v001"  # GLMM 40% + DT 30% + PriorOp 30% + obs
+TRIPLE_BLEND_V002 = "triple_blend_v002"  # GLMM 50% + DT 25% + PriorOp 25% + obs
+TRIPLE_BLEND_V003 = "triple_blend_v003"  # GLMM 35% + DT 35% + PriorOp 30% + obs
+TRIPLE_BLEND_V004 = "triple_blend_v004"  # GLMM 45% + DT 30% + PriorOp 25% + obs
+TRIPLE_BLEND_V005 = "triple_blend_v005"  # GLMM 40% + DT 40% + PriorOp 20% + obs
+TRIPLE_BLEND_V006 = "triple_blend_v006"  # best_ensemble + 20% PriorOp + obs
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -515,6 +521,50 @@ class BarrenRoundCorrectionPredictor(BaseRoundPredictor):
         evidence=None,
     ) -> PredictionBundle:
         return self.base_predictor.build_prediction_bundle(round_detail, features, evidence)
+
+
+class TripleBlendPredictor(BaseRoundPredictor):
+    """Blend three models with fixed weights."""
+
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True, frozen=True)
+
+    predictor_a: BaseRoundPredictor
+    predictor_b: BaseRoundPredictor
+    predictor_c: BaseRoundPredictor
+    weight_a: float
+    weight_b: float
+    weight_c: float
+    name: str = "triple_blend_v1"
+    probability_floor: float = 3e-4
+
+    def build_prediction_bundle_from_context(
+        self,
+        context,
+    ) -> PredictionBundle:
+        bundle_a = _bundle_from_context(self.predictor_a, context)
+        bundle_b = _bundle_from_context(self.predictor_b, context)
+        bundle_c = _bundle_from_context(self.predictor_c, context)
+        predictions_by_seed: dict[int, np.ndarray] = {}
+        for seed_index in bundle_a.predictions_by_seed:
+            pred_a = np.asarray(bundle_a.predictions_by_seed[seed_index], dtype=np.float64)
+            pred_b = np.asarray(bundle_b.predictions_by_seed[seed_index], dtype=np.float64)
+            pred_c = np.asarray(bundle_c.predictions_by_seed[seed_index], dtype=np.float64)
+            blended = self.weight_a * pred_a + self.weight_b * pred_b + self.weight_c * pred_c
+            floored = np.maximum(blended, self.probability_floor)
+            predictions_by_seed[seed_index] = floored / floored.sum(axis=-1, keepdims=True)
+        return PredictionBundle(
+            round_id=bundle_a.round_id,
+            model_name=self.name,
+            predictions_by_seed=predictions_by_seed,
+        )
+
+    def build_prediction_bundle(
+        self,
+        round_detail,
+        features,
+        evidence=None,
+    ) -> PredictionBundle:
+        return self.predictor_a.build_prediction_bundle(round_detail, features, evidence)
 
 
 class RegimeAdaptiveEnsemblePredictor(BaseRoundPredictor):
@@ -1982,6 +2032,67 @@ def build_online_predictor(
                 right_weight=dt_weight,
                 name=normalized,
             ),
+            name=normalized,
+        )
+    if normalized in (TRIPLE_BLEND_V001, TRIPLE_BLEND_V002, TRIPLE_BLEND_V003, TRIPLE_BLEND_V004, TRIPLE_BLEND_V005, TRIPLE_BLEND_V006):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        # Build all three component models
+        glmm_adapter = _build_smh_glmm_latent_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            model_name=SMH_GLMMLATENT_Z2_H0_COVBASE_CALNONE_V001,
+            fit_kwargs={"latent_dim": 2},
+        )
+        dt_adapter = _build_direct_terminal_adapter(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem=DIRECT_TERMINAL_Z2_V002,
+            model_name=DIRECT_TERMINAL_Z2_V002,
+            fit_kwargs={"latent_dim": 2, "ridge_lambda": 0.001, "max_epochs": 200},
+        )
+        bucket_predictor = _load_or_fit_historical_bucket_predictor(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem="historical_bucket_prior_v1",
+            model_name="historical_bucket_prior_v1",
+        )
+        prior_op = PriorOperatorPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=list(historical_round_ids) if historical_round_ids else None,
+            bucket_prior=bucket_predictor,
+            model_name="prior_operator_internal",
+            ridge_lambda=0.1,
+            latent_dim=2,
+        )
+        weight_configs = {
+            TRIPLE_BLEND_V001: (0.40, 0.30, 0.30),  # balanced
+            TRIPLE_BLEND_V002: (0.50, 0.25, 0.25),  # GLMM-heavy
+            TRIPLE_BLEND_V003: (0.35, 0.35, 0.30),  # DT-heavy
+            TRIPLE_BLEND_V004: (0.45, 0.30, 0.25),  # GLMM+DT
+            TRIPLE_BLEND_V005: (0.40, 0.40, 0.20),  # GLMM+DT, less PO
+            TRIPLE_BLEND_V006: (0.40, 0.25, 0.35),  # more PO
+        }
+        wa, wb, wc = weight_configs[normalized]
+        base_predictor = TripleBlendPredictor(
+            predictor_a=glmm_adapter.predictor,
+            predictor_b=dt_adapter.predictor,
+            predictor_c=prior_op,
+            weight_a=wa,
+            weight_b=wb,
+            weight_c=wc,
+            name=f"{normalized}_base",
+        )
+        # Add observation blending on top
+        obs_predictor = ExactObservationBlendPredictor(
+            base_predictor=base_predictor,
+            beta_min=20.0,
+            beta_scale=0.0,
+            probability_floor=3e-4,
+            name=normalized,
+        )
+        return RoundPredictorAdapter(
+            predictor=obs_predictor,
             name=normalized,
         )
     if normalized in (PRIOR_OPERATOR_Z2_V001, PRIOR_OPERATOR_Z2_V002, PRIOR_OPERATOR_Z2_V003, PRIOR_OP_OBSBLEND_V001):
