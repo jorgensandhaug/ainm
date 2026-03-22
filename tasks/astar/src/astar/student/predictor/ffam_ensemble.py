@@ -22,9 +22,11 @@ from astar.observe.evidence import RoundEvidenceBundle
 from astar.student.predictor.base import LiveInferenceContext
 from astar.student.predictor.calibrate import apply_probability_floor
 from astar.student.predictor.ffam_knn import FFAMKNNPredictor
-from astar.student.predictor.ffam_knn_config import resolve_ffam_knn_config
+from astar.student.predictor.ffam_knn_config import is_ffam_knn_model_name, resolve_ffam_knn_config
 from astar.student.predictor.ffam_mode import FFAMModePredictor
 from astar.student.predictor.ffam_mode_config import resolve_ffam_mode_config
+from astar.student.predictor.ffam_pooled import FFAMPooledPredictor
+from astar.student.predictor.ffam_pooled_config import is_ffam_pooled_model_name, resolve_ffam_pooled_config
 from astar.student.predictor.query_residual import (
     _round_ids_with_analyses_and_replays,
 )
@@ -218,6 +220,33 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_blend=True,
         adaptive_scale=3.0,
     ),
+    # v25: Use pooled predictor instead of kNN (different diversity source)
+    "ffam_ensemble_v25": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v25",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_pooled_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+    ),
+    # v26: Fine-tune around champion: mode_weight=0.87
+    "ffam_ensemble_v26": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v26",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.87,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+    ),
+    # v27: Fine-tune: mode_weight=0.89
+    "ffam_ensemble_v27": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v27",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.89,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+    ),
 }
 
 
@@ -271,7 +300,7 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
 
     name: str = "ffam_ensemble_v1"
     mode_predictor: FFAMModePredictor
-    knn_predictor: FFAMKNNPredictor
+    knn_predictor: BaseRoundPredictor  # Can be kNN or pooled or any BaseRoundPredictor
     mode_weight: float = Field(default=0.85, ge=0.0, le=1.0)
     probability_floor: float = Field(default=0.0003, gt=0.0, lt=1.0)
     adaptive_blend: bool = False
@@ -301,13 +330,22 @@ class FFAMEnsemblePredictor(BaseRoundPredictor):
             samples_per_round=config.samples_per_round,
         )
 
-        knn_predictor = FFAMKNNPredictor.fit_named_from_workspace(
-            paths,
-            model_name=config.knn_model,
-            round_ids=round_ids,
-            policy_name=config.policy_name,
-            samples_per_round=config.samples_per_round,
-        )
+        if is_ffam_pooled_model_name(config.knn_model):
+            knn_predictor: BaseRoundPredictor = FFAMPooledPredictor.fit_named_from_workspace(
+                paths,
+                model_name=config.knn_model,
+                round_ids=round_ids,
+                policy_name=config.policy_name,
+                samples_per_round=config.samples_per_round,
+            )
+        else:
+            knn_predictor = FFAMKNNPredictor.fit_named_from_workspace(
+                paths,
+                model_name=config.knn_model,
+                round_ids=round_ids,
+                policy_name=config.policy_name,
+                samples_per_round=config.samples_per_round,
+            )
 
         return cls(
             name=config.model_name,
