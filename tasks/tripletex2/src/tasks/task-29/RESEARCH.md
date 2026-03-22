@@ -8,7 +8,7 @@ Update it after any meaningful frontier import, sandbox verification, promotion 
 
 - Canonical task id: `29`
 - Active strategy pin: `29.full-project-lifecycle.v1`
-- Challenger: `29.full-project-lifecycle.v2` (project manager identity fix)
+- Challenger: `29.full-project-lifecycle.v2` (enhanced sandbox-verified branch; promotion deferred pending explicit production confirmation)
 - Task implementation: `task.ts`
 - Stable task summary: _No task-local README.md yet_
 
@@ -48,8 +48,8 @@ Both production score reflections independently identify three root causes:
 ## Frontier Memory
 
 ### Strongest known branch
-- `29.full-project-lifecycle.v1` — the existing strategy
-- Score: 0.5455/6 (stalled at this ceiling across 8 attempts)
+- `29.full-project-lifecycle.v2` — enhanced sandbox-verified challenger
+- `29.full-project-lifecycle.v1` — current runtime baseline with a proven 0.5455/6 ceiling across 8 attempts
 
 ### Score / correctness ceiling
 - 2/11 raw (0.18 correctness), normalized 0.5455/6
@@ -147,11 +147,15 @@ Check if the evaluator verifies project hourly rate configuration.
 - PM still falls back to admin — can't fix without admin-level employee setup
 - Competition scoring not available in sandbox — need live run
 
+### Promotion decision (2026-03-22)
+
+Promotion is intentionally deferred for now. Repo evidence shows `29.full-project-lifecycle.v2` is the serious sandbox-verified challenger and that `v1` is ceiling-limited, but RESEARCH does not yet contain an explicit promotion call or production confirmation. Keep `v1` pinned in runtime until that gate is cleared, and use `v2` as the active challenger for the next verification cycle.
+
 ## Research Artifacts
 
 ### Strategy files
-- `strategies/full-project-lifecycle.ts` — v1 (current active, score 0.5455)
-- `strategies/full-project-lifecycle-v2.ts` — enhanced v2 (isFixedPrice + budgetHours + participants + supplier voucher + direct invoice)
+- `strategies/full-project-lifecycle-v2.ts` — enhanced v2 challenger (isFixedPrice + budgetHours + participants + supplier voucher + direct invoice)
+- `strategies/full-project-lifecycle.ts` — v1 current active baseline (score 0.5455)
 
 ### Proof inputs
 - `research/proofs/task-29/task-29-proof-input-fresh.json` — fresh-email proof input
