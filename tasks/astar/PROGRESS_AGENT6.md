@@ -4487,3 +4487,114 @@ This explains why the improvement is so large (72.9 → 79.6 on dev5): each mode
 5. summary_rate_decoder_dyn best: ~69.9
 6. MLP decoder: ~43-46 (reject)
 7. terminal retrieval: ~14 (reject)
+
+---
+
+## Session: 2026-03-22 — FFAMMode Port and New Approach
+
+### Background
+Previous best was ~80 points on full 8-round dev. Agent7 achieved 87.65 with the `ffam_mode` architecture (operator-manifold approach). Gap of ~7.5 points.
+
+### Key Architecture Difference: ffam_mode vs old approach
+The `ffam_mode` architecture from agent7 is fundamentally different from our previous ensemble:
+
+**Old approach (ensemble):**
+- HazardTeacherV2: single SVD regime → single shared decoder → hazard coefficients → tensor
+- QueryResidual: single global ridge operator from per-cell features → logit delta
+- Geometric ensemble of the two
+
+**New approach (ffam_mode):**
+- Per-round operator estimation: fit a weighted ridge regression from (static_features + prior_logits) → (log_prob_delta) for EACH historical round separately
+- SVD manifold: Stack per-round operator vectors, center, SVD → low-dimensional mode coordinates
+- Cluster structure: K-means clustering of mode coordinates for per-cluster local SVD
+- Posterior inference: transcript features → mode coordinates via residual MLP (linear + tanh MLP residual)
+- Quadratic decoder: mode coordinates → operator vector via quadratic feature expansion
+- Exact-cell blending: Bayesian blend of model predictions with direct observations
+
+Key innovations that gave agent7 the +7.5 point improvement:
+1. Per-round operators capture round-specific patterns (not single global operator)
+2. SVD compression identifies the ~5 dimensions of round-to-round variation
+3. Residual MLP posterior captures nonlinear transcript→regime mapping
+4. Very low probability floor (0.0003 vs 0.01) - 33x reduction
+5. Higher exact-cell beta (12/48 vs 8/24) - trust model more than observations
+6. Zero prior blend - fully trust model predictions
+7. Cluster-aware decoder handles OOD rounds better
+
+### Port Status
+- Copied ffam_mode.py (2015 lines) from agent7
+- Created ffam_mode_config.py with v214 champion config + 10 sweep variants
+- Added compatibility layer for regime input variants
+- Added exploration_r3 policy (45 coverage + 3 diagnostic repeats)
+- Wired into interactive.py, cli.py, historical_benchmark.py
+- Committed and pushed to agent6 branch
+
+### Benchmark Results
+- 3-round probe (hard rounds R6, R7, R8): 57.04 mean (low because only 2 training rounds per fold)
+- **Full 8-round dev v214 (s6): 87.6540** ← MATCHES AGENT7 EXACTLY!
+  - Per-round: R7=72.0 (worst), rest 84-93.7
+  - This is +7.65 points over our previous best of ~80
+  - Port is verified correct
+- v1 baseline (simple particle, s1): 72.58
+
+### Sweep Results (all full 8-round LORO dev)
+
+| Variant | Score | Delta | Key Change |
+|---------|-------|-------|-----------|
+| **v214** | **87.6540** | **baseline** | **Agent7 champion** |
+| a6_v3 (3 clusters) | 87.6458 | -0.01 | tied |
+| a6_v5 (MLP h=48) | 87.6491 | -0.01 | tied |
+| a6_v4 (4 clusters) | 87.6449 | -0.01 | tied |
+| a6_v12 (interactions) | 87.5991 | -0.06 | slightly worse |
+| a6_v15 (post_ridge=0.1) | 87.5855 | -0.07 | slightly worse |
+| a6_v10 (op_ridge=2) | 87.5743 | -0.08 | worse |
+| a6_v13 (beta=6/24) | 87.5414 | -0.11 | worse |
+| a6_v17 (no smooth) | 87.5334 | -0.12 | worse |
+| a6_v2 (q=6) | 87.5239 | -0.13 | worse |
+| a6_v7 (floor=0.0001) | 87.4243 | -0.23 | worse |
+| a6_v16 (s=8) | 87.3786 | -0.28 | worse |
+| a6_v14 (particle=0.15) | 87.2874 | -0.37 | worse |
+| a6_v1 (q=4) | 87.2529 | -0.40 | worse |
+| a6_v11 (quadratic decoder) | 82.9607 | -4.69 | **catastrophic** |
+
+### Ensemble Results
+| Model | Score | Components |
+|-------|-------|-----------|
+| ffam_qr 95/5 | 87.6483 | ffam_mode_v214 + query_residual_supportx |
+| ffam_hv2sx 95/5 | RUNNING | ffam_mode_v214 + old best ensemble |
+| ffam_hv2sx 90/10 | RUNNING | ffam_mode_v214 + old best ensemble |
+| ffam_hv2sx 80/20 | RUNNING | ffam_mode_v214 + old best ensemble |
+| ffam_hv2 95/5 | RUNNING | ffam_mode_v214 + hazard_v2 |
+
+### Full Sweep Summary (30 variants tested)
+
+**All 8-round LORO dev scores:**
+
+| Rank | Model | Score | Key Change |
+|------|-------|-------|-----------|
+| 1 | **a6_v19** | **87.669** | Slower MLP (lr=0.015, steps=800) |
+| 2 | a6_v25 | 87.664 | 3-seed MLP ensemble |
+| 3 | a6_v23 | 87.659 | v19 + 3 clusters |
+| 4 | a6_v27 | 87.656 | v19 + op_ridge=3 |
+| 5 | ens_hv2sx 95/5 | 87.655 | ffam + old ensemble |
+| 6 | v214 | 87.654 | Agent7 champion |
+| 7 | a6_v26 | 87.654 | v19 + ens + 3 clusters |
+| 8 | a6_v24 | 87.655 | v19 + 4 clusters |
+| 9 | a6_v20 | 87.653 | Higher metric dim |
+| 10 | a6_v3 | 87.646 | 3 clusters |
+| 11 | a6_v5 | 87.649 | MLP h=48 |
+| ... | ... | ... | ... |
+| 28 | a6_v1 | 87.253 | q=4 (worse) |
+| 29 | a6_v14 | 87.287 | Higher particle (worse) |
+| 30 | a6_v11 | 82.961 | Quadratic decoder (catastrophic) |
+
+### Key Findings
+1. **Architecture is genuinely plateaued at ~87.65**: 30 variants all within ±0.4
+2. Best slight improvement: v19 (slower MLP training) at 87.669 (+0.015)
+3. **Quadratic decoder is catastrophically worse** (-4.69 points) — linear SVD modes critical
+4. **Interaction features are slightly harmful** at q=5
+5. **s=8 is worse than s=6**: More episodes adds noise
+6. **Terrain-aware smoothing changes nothing**: Mountain/ocean predictions already correct
+7. **Cross-architecture ensemble adds nothing**: ffam_mode already captures all the information
+8. **Slower MLP training slightly helps** but the effect is within noise (0.015 points)
+9. **MLP seed ensembling slightly helps** but within noise (0.010 points)
+10. All hyperparameter axes (floor, beta, ridge, mode_dim, clusters, cells, samples) are saturated
