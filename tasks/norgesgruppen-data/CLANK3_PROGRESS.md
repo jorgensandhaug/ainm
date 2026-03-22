@@ -86,6 +86,13 @@
 - V1+V2 equal: 0.1444 (models too divergent, destroyed)
 - V2+V2cc3 equal: 0.8451 (neutral, no improvement)
 
+### Exp 15: Detect-then-Classify (EfficientNet-B0 reranker)
+- Trained EfficientNet-B0 on 18257 GT crops: 89.9% top-1 val accuracy
+- But YOLO's integrated classification (cls_present=0.802) > separate classifier (0.733)
+- YOLO has contextual features (shelf position, neighbors) that crops lack
+- All reranking strategies hurt: yolo_only > cls_veryhighconf > cls_highconf > classifier_only
+- **Conclusion: detect-then-classify doesn't work for this task**
+
 ## Failed Approaches
 - Naive model ensemble (doubles FPs, hurts detection AP)
 - Higher classification loss weight (hurts detection)
@@ -93,6 +100,7 @@
 - Training from scratch with heavy augmentation (curriculum needed)
 - Weight averaging between different pipelines (destructive)
 - Higher inference resolution than training resolution
+- Separate crop classifier for reranking (YOLO context > crop features)
 
 ## What Works
 1. 6-stage curriculum pipeline with diverse seeds (V2 >> V1)
