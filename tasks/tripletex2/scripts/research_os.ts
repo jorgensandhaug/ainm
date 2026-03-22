@@ -72,11 +72,16 @@ async function main(): Promise<void> {
     const input = await readJsonFile<Record<string, unknown>>(
       resolveFilePath(inputPath),
     );
+    const promptFilePath = optionalFlag(args, "--prompt-file");
+    const promptOverride = promptFilePath
+      ? await Bun.file(resolveFilePath(promptFilePath)).text()
+      : undefined;
     const result = await runSandboxVerification({
       packet,
       packetPath: resolveFilePath(packetPath),
       strategyId,
       input,
+      promptOverride,
       candidateId: optionalFlag(args, "--candidate-id") ?? strategyId,
     });
     printJson({
@@ -95,7 +100,7 @@ async function main(): Promise<void> {
       "  bun scripts/research_os.ts queue top --count 3",
       "  bun scripts/research_os.ts packet build --task 06",
       "  bun scripts/research_os.ts candidates list [--task 06]",
-      "  bun scripts/research_os.ts verify --packet <packet-path> --strategy <strategy-id> [--input-file <json>]",
+      "  bun scripts/research_os.ts verify --packet <packet-path> --strategy <strategy-id> [--input-file <json>] [--prompt-file <txt>]",
     ].join("\n"),
   );
 }

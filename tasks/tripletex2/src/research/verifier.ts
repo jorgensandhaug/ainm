@@ -33,6 +33,7 @@ export interface RunSandboxVerificationOptions {
   packetPath?: string;
   strategyId: string;
   input: Record<string, unknown>;
+  promptOverride?: string;
   candidateId?: string;
   candidateStorePath?: string;
   reportRoot?: string;
@@ -134,7 +135,9 @@ export async function runSandboxVerification(
   };
   const solveResult = await runDeterministicSolvePipeline(
     {
-      prompt: createVerificationPrompt(options.packet, options.strategyId),
+      prompt:
+        options.promptOverride ??
+        createVerificationPrompt(options.packet, options.strategyId),
       files: [],
       tripletexCredentials: {
         baseUrl: sandboxCredentials.base_url,
