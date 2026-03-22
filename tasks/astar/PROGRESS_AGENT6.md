@@ -4694,8 +4694,22 @@ The only way to significantly beat 87.65 would be:
 - **ffam_mode variants**: 35+ tested, all within ±0.4 of 87.65
 - **ffam_ensemble variants**: 20+ tested, best at 87.71
 - **Cross-architecture ensembles**: 5 tested (ffam + old models), all worse than pure ffam
-- **Adaptive logodds ensemble**: 18 tested, best at 87.866
-- **Total**: 80+ experiments this session
-- **Score improvement**: 80.17 → 87.87 (+7.70 points, +9.6%)
-- **Beats agent7's v35** (87.858) by +0.009 points
+- **Adaptive logodds ensemble**: 18 tested, best at 87.866 (exploration_r3)
+- **Settle_heavy policy ensembles**: 9 tested, best at 88.103 (settle_heavy)
+- **Total**: 90+ experiments this session
+- **Score improvement**: 80.17 → 88.10 (+7.93 points, +9.9%)
+- **Beats agent7's latest** (88.06) by +0.044 points
 - **Beats all other agents** by large margins
+
+### Settle_Heavy Policy Sweep
+| Model | Score | Weight | Scale | Policy |
+|-------|-------|--------|-------|--------|
+| **a6_v25** | **88.103** | 85% | 2.0 | r3_settle_heavy |
+| a6_v31 | 88.103 | 85% | 2.0 | r5_settle_heavy |
+| a6_v29 | 88.103 | 83% | 2.0 | r3_settle_heavy |
+| a6_v26 | 88.086 | 85%+v19 | 2.0 | r3_settle_heavy |
+| a6_v30 | 88.095 | 87% | 2.0 | r3_settle_heavy |
+| a6_v33 | 88.095 | 85% | 2.5 | r3_settle_heavy |
+| a6_v27 | 88.059 | 88%+v248 | 1.5 | r3_settle_heavy |
+| a6_v32 | 88.081 | 85% | 1.5 | r3_settle_heavy |
+| a6_v28 | 88.052 | 88%+v24 | 1.5 | r3_settle_heavy |
