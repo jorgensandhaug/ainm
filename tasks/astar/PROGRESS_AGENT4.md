@@ -3725,3 +3725,31 @@ query_residual_v11 training took 60+ min and didn't complete before round closed
 3. Need to either train with viewport-like data, or assemble viewports to match training distribution
 
 ### STILL RUNNING: focused and combined model LOO evaluations
+
+### 2026-03-22T06:45Z — POST-MORTEM: Round 20 submission failure
+
+**What happened:**
+1. Submitted map-only prior (gbx_prior_maponly_bucket_v1) as safe baseline - SUCCEEDED
+2. Launched query_residual_v11 with 50 queries - used 48 queries, then round closed
+3. query_residual model took 60+ min to train - WAY too slow for live rounds
+
+**Root causes:**
+1. query_residual trains on synthetic transcripts at serve time — too slow
+2. No pre-trained model was ready
+3. Evidence model has train/serve parity issue (full grids vs viewports)
+
+**Fix plan for next round:**
+1. PRE-TRAIN the evidence model on all 16 rounds OFFLINE (before round opens)
+2. Save trained LGB+CatBoost models to disk
+3. When round opens: query 9 coverage viewports per seed (45 total, <2 min)
+4. Assemble viewports into composite grid (matches serve_ev=1 in training)
+5. Predict with pre-trained model (< 1 sec)
+6. Submit immediately (< 30 sec)
+7. Total time from round open to submission: < 3 minutes
+
+**Train/serve parity fix:**
+- Training uses full 40x40 replay grids → at serve_ev=1 this is ONE full grid
+- Serving uses 9 viewports assembled into ONE composite 40x40 grid
+- These should be approximately equivalent (both are single year-50 observations)
+- The only difference: viewports come from DIFFERENT stochastic runs per cell
+  - This is minor because cell outcomes are ~independent given round parameters
