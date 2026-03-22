@@ -4598,3 +4598,44 @@ Key innovations that gave agent7 the +7.5 point improvement:
 8. **Slower MLP training slightly helps** but the effect is within noise (0.015 points)
 9. **MLP seed ensembling slightly helps** but within noise (0.010 points)
 10. All hyperparameter axes (floor, beta, ridge, mode_dim, clusters, cells, samples) are saturated
+
+### Additional Sweep Results (v31-v35)
+| Model | Score | Delta | Key Change |
+|-------|-------|-------|-----------|
+| a6_v33 | 87.663 | +0.009 | entropy_weight_power=0.7 |
+| a6_v31 | 87.654 | 0.000 | posterior_residual_scale=0.8 |
+| a6_v32 | 87.653 | -0.001 | posterior_residual_scale=0.6 |
+| a6_v34 | 87.650 | -0.004 | bandwidth=1.2 |
+| a6_v35 | 87.627 | -0.027 | v19 + floor=0.0002 |
+
+**40+ variants tested. All within ±0.03 of 87.65. Architecture is genuinely saturated.**
+
+### Current Champion
+- Model: `ffam_mode_v214` (agent7's config, ported to agent6)
+- Policy: `exploration_r3`
+- Score: **87.6540** (full 8-round LORO dev)
+- Per-round: R1:87.1 R2:92.0 R3:89.5 R4:93.7 R5:84.9 R6:88.4 R7:72.0 R8:93.7
+
+### Compared to Other Agents
+| Agent | Best Score | Architecture |
+|-------|-----------|-------------|
+| **Agent6 (us)** | **87.65** | **ffam_mode_v214** |
+| Agent7 | 87.70 | ffam_ensemble (95% ffam_mode + 5% kNN) |
+| Agent1 | 87.54 | ffam_mode_v240 |
+| Agent2 | 83.59 | triple_blend ensemble |
+| Agent5 | 82.92 | query_residual |
+| Agent4 | 82.92 | query_residual |
+| Agent3 | ~80 | query_residual variants |
+
+### Why 87.65 Is the Ceiling
+The fundamental limit comes from:
+1. **Only 8 training rounds** → LORO means only 7 for training, 1 for test
+2. **R7 is OOD** → its dynamics are unlike the other 7 rounds
+3. **SVD manifold captures 7-round variation** → R7 projects poorly onto this manifold
+4. **MLP posterior has only 42 training examples** → severely overparameterized
+5. **No architecture change can overcome having only 7 distinct regime samples**
+
+The only way to significantly beat 87.65 would be:
+- More training rounds (impossible with current data)
+- A fundamentally different approach that doesn't rely on round-level regime inference
+- Better OOD handling for R7 specifically (but all adaptive approaches hurt other rounds)
