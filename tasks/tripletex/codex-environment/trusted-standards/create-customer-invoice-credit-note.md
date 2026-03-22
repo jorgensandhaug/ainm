@@ -49,8 +49,9 @@
 - for the exact prompt shape `organizationNumber=902392165`, `description="Programvarelisens"`, `amountExcludingVatCurrency=47350`, that two-call path was the successful production path on 2026-03-22 (Norwegian nynorsk prompt); sandbox-verified on 2026-03-22
 - for the exact prompt shape `organizationNumber=871338140`, `description="Diseño web"`, `amountExcludingVatCurrency=39850`, that two-call path was the successful production path on 2026-03-22 (Spanish prompt); sandbox-verified on 2026-03-22
 - for the exact prompt shape `organizationNumber=910441930`, `description="Rapport d'analyse"`, `amountExcludingVatCurrency=6150`, that two-call path was the successful production path on 2026-03-22 (French prompt); sandbox-verified on 2026-03-22
+- for the exact prompt shape `organizationNumber=989339028`, `description="Maintenance"`, `amountExcludingVatCurrency=19650`, that two-call path was the successful production path on 2026-03-22 (English prompt); sandbox-verified on 2026-03-22
 - **CRITICAL**: when multiple invoices match all criteria identically, the script MUST pick the highest `id` instead of exiting with an error; failing on duplicates and re-querying is the #1 source of wasted calls for this task shape
-- 18 consecutive optimal production runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable
+- 19 consecutive optimal production runs across en/nb/nn/es/fr/de confirm the standard is fully language-independent and stable
 
 ## Payload Rules
 - locate the invoice by prompt facts such as:
