@@ -55,3 +55,47 @@ Maximize **Hybrid Score = 0.7 * detection_mAP@0.5 + 0.3 * classification_mAP@0.5
 - Trained 6-stage 960 pipeline on GPU 3
 - **Hybrid: 0.8389** (det=0.9310, cls_all=0.6242)
 - This is the baseline to beat
+
+### EXP-002: Classifier Fusion Experiments (2026-03-22)
+- MobileNetV3 classifier: 87% val crop accuracy → fusion barely helps (+0.0011)
+- EfficientNet-B2 classifier: 90.3% val crop accuracy → still no improvement
+- Tested: hard switch, threshold-based, logit blending, distribution blending
+- Finding: YOLO's own classification > external classifier on detector crops
+- YOLO uses full image context; classifier only sees the crop
+
+### EXP-003: Threshold & NMS Sweep (2026-03-22)
+- conf thresholds 0.0001 - 0.1: baseline (0.0003) already optimal
+- NMS IoU 0.45/0.55/0.65: no difference (limited by max_det=300)
+- Class-aware vs agnostic NMS: identical results
+
+### EXP-004: 1280px Fine-tune (2026-03-22)
+- 15 epochs from 960 best.pt, imgsz=1280, batch=2
+- **Hybrid: 0.8186** — worse, resolution change hurts more than helps
+
+### EXP-005: High Classification Loss (2026-03-22)
+- cls_loss=1.5 (3x default), 25 epochs from 960 best.pt
+- **Hybrid: 0.8361** — worse, disrupted the carefully tuned pipeline weights
+
+### EXP-006: Extended Fine-tune (2026-03-22)
+- Very low LR (3e-5), 30 more epochs, minimal augmentation
+- **Hybrid: 0.8363** — worse, overfitting to training distribution
+
+### EXP-007: YOLO11x Comparison (2026-03-22)
+- 40 epochs from yolo11x.pt (single stage only)
+- **Hybrid: 0.7956** — much lower, needs full pipeline to be fair
+- YOLO26x converges faster than YOLO11x for this dataset
+
+### EXP-008: last.pt vs best.pt (2026-03-22)
+- last.pt: det=0.9317 cls=0.6189 → **Hybrid: 0.8379**
+- best.pt still wins
+
+### EXP-009: ONNX Export (2026-03-22)
+- Exported best model to ONNX (opset 17, 214MB)
+- Ready for submission packaging
+
+### EXP-010: Long Single Run (2026-03-22) — IN PROGRESS
+- 120 epochs, different seed (137), moderate augmentation
+- Testing if single long run can match the 6-stage pipeline
+
+## Key Finding
+The 6-stage 960 pipeline produces a well-optimized model. All attempts at further fine-tuning, classifier fusion, threshold tuning, and architecture changes have failed to significantly improve the hybrid score. The classification bottleneck is structural: 78 absent classes guarantee zero AP.

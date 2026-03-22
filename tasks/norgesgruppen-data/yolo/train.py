@@ -31,6 +31,8 @@ def main() -> None:
     parser.add_argument("--freeze", type=int, default=0, help="Number of model layers to freeze.")
     parser.add_argument("--run-tag", default="cls", help="Extra run name prefix for traceability.")
     parser.add_argument("--data", default="data/yolo/data.yaml", help="Path to YOLO data.yaml")
+    parser.add_argument("--cls-loss", type=float, default=0.5, help="Classification loss weight (ultralytics default=0.5)")
+    parser.add_argument("--box-loss", type=float, default=7.5, help="Box loss weight (ultralytics default=7.5)")
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
@@ -72,6 +74,8 @@ def main() -> None:
         deterministic=True,
         workers=args.workers,
         freeze=args.freeze,
+        cls=args.cls_loss,
+        box=args.box_loss,
     )
 
 
