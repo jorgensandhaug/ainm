@@ -10,8 +10,9 @@
 ## Best Model & Submission
 - Architecture: YOLO26x (59.6M params, 213 GFLOPs)
 - PT checkpoint: `runs/v7_polish_e25_img960_b4_lr5e-05_mix0_cp0_seed2441/weights/best.pt`
-- ONNX submission: `submission/model.onnx` (108MB FP16, opset 17, raw logits)
-- Submission zip: `submission_v6_fp16_fliptta.zip` (99MB compressed)
+- ONNX submission: FP32, opset 17, raw logits (214MB, passes onnx.checker)
+- Submission zip: `submission_v7_fp32.zip` (176MB compressed)
+- NOTE: FP16 exports have broken graph topology — DO NOT USE FP16
 - Training: V7 5-stage pipeline (`yolo/train_v7_pipeline.sh`)
 - Key innovation: 250-epoch Stage 2 with cosine LR + label smoothing 0.05
 - Inference: letterbox + per-class NMS (torchvision.batched_nms) + flip TTA
