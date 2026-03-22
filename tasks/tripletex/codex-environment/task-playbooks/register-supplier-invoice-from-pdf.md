@@ -7,7 +7,7 @@
 
 Use for tasks like:
 - register one unpaid supplier invoice from an attached PDF
-- prompt says "see attached PDF" / "ver PDF adjunto" / "voir PDF ci-joint" / "siehe beigefügte PDF" / "sjå vedlagt PDF"
+- prompt says "see attached PDF" / "ver PDF adjunto" / "voir PDF ci-joint" / "siehe beigefügte PDF" / "sjå vedlagt PDF" / "ver PDF anexo"
 - PDF contains: supplier name, org number, address, bank account, invoice number, dates, amounts, expense account
 
 Do not use for:
@@ -87,6 +87,7 @@ Extract ALL fields from the PDF. Include `physicalAddress` = same as `postalAddr
 | 80b7e1d2 | German | ? | ? | ? | 8/10 | No physicalAddress, IS booked |
 | 61320c6d | Nynorsk | ? | ? | ? | 8/10 | No physicalAddress, IS booked |
 | 9b27a332 | English | en_03 | 3 | 0 | **2/10** | Direct voucher (WRONG approach) |
+| 4c255d98 | Portuguese | pt_07 | 0 | 0 | **0/10** | Agent read trusted standard but failed to execute any script |
 
 **Best path to 10/10:** importDocument + physicalAddress + country + booking = all 6 checks should pass.
 

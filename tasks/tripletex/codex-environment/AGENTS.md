@@ -125,7 +125,7 @@ Authentication:
 | Book reminder fee, invoice it, and register partial payment on overdue invoice | `./trusted-standards/overdue-invoice-reminder-fee-and-partial-payment.md` |
 | Reverse registered payment on customer invoice | `./trusted-standards/reverse-customer-invoice-payment.md` |
 | Register supplier invoice (text-only prompt, all data inline, NO PDF attachment) | `./trusted-standards/register-supplier-invoice.md` |
-| Register supplier invoice from PDF (prompt says "attached PDF" / "vedlagt PDF" / "PDF adjunto" / "PDF ci-joint" / "beigefügte PDF" + has attachment) | `./trusted-standards/register-supplier-invoice-from-pdf.md` |
+| Register supplier invoice from PDF (prompt says "attached PDF" / "vedlagt PDF" / "PDF adjunto" / "PDF ci-joint" / "beigefügte PDF" / "PDF anexo" + has attachment) | `./trusted-standards/register-supplier-invoice-from-pdf.md` |
 | Register travel expense | `./trusted-standards/register-travel-expense.md` |
 | Correct ledger errors (wrong account, duplicate, missing VAT, incorrect amount) | `./trusted-standards/correct-ledger-errors.md` |
 | Month-end closing (accrual reversal, depreciation, salary accrual) | `./trusted-standards/month-end-closing.md` |
@@ -133,11 +133,14 @@ Authentication:
 | Reconcile bank statement with open invoices | `./trusted-standards/reconcile-bank-statement-open-invoices.md` — **HAS PRE-BUILT SCRIPT** at `./scripts/reconcile-bank-statement.ts` — copy it, run with `bun run reconcile.ts <BASE_URL> <TOKEN> <CSV_PATH>`, do NOT write your own script |
 
 ### CRITICAL: supplier invoice TEXT vs PDF disambiguation
-- If the prompt has a **PDF attachment** and says "attached PDF" / "vedlagt PDF" / "PDF adjunto" / "PDF ci-joint" / "beigefügte PDF" / "sjå vedlagt PDF" — **ALWAYS** use `./trusted-standards/register-supplier-invoice-from-pdf.md`.
+- If the prompt has a **PDF attachment** and says "attached PDF" / "vedlagt PDF" / "PDF adjunto" / "PDF ci-joint" / "beigefügte PDF" / "sjå vedlagt PDF" / "PDF anexo" — **ALWAYS** use `./trusted-standards/register-supplier-invoice-from-pdf.md`.
 - If the prompt provides all invoice data **inline in text** (invoice number, supplier name, org number, amount, account) with **NO PDF** — use `./trusted-standards/register-supplier-invoice.md`.
 - These are **DIFFERENT tasks** (T20 vs T11) with **DIFFERENT scorers**. Using the wrong approach scores 2/10 instead of 8-10/10.
-- **BOTH T11 and T20 use `importDocument`** to create a real `supplierInvoice` entity. Direct `POST /ledger/voucher` does NOT create a SI entity and is NOT used for either task.
+- **BOTH T11 and T20 MUST use `importDocument`** to create a real `supplierInvoice` entity. Direct `POST /ledger/voucher` does NOT create a SI entity and scores 0/8. This applies to ALL supplier invoice prompts — text-only AND PDF-based.
 - T11 flow: POST supplier → GET account → POST importDocument → PUT postings (sendToLedger=false) → PUT book (sendToLedger=true). 5 calls.
+- T20 flow: POST supplier (with physicalAddress+postalAddress) → GET account → POST importDocument → PUT postings (sendToLedger=false) → PUT book (sendToLedger=true). 5 calls.
+- **CRITICAL**: `account: { number: N }` does NOT work in postings — requires `account: { id }` (422 without). The `GET /ledger/account` call cannot be eliminated.
+- **CRITICAL**: prod-4c255d98 scored 0/10 because the agent read the trusted standard but never wrote or executed a script. After reading the matched trusted standard, IMMEDIATELY write the script and run it. Do not hesitate, do not process further files.
 
 ### CRITICAL: "send" vs "order+payment" invoice disambiguation
 - If the prompt contains **any** of these "send" signals — Norwegian: `opprett og send`, `opprett og send faktura`; English: `create and send`; Spanish: `cree y envíe`, `envíe`; Portuguese: `crie e envie`, `envie`; French: `créez et envoyez`, `envoyez`; German: `erstellen und senden`, `senden`; Nynorsk: `opprett og send` — **ALWAYS** use `./trusted-standards/create-and-send-customer-invoice.md`. NEVER use the order-based standard for these prompts.
@@ -515,7 +518,7 @@ Authentication:
   - Kaffemøte → account `6860` (meeting expense), NOT `7360` (representation) — all runs using 7360 scored 0/10.
   - Every posting MUST have explicit `row` field (expense=1, bank=2). Missing row → 422.
   - Use `account: { id }` and `department: { id }` — never name or number (silently null or 422).
-  - Do NOT use importDocument — description/postings become immutable.
+  - Do NOT use importDocument **for receipts** — description/postings become immutable. (importDocument is ONLY for supplier invoices T11/T20.)
   - Do NOT omit vatType on Branch B/C/D — defaults to code 0 (no VAT), not the account default.
 - Ledger and voucher postings to customer, supplier, or employee accounts may require the matching object reference, not just the ledger account.
 - Some corrections are reversals or credit flows, not hard deletes. Confirm exact correction path in `./openapi.json` before acting.

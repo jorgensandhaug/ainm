@@ -10,6 +10,11 @@
 
 ## Exact Match
 - prompt says "received a supplier invoice" + "see attached PDF" (or equivalent in any language)
+  - Portuguese: "recebeu uma fatura de fornecedor" + "ver PDF anexo"
+  - Spanish: "factura de proveedor" + "PDF adjunto"
+  - French: "facture fournisseur" + "PDF ci-joint"
+  - German: "Lieferantenrechnung" + "beigefügte PDF"
+  - Norwegian: "leverandørfaktura" + "vedlagt PDF"
 - prompt has an actual PDF attachment with supplier name, org number, invoice number, dates, amounts, account, bank account
 - prompt says "create the supplier if it does not exist"
 - the supplier data comes from the PDF, NOT from the prompt text
@@ -251,6 +256,8 @@ This is what the T20 scorer checks — direct `POST /ledger/voucher` does NOT cr
 - do NOT omit the booking step (sendToLedger=true) — fails Check 6
 - do NOT use deprecated `bankAccounts` field — use `bankAccountPresentation`
 - preserve exact casing of description from PDF
+- do NOT use `account: { number: N }` in postings — requires `account: { id }` (422 "account.name Kan ikke være null" without id); the GET /ledger/account call is mandatory
+- do NOT spend the run reading AGENTS.md + playbook + trusted standard — read ONLY the trusted standard, then immediately write and execute the script; two production runs scored 0 by reading too much and timing out
 
 ## Check-by-Check Analysis (from 11 production runs)
 - **Check 1** (supplier exists): all 11 runs passed — both approaches create the supplier
