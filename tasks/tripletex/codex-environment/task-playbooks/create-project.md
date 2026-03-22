@@ -51,6 +51,7 @@ Production verification on 2026-03-20 additionally showed:
 - fifth Nynorsk production run on 2026-03-22 for `Analyse Sjøbris` / `Sjøbris AS` / `883693329` / `steinar.berge@example.org` also succeeded with the same 3-call path; 18 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
 - English production run on 2026-03-22 for `Implementation Ridgepoint` / `Ridgepoint Ltd` / `948050927` / `edward.brown@example.org` also succeeded with the same 3-call path; 19 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
 - Bokmål production run on 2026-03-22 for `Implementering Tindra` / `Tindra AS` / `886715536` / `jonas.haugen@example.org` also succeeded with the same 3-call path; 20 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
+- Bokmål production run on 2026-03-22 for `Oppgradering Fjordkraft` / `Fjordkraft AS` / `953177234` / `henrik.johansen@example.org` also succeeded with the same 3-call path plus 1 free verification GET; 21 consecutive optimal runs across en/pt/es/nb/nn/fr/de confirm the standard is fully language-independent and stable
 
 ## Minimal Safe Flow
 
