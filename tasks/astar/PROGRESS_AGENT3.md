@@ -5069,7 +5069,27 @@ Biggest gains on the hardest rounds: 795bfb1f (+6.84), 36e581f1 (+4.42).
 
 **Cumulative improvement: 84.94 → 88.40 = +3.46 points** (from LGB v5 on old 8-round data)
 
-530. Next experiments:
+530. **10-EPISODE = 89.19!** (+0.79 over 5-ep, +2.13 over solo)
+
+| Round | Solo d10 | 5-ep | 10-ep | Total Delta |
+|-------|----------|------|-------|-------------|
+| 795bfb1f | 57.58 | 64.42 | **71.37** | **+13.79** |
+| 36e581f1 | 72.64 | 77.06 | **81.55** | **+8.91** |
+| d0a2c894 | 83.65 | 84.71 | 85.83 | +2.18 |
+| ae78003a | 86.32 | 88.12 | 89.33 | +3.01 |
+| fd3c92ff | 86.44 | 88.33 | 89.52 | +3.08 |
+| 2a341ace | 89.22 | 90.27 | **91.88** | +2.66 |
+| f1dac9a9 | 88.67 | 89.45 | 90.38 | +1.71 |
+| c5cdf100 | 91.35 | 92.43 | 93.25 | +1.90 |
+| 8e839974 | 92.26 | 93.32 | 93.94 | +1.68 |
+| cc5442dd | 93.57 | 94.09 | **94.50** | +0.93 |
+
+Multi-episode gains scale with episodes. 10 episodes give dramatically better variance estimates.
+**Current best: 89.19** (LGB d10, 800t, 10 episodes, exploration, no blend)
+
+Precomputing 20 episodes to test if gains continue to scale.
+
+531. Next experiments:
 
 ## Open Questions
 
