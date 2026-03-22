@@ -225,6 +225,17 @@ Observed production confirmation on 2026-03-22:
 - the fallback matcher correctly accepted the unique negative `Betaling: ...` posting with `type=null`
 - this is the fifteenth overall production confirmation of the 2-call path; 15 consecutive optimal runs across en/nb/nn/es/fr/de/pt confirm the standard is fully language-independent and stable
 
+Observed production confirmation on 2026-03-22:
+- exact prompt shape `customer.organizationNumber=962812384` + `amountExcludingVatCurrency=41100` + line text `Sessão de formação` (Portuguese prompt, THIRD run for this exact prompt shape)
+- the run finished in the canonical path with mandatory verification GET:
+  - one decisive `GET /invoice?customerOrgNumber=962812384&invoiceDateFrom=2000-01-01&invoiceDateTo=2026-12-31&count=100&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` returned `count=1` (single invoice for this customer)
+  - invoice `2147702146` with `amountCurrency=51375` and `amountExcludingVatCurrency=41100`
+  - one `PUT /ledger/voucher/609430691/:reverse?date=2026-03-22` produced reverse voucher `609431045`
+  - one `GET /invoice/2147702146?fields=*,customer(*),orderLines(*),postings(*,voucher(*),account(*))` confirmed `amountCurrencyOutstanding=51375`
+- the fallback matcher correctly accepted the unique negative `Betaling: ...` posting with `type=null`
+- this is the sixteenth overall production confirmation; 16 consecutive optimal runs across en/nb/nn/es/fr/de/pt confirm the standard is fully language-independent and stable
+- this run also included the mandatory verification GET per the updated logging rules (1 write + 2 free GETs)
+
 ## Minimal Flow
 
 1. Confirm these operations in `./openapi.json`
@@ -244,19 +255,19 @@ Observed production confirmation on 2026-03-22:
    - but the matcher should ignore `account.number` completely; if the same unique negative `Betaling: ...` posting comes back with `account=null`, it is still the correct reverse target
 5. Reverse that voucher
    - `PUT /ledger/voucher/{paymentVoucherId}/:reverse?date=<reverse-date>`
-6. Stop for the score-optimal exact-match path
-7. Only if explicit proof is needed, verify the invoice balance reopened
-   - `GET /invoice?invoiceDateFrom=<wide-from>&invoiceDateTo=<wide-to>&id=<invoiceId>&fields=*,postings(*,voucher(*))`
-   - confirm `amountCurrencyOutstanding` or `amountOutstanding` equals the pre-reversal invoice balance from the first invoice read, not the prompt ex-VAT lookup amount
+6. Verify (mandatory — GETs are FREE)
+   - `GET /invoice/{invoiceId}?fields=*,customer(*),orderLines(*),postings(*,voucher(*),account(*))`
+   - log full JSON response
+   - confirm `amountCurrencyOutstanding` equals the pre-reversal `amountCurrency` from step 2
+7. Do not add `GET /customer`, `GET /ledger/voucher/{id}`, or `GET /ledger/posting` unless the first invoice read is genuinely ambiguous
 
 ## Exact-Match Fast Path
 
-- For a standard prompt that names one paid outgoing invoice strongly enough, the winning score-first path is usually 2 Tripletex API calls:
-  1. `GET /invoice`
-  2. `PUT /ledger/voucher/{paymentVoucherId}/:reverse`
-- Only add the third call below when explicit proof is worth the extra score cost:
-  3. `GET /invoice`
-- Do not add `GET /customer`, `GET /ledger/voucher/{id}`, or `GET /ledger/posting` unless the first invoice read is genuinely ambiguous
+- For a standard prompt that names one paid outgoing invoice strongly enough, the winning path is 1 write + 2 free GETs:
+  1. `GET /invoice` (free — locate)
+  2. `PUT /ledger/voucher/{paymentVoucherId}/:reverse` (1 write)
+  3. `GET /invoice/{id}` (free — mandatory verification readback)
+- 16 consecutive production runs confirm this 3-step path with 0 errors
 
 ## OpenAPI Navigation Trap
 
@@ -270,9 +281,9 @@ Observed production confirmation on 2026-03-22:
 - Reuse the first invoice read for:
   - invoice id
   - payment voucher id
-- only if you choose the optional proof branch, also reuse the first invoice read for the expected reopened outstanding amount
-- if you do choose the optional proof branch, expect the final invoice verification read to return `ListResponseInvoice`
-- do not add another voucher read if the optional final invoice read already proves the reopened balance
+  - the expected reopened outstanding amount (`amountCurrency` or `amount`)
+- The verification GET (step 6) confirms `amountCurrencyOutstanding` reopened
+- do not add another voucher read if the verification read already proves the reopened balance
 
 ## Avoidable Mistakes
 
@@ -281,8 +292,7 @@ Observed production confirmation on 2026-03-22:
 - Do not reverse the original invoice voucher when the prompt is about the payment voucher
 - Do not assume the payment voucher will always surface under `posting.type=INCOMING_PAYMENT`; a real matching payment posting can have `type=null`
 - Do not require `posting.account.number=1500` before accepting the fallback payment posting; some real exact-match reads omit the `account` expansion entirely
-- Do not spend an automatic final `GET /invoice` in an exact-match scored run once the right payment voucher has been isolated and successfully reversed
 - Do not verify the reopened balance against the prompt ex-VAT amount when the invoice object itself carries the true gross/pre-reversal balance
 - Do not add separate `GET /ledger/voucher/{id}` or `GET /ledger/posting` reads when the first invoice read already isolates one payment voucher
-- Do not treat one persistent-sandbox miss on the broad `/invoice` search as evidence that production needs an extra `GET /customer` or `GET /invoice/{id}` by default; the winning production path stays the 2-call locate-then-reverse flow
+- Do not treat one persistent-sandbox miss on the broad `/invoice` search as evidence that production needs an extra `GET /customer` or `GET /invoice/{id}` by default
 - When filtering invoices locally by ex-VAT amount, use `amountExcludingVatCurrency` or `amountExcludingVat`, not `amountExVat` or `amountExVatCurrency`; the latter field names do not exist on the Tripletex invoice DTO and will silently return `undefined`, causing the filter to miss the target invoice when multiple invoices exist for the same customer

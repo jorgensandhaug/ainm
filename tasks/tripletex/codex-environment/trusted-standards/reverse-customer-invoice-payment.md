@@ -19,8 +19,7 @@
 ## Standard Flow
 1. `GET /invoice?...&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` to identify the exact paid invoice and extract its payment voucher id
 2. `PUT /ledger/voucher/{paymentVoucherId}/:reverse?date=<reverse-date>`
-3. stop
-4. only if the task or local uncertainty truly requires explicit balance proof, `GET /invoice?...&id=<invoiceId>&fields=*,postings(*,voucher(*))` to verify the invoice outstanding amount reopened
+3. `GET /invoice/{invoiceId}?fields=*,customer(*),orderLines(*),postings(*,voucher(*),account(*))` — mandatory verification readback; log full response; confirm `amountCurrencyOutstanding` reopened to the pre-reversal `amountCurrency`
 
 ## Payload Rules
 - identify the invoice from prompt facts such as customer organization number, ex-VAT amount, and service text
@@ -36,17 +35,12 @@
 - from the first invoice read:
   - `invoice.id`
   - `paymentVoucherId`
-  - only if you plan the optional verification read, the expected reopened outstanding amount from the invoice object itself, usually `amountCurrency` or `amount`
+  - the expected reopened outstanding amount from the invoice object itself, usually `amountCurrency` or `amount`
 - from `PUT /ledger/voucher/{id}/:reverse`:
   - `value.id` of the reverse voucher
 
 ## Verification (GETs are FREE — use them)
-GETs do not count against the score. After the reverse write, ALWAYS verify:
-
-```
-GET /invoice/{invoiceId}?fields=*,customer(*),orderLines(*),postings(*,voucher(*),account(*))
-```
-Log: invoiceId, amountCurrencyOutstanding, amountOutstanding, customer, and all postings including the new reverse voucher. Confirm the outstanding amount reopened to the expected balance captured from the first invoice read.
+GETs do not count against the score. Step 3 (verification GET) is MANDATORY — always verify after the reverse write. Log the full JSON response with `console.log(JSON.stringify(response, null, 2))`. Confirm `amountCurrencyOutstanding` reopened to the pre-reversal `amountCurrency`.
 
 Optionally also verify the reverse voucher itself:
 ```
@@ -96,3 +90,4 @@ GET /ledger/voucher/{reverseVoucherId}?fields=id,number,date,description,posting
 - sandbox re-proof on 2026-03-22 with disposable invoice `528` / invoice id `2147671833` confirmed the 2-call path with `type=null` fallback matcher and amount 100 (no VAT in sandbox): the payment posting had `type=null`, `amountCurrency=-100`, `voucherId=609299495`, `account.number=1500`; after `PUT /ledger/voucher/609299495/:reverse?date=2026-03-22`, the verification read showed `amountCurrencyOutstanding=100` matching `amountCurrency`
 - production re-proof on 2026-03-22 for the exact prompt shape `962427715` + `49600` + `Systemutvikling` (Norwegian Bokmål prompt) finished in the canonical 2-call path: the decisive `GET /invoice?customerOrgNumber=962427715&invoiceDateFrom=2000-01-01&invoiceDateTo=2026-12-31&count=100&fields=*,customer(*),orderLines(*),orders(*),postings(*,voucher(*),account(*),customer(*),closeGroup(*))` returned `count=1` (single invoice for this customer), invoice `2147699784` with `amountCurrency=62000` and `amountExcludingVatCurrency=49600`, and `PUT /ledger/voucher/609419087/:reverse?date=2026-03-22` produced reverse voucher `609419393`; this is the fifteenth overall production confirmation of the 2-call path; 15 consecutive optimal runs across en/nb/nn/es/fr/de/pt confirm the standard is fully language-independent and stable
 - sandbox re-proof on 2026-03-22 with disposable invoice / invoice id `2147700114` confirmed the 2-call path with `type=null` fallback matcher and ex-VAT 49600 (with VAT in sandbox): the payment posting had `type=null`, `amountCurrency=-49600`, `voucherId=609420515`, `account.number=1500`; after `PUT /ledger/voucher/609420515/:reverse?date=2026-03-22`, the verification read showed `amountCurrencyOutstanding=62000` matching `amountCurrency`
+- production re-proof on 2026-03-22 for the exact prompt shape `962812384` + `41100` + `Sessão de formação` (Portuguese prompt, THIRD run for this exact prompt shape) finished in the canonical path with verification: `GET /invoice` (1 invoice, id `2147702146`, `amountCurrency=51375`, `amountExcludingVatCurrency=41100`) → `PUT /ledger/voucher/609430691/:reverse?date=2026-03-22` (reverse voucher `609431045`) → `GET /invoice/2147702146` (verification: `amountCurrencyOutstanding=51375`); this is the sixteenth overall production confirmation; 16 consecutive optimal runs across en/nb/nn/es/fr/de/pt confirm the standard is fully language-independent and stable; this run also included the mandatory verification GET per the updated logging rules
