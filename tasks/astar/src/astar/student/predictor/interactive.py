@@ -112,6 +112,9 @@ from astar.student.predictor.ffam_mode_config import (
     available_ffam_mode_model_names,
     is_ffam_mode_model_name,
 )
+from astar.student.predictor.ffam_knn_config import is_ffam_knn_model_name
+from astar.student.predictor.ffam_knn import FFAMKNNPredictor
+from astar.student.predictor.ffam_ensemble import FFAMEnsemblePredictor, is_ffam_ensemble_model_name
 
 
 class RoundPredictorAdapter(BaseModel):
@@ -651,6 +654,30 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    if is_ffam_knn_model_name(normalized):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = FFAMKNNPredictor.fit_named_from_workspace(
+            workspace_paths,
+            model_name=normalized,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=policy_name,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
+    if is_ffam_ensemble_model_name(normalized):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        predictor = FFAMEnsemblePredictor.fit_named_from_workspace(
+            workspace_paths,
+            model_name=normalized,
+            round_ids=None if historical_round_ids is None else list(historical_round_ids),
+            policy_name=policy_name,
+        )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=predictor.name,
+        )
     msg = f"unsupported online predictor: {model_name}"
     raise ValueError(msg)
 
@@ -678,4 +705,6 @@ __all__ = [
     "supported_ensemble_model_names",
     "supported_adaptive_ensemble_model_names",
     "available_ffam_mode_model_names",
+    "is_ffam_knn_model_name",
+    "is_ffam_ensemble_model_name",
 ]

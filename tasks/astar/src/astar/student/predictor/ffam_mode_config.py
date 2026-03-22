@@ -1268,6 +1268,21 @@ FFAM_MODE_CONFIGS: dict[str, FFAMModeConfig] = {
         cells_per_seed=768,
         spatial_smooth_sigma=0.0,
     ),
+    # 4 clusters (best R7 variant, used by ffam_ensemble_v4/v9/etc.)
+    "ffam_mode_v234": FFAMModeConfig(
+        model_name="ffam_mode_v234",
+        samples_per_round=6,
+        projected_mode_dim=5, posterior_input_source="summary_input", posterior_summary_variant="v3",
+        posterior_method="residual_mlp", posterior_residual_hidden_dim=32, posterior_residual_steps=500,
+        posterior_residual_learning_rate=0.02, posterior_residual_weight_decay=0.02, posterior_residual_scale=1.0,
+        decoder_method="cluster_operator_hybrid", decoder_particle_blend=0.08, decoder_particle_ood_scale=0.20,
+        posterior_metric_method="supervised", cluster_count=4,
+        posterior_metric_dim=12, posterior_neighbor_count=24, posterior_bandwidth=1.1,
+        prior_blend=0.0, posterior_ood_prior_blend=0.0, operator_ridge_lambda=4.0, temperature=1.0,
+        posterior_ridge_lambda=0.05, probability_floor=0.0003, beta_min=12.0, beta_scale=48.0,
+        residual_class_scale=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0), cells_per_seed=768,
+        spatial_smooth_sigma=0.3,
+    ),
 }
 
 
