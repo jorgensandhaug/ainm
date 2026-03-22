@@ -2906,3 +2906,67 @@ All of these have been systematically swept and are near-optimal:
 | 18 | v17 | 76.09 | Summary-input baseline |
 | 19 | v12 | 75.89 | Supervised metric baseline |
 | 20 | qr_v14 | 74.72 | Query residual family best |
+
+---
+
+# =========================================================================
+# DATA BREAKPOINT — 2026-03-22
+# ALL SCORES BELOW THIS LINE ARE ON THE NEW 16-ROUND DATASET
+# SCORES ARE NOT DIRECTLY COMPARABLE TO THE 8-ROUND SCORES ABOVE
+# =========================================================================
+
+## Data Transition Summary
+
+### Old dataset (8-round dev, all scores above this line)
+- 8 rounds used for LORO benchmark: rounds 1-8
+- Round IDs:
+  - `fd3c92ff` (R1), `8e839974` (R2), `f1dac9a9` (R3), `71451d74` (R4)
+  - `76909e29` (R5), `ae78003a` (R6), `36e581f1` (R7), `c5cdf100` (R8)
+- Each LORO fold trained on 7 rounds, evaluated on 1
+
+### New dataset (16-round dev, all scores below this line)
+- 16 rounds with both analyses AND replays available
+- 8 old rounds (R1-R8) + 8 new rounds:
+  - `2a341ace` (was R9, existed but unused in old dev)
+  - `324fde07`, `3eb0c25d`, `75e625c3`, `795bfb1f`
+  - `7b4bda99`, `cc5442dd`, `d0a2c894`
+- 1 analysis-only round excluded: `b0f9d1bf` (no replays)
+- Each LORO fold now trains on 15 rounds, evaluated on 1
+- Much more training data per fold = potentially better fits
+- More holdout rounds = more robust evaluation
+
+### What changed
+- Raw analyses synced for all new rounds
+- Raw replays synced for all new rounds (except b0f9d1bf)
+- Derived data (replay_summaries, features, evidence) only exists for old rounds
+  - New rounds will have derived data generated on-the-fly during benchmark runs
+  - This is handled automatically by the framework
+- Benchmark command must either:
+  - Specify all 16 round IDs explicitly via --round-id flags, OR
+  - Omit --round-id and let auto-discovery find all 17 analyzed rounds (but b0f9d1bf will be included in eval set without replay training data — may cause issues)
+- **Recommendation**: Always specify the 16 replay-backed round IDs explicitly
+
+### Models to re-evaluate on new data
+From old 8-round leaderboard, top candidates:
+1. `ffam_mode_v214` (old champion: 87.65) — spatial smoothing
+2. `ffam_mode_v200` (87.51) — q=5 cells=768
+3. `ffam_mode_v169` (87.12) — q=6 no interactions
+4. `ffam_mode_v157` (86.91) — cluster-operator hybrid
+5. `historical_bucket_prior` — pure baseline
+
+### Expected effects of more data
+- More training rounds should improve operator estimation (was data-limited at 7 training rounds per fold)
+- Absolute scores may go up or down depending on difficulty of new rounds
+- Relative ordering of models may change — watch for this carefully
+- If a model that was good on 8 rounds becomes worse on 16, it was likely overfitting the small sample
+
+## New Data Baseline Runs
+
+### 2026-03-22T01:00Z approx
+
+- Environment setup complete
+  - branch: `agent7-v2`
+  - LD_LIBRARY_PATH set for numpy C-extensions
+  - CLI verified working
+  - Round inventory confirmed: 16 rounds with analyses+replays
+- Starting champion model re-evaluation on full 16-round dataset
