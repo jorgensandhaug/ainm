@@ -104,6 +104,8 @@ from astar.student.predictor.hazard_posterior_v22 import (
     HazardPosteriorV22Predictor,
     hazard_posterior_v22_spec_for_model_name,
 )
+from astar.student.predictor.ffam_mode import FFAMModePredictor
+from astar.student.predictor.ffam_mode_config import resolve_ffam_mode_config
 from astar.student.predictor.historical_bucket import HistoricalBucketPriorPredictor
 from astar.student.predictor.query_residual import QueryResidualPredictor
 from astar.student.predictor.round import BaseRoundPredictor
@@ -1054,6 +1056,21 @@ def build_online_predictor(
             predictor=predictor,
             name=predictor.name,
         )
+    ffam_config = resolve_ffam_mode_config(normalized)
+    if ffam_config is not None:
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        resolved_policy_name = (policy_name or "coverage").strip().lower()
+        predictor = FFAMModePredictor.fit_from_workspace(
+            workspace_paths,
+            config=ffam_config,
+            round_ids=(
+                list(historical_round_ids) if historical_round_ids is not None
+                else sorted(rd.name for rd in workspace_paths.raw_dir.joinpath("replays").glob("*") if rd.is_dir())
+            ),
+            policy_name=resolved_policy_name,
+            samples_per_round=samples_per_round,
+        )
+        return RoundPredictorAdapter(predictor=predictor, name=predictor.name)
     if normalized == "query_residual":
         workspace_paths = paths or WorkspacePaths.from_root(".")
         resolved_policy_name = (policy_name or "coverage").strip().lower()
