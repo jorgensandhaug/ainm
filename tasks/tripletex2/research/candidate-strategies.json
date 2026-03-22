@@ -57,10 +57,12 @@
         "Extraction notes updated to instruct LLM to pass receipt line price as-is without VAT multiplication.",
         "BLOCKER: Sandbox verification cannot run — (1) packet has no proof.verificationPlan for task 22, (2) verifier hardcodes files:[] so requirePdfAttachment throws for attachment-dependent tasks.",
         "Proof input file created at research/proofs/task-22/task-22-proof-input.json for future verification once the verifier supports file attachments.",
-        "Evidence base: production run 3373fbc9 (7/10, Check 3 failed on amountGross=10937.50/vatType=1 — should be 9800/vatType=12); RESEARCH.md sandbox-verified amountGross=9800 with vatType=12 produces correct NET=8750 and VAT=1050."
+        "Evidence base: production run 3373fbc9 (7/10, Check 3 failed on amountGross=10937.50/vatType=1 — should be 9800/vatType=12); RESEARCH.md sandbox-verified amountGross=9800 with vatType=12 produces correct NET=8750 and VAT=1050.",
+        "Critique-pass (4d35cdd9): fixed routing — looksLikeRepresentation now guards against looksLikeTravel; removed bedriftskort (payment method) and bare lunsj (ambiguous) from repr regex; added kundemote to meeting regex; fixed normalizeText ø→o, æ→ae.",
+        "Routing verified: 11 inline bun scenarios all pass (Togbillett+Bedriftskort→travel, Kaffemøte→meeting, Kundemøte lunsj→meeting, Forretningslunsj→repr, Overnatting→travel, Fly+lunsj→travel)."
       ],
       "createdAt": "2026-03-22T02:12:00.000Z",
-      "updatedAt": "2026-03-22T02:12:00.000Z"
+      "updatedAt": "2026-03-22T02:25:00.000Z"
     },
     {
       "candidateId": "23.reconcile-bank-statement.v1",
