@@ -4258,6 +4258,13 @@
   - Would only help on full 8-round where more training rounds exist
 - Agent1's m=0.30: consistently hurts our ensemble (79.86 vs 80.17 at same config)
   - Our ridge projection is more accurate than pure kNN in our setup
+- Agent7's spatial smoothing (sigma=0.3): **CATASTROPHIC** for our ensemble (61.55 vs 80.17)
+  - Smoothing destroys the sharp confident predictions from low probability floor
+  - Agent7's smoothing works because their model has noisier per-cell predictions
+- Agent7's ffam_mode architecture (87.65): fundamentally different from our approach
+  - Uses per-round operator projection in mode space
+  - Would require 6750+ lines of new code to port
+  - Their gains come from a qualitatively different decoder architecture, not from tuning
 
 ### Observation-frequency blending sweep:
 | obs_temp | Probe3 |
