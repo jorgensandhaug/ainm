@@ -79,13 +79,14 @@ The same no-VAT branch also covers German wording such as `ohne MwSt.`. The 2026
 2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*`
 3. `POST /invoice`
 
-The same no-VAT branch also covers Spanish wording such as `sin IVA`. The 2026-03-21 production run for `Río Verde SL` / `894012358` / `Sesión de formación` / `29100` used 6 calls (with reactive bank-account repair) and confirmed `amountExcludingVatCurrency=amountCurrency=29100`. With the now-recommended proactive approach, the optimal path would have been 5 calls:
+The same no-VAT branch also covers Spanish wording such as `sin IVA`. The 2026-03-22 production run for `Solmar SL` / `893298169` / `Mantenimiento` / `19500` confirmed the optimal 4-call path with hardcoded vatType.id=6 + proactive bank check:
 
-1. `POST /customer` with `invoiceSendMethod: "MANUAL"` (parallel with steps 2-3)
-2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-21&fields=*` (parallel, found 0% at code 5)
-3. `GET /ledger/account?isBankAccount=true&fields=*` (parallel, free)
-4. `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (conditional, if bankAccountNumber falsy)
-5. `POST /invoice` (201 — succeeds on first try, 0 errors)
+1. `POST /customer` with `invoiceSendMethod: "MANUAL"` (parallel with step 2)
+2. `GET /ledger/account?isBankAccount=true&fields=*` (parallel, free)
+3. `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (conditional, if bankAccountNumber falsy)
+4. `POST /invoice` with `vatType: { id: 6 }` (201, `amountExcludingVatCurrency=amountCurrency=19500`, 0 errors)
+
+This replaces the older 6-call reactive path (Río Verde SL 2026-03-21) and the 5-call estimate: hardcoding vatType.id=6 eliminates the GET /ledger/vatType call entirely.
 
 ## Key Finding: Proactive Bank-Account Check (Preferred)
 
@@ -162,8 +163,7 @@ Always set `vatType: { id: 3 }` explicitly for 25% standard VAT.
 - Do not create a second invoice bank account with the same `bankAccountNumber`
 - Duplicate bank account numbers trigger validation errors
 - Prefer updating existing `1920` over creating a new invoice account
-- Do not hardcode invoice/order-line VAT code `3`
-- The authoritative candidate set for invoice lines is the filtered `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` result on the invoice date
+- **DO hardcode vatType IDs** — the full VAT code set (3/25%, 31/15%, 32/12%, 5/0%, 6/0%, 52/0%) is stable across sandbox and production; `GET /ledger/vatType` is an unnecessary extra API call; sandbox-verified 2026-03-22, production-confirmed 2026-03-22 (Solmar SL)
 - If the provided base URL already ends in `/v2`, do not pass endpoint paths with a leading slash into `new URL(...)`; that can silently escape back to host-root `/customer` or `/invoice` and waste a `404`
 - If the first common-endpoint call still comes back `404`, inspect the final request path before spending a second Tripletex call; host-root `/customer` or `/invoice` means the client URL builder is wrong, not that the endpoint changed
 
@@ -279,21 +279,23 @@ When the prompt gives product numbers in parentheses (e.g. "Analysis Report (979
 ### New customer (fresh account) — products don't exist yet
 
 1. `POST /customer` with `invoiceSendMethod: "MANUAL"` (parallel)
-2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` (parallel)
+2. `GET /ledger/account?isBankAccount=true&fields=*` (parallel, free — proactive bank check)
 3. `POST /product/list` with `[{ "name": "Analysis Report", "number": 9796 }, ...]` (parallel with 1 and 2)
-4. `POST /invoice?sendToCustomer=true` with `product: { "id": <id> }` on each order line
+4. Conditional `PUT /ledger/account/{id}` if bankAccountNumber falsy
+5. `POST /invoice?sendToCustomer=true` with `product: { "id": <id> }` on each order line, hardcoded `vatType: { id: N }`
 
-This is 4 calls in the happy path (3 parallel + 1 invoice), or 7 with bank-account repair.
+This is 3-4 calls in the happy path (3 parallel + 0-1 bank fix + 1 invoice). vatType IDs are hardcoded — no GET /ledger/vatType needed.
 
 ### Existing customer — products may already exist
 
 When the prompt uses a definite article (Norwegian "kunden", English "the customer", German "den Kunden"), the customer already exists AND products with the given numbers may already be pre-loaded. Blindly using `POST /product/list` will return `422 Produktnummeret X er i bruk`, wasting a call and counting as a scored error.
 
 1. `GET /customer?organizationNumber=...&fields=*` (parallel)
-2. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*` (parallel)
+2. `GET /ledger/account?isBankAccount=true&fields=*` (parallel, free — proactive bank check)
 3. `GET /product?fields=id,number&count=1000` (parallel with 1 and 2) — match by `String(p.number)` client-side
-4. If all products found → `POST /invoice?sendToCustomer=true` (total: 4 or 7 with bank repair)
-5. If any products missing → `POST /product/list` with only missing ones, then `POST /invoice` (total: 5 or 8 with bank repair)
+4. Conditional `PUT /ledger/account/{id}` if bankAccountNumber falsy
+5. If all products found → `POST /invoice?sendToCustomer=true` with hardcoded `vatType: { id: N }` (total: 4-5 calls)
+6. If any products missing → `POST /product/list` with only missing ones, then `POST /invoice` (total: 5-6 calls)
 
 The 2026-03-21 production run for `Brückentor GmbH` / `804379010` hit the existing-product pitfall: the agent used `POST /product/list` which returned 422, then had additional string/number comparison bugs, totaling 11 API calls instead of the optimal 7. The correct path was: `GET /customer` + `GET /vatType` + `GET /product` (parallel) → `POST /invoice` (422 bank) → bank repair → `POST /invoice` retry.
 
