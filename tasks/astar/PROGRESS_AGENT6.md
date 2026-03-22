@@ -4640,3 +4640,25 @@ The only way to significantly beat 87.65 would be:
 - More training rounds (impossible with current data)
 - A fundamentally different approach that doesn't rely on round-level regime inference
 - Better OOD handling for R7 specifically (but all adaptive approaches hurt other rounds)
+
+### Ensemble Sweep Results
+| Model | Score | Blend | Components |
+|-------|-------|-------|-----------|
+| **v9 (4c + 5%)** | **87.700** | **95/5** | **v234 (4-cluster) + kNN** |
+| v5 (v214 + 5%) | 87.697 | 95/5 | v214 + kNN |
+| v6 (v214 + 3%) | 87.693 | 97/3 | v214 + kNN |
+| v10 (4c + 3%) | 87.692 | 97/3 | v234 + kNN |
+| v11 (4c + 7%) | 87.692 | 93/7 | v234 + kNN |
+| v7 (v214 + 2%) | 87.685 | 98/2 | v214 + kNN |
+| v1 (v214 + 10%) | 87.642 | 90/10 | v214 + kNN |
+| v3 (v214 + 20%) | 87.318 | 80/20 | v214 + kNN |
+
+**Key finding**: 5% kNN blend is optimal. The kNN adds cell-level diversity.
+4-cluster mode (v234) is marginally better than 2-cluster (v214) for ensemble.
+
+### Total Experiments Summary
+- **ffam_mode variants**: 35+ tested, all within ±0.4 of 87.65
+- **ffam_ensemble variants**: 9+ tested, best at 87.70
+- **Cross-architecture ensembles**: 5 tested (ffam + old models), all worse than pure ffam
+- **Total**: 50+ experiments this session
+- **Score improvement**: 80.17 → 87.70 (+7.53 points, +9.4%)
