@@ -60,10 +60,13 @@ export async function loadTaskModule(): Promise<ReconcileBankStatementTaskModule
   const { strategy } = await import(
     "./strategies/reconcile-bank-statement"
   );
+  const { strategy: strategyV2 } = await import(
+    "./strategies/reconcile-bank-statement-v2"
+  );
 
   return {
     task,
-    strategies: [strategy],
+    strategies: [strategyV2, strategy],
   };
 }
 

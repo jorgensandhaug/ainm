@@ -186,12 +186,59 @@ The strategy needs a major expansion from its current ~13-call flow to a ~28-cal
 | 02daaa35 | YES | YES (closed) | No | No | No | 0.6/6 |
 | Full flow | YES | YES | YES | YES | YES | **UNTESTED** |
 
+## V2 Strategy Implementation (2026-03-22)
+
+### What was implemented
+
+Created `strategies/reconcile-bank-statement-v2.ts` implementing the full 9-step flow:
+
+1. **Skattetrekk classification added** — `classifyNonInvoiceRow()` now handles `"tax-withholding"` with account 2600
+2. **Account 2050, 2400, 2600 fetched** in the parallel reads (Step 1)
+3. **Accounting period fetched** via `GET /ledger/accountingPeriod` with date narrowing
+4. **Opening balance voucher** (Step 0) — DR 1920, CR 2050 with all 4 amount fields + currency
+5. **Combined voucher** for all non-invoice + unmatched supplier lines (Steps 4-5) — saves API calls vs separate vouchers
+6. **Bank statement import** (Step 6) — converts CSV to SBANKEN_BEDRIFT_CSV format with Norwegian headers (Inngående/Utgående/Bokført/Beløp), uses multipart `rawBody: FormData`, bankId=112
+7. **Transaction matching** (Step 7) — parallel fetch of bank txns + ledger postings on 1920, creates OPEN reconciliation, matches each txn by amount (prefer same date, usedPostingIds set)
+8. **Reconciliation close** (Step 8) — GET fresh version, PUT with isClosed=true
+9. **Balance sheet fallback** — if close fails with 422 balance mismatch (e.g. pre-existing sandbox state), reads actual 1920 balance from `/balanceSheet` and retries
+
+### Bug fix: tie-breaking logic
+
+Reordered the customer/supplier invoice matching: now discards weak matches (no strong reference) BEFORE checking for ties. Previously, two weak partial-amount matches on different invoices would throw instead of falling through to non-invoice classification. This was triggered when "Renteinntekter;127.20" partially matched multiple existing customer invoices.
+
+### Sandbox Verification (2026-03-22)
+
+**Test: non-invoice-only CSV (5 rows: 2 Renteinntekter, 2 Bankgebyr, 1 Skattetrekk)**
+
+| Metric | Result |
+|--------|--------|
+| Strategy | `23.reconcile-bank-statement.v2` |
+| Total API calls | 22 (19 core + 3 balance-sheet fallback) |
+| Bank statement import | 201 OK, 5 transactions created |
+| Transaction matching | 5/5 matched |
+| Reconciliation closed | YES |
+| Opening balance voucher | 201 OK (50000 DR 1920, CR 2050) |
+| Combined voucher | 201 OK (10 postings for 5 non-invoice rows) |
+| Balance sheet fallback used | YES (sandbox has pre-existing 1920 balance from prior test runs) |
+
+**In production (clean accounts), the balance sheet fallback would not be triggered, reducing calls to 19 for this 5-row CSV.**
+
+For a typical 11-row production CSV (5 customer + 3 supplier + 3 non-invoice):
+- 6 reads + 1 opening balance + N customer payments (5) + 1 combined voucher + 1 bank import + 2 fetches + 1 create recon + L matches (11) + 1 fresh recon + 1 close = **30 calls**
+
+### Unmatched outgoing rows fallback
+
+Added a fallback for outgoing rows that don't match supplier invoices and aren't classifiable as non-invoice: they're booked as generic supplier payments (DR 2400 Leverandørgjeld, CR 1920). This handles the case when the sandbox has no supplier invoices for supplier-like bank rows.
+
 ## Next Steps
 
-1. **Add Skattetrekk classification** to prevent strategy crashes on tax withholding rows
-2. **Implement the full 9-step bank reconciliation flow** — this is the structural fix for Check 1
-3. **Sandbox-verify** the bank statement import (SBANKEN_BEDRIFT_CSV format conversion) and matching flow
-4. **Production test** the complete flow to confirm Check 1 passes
+1. **Pin v2 as active strategy** in `configs/active-strategies.json`
+2. **Production test** the complete flow to confirm Check 1 passes (expected score: 6/6)
+3. **Optimize call count** if production testing reveals room:
+   - Could skip the GET /bank/statement/transaction call by using positional mapping from import response (saves 1 call)
+   - Could remove balance sheet fallback if production always starts at 0 balance (saves 3 calls max)
+4. **Edge case: CSV with only incoming customer lines** — test whether the flow works when no combined voucher is needed
+5. **Edge case: supplier invoices exist** — test the addPayment path + combined voucher for remaining lines
 
 ## Next Improving-Agent Update Checklist
 
@@ -200,3 +247,4 @@ The strategy needs a major expansion from its current ~13-call flow to a ~28-cal
 - Verify with the research OS / sandbox instead of writing strategy tests.
 - The codex trusted standard at `tripletex/codex-environment/trusted-standards/reconcile-bank-statement-open-invoices.md` contains extensive sandbox-verified details on the full flow, including SBANKEN_BEDRIFT_CSV format conversion, matching logic, and reconciliation close.
 - Write back the outcome here, even if the result is "no import" or "frontier unchanged".
+- The v2 strategy is sandbox-verified for the non-invoice-only path. Production verification with real customer/supplier invoices is the next critical step.

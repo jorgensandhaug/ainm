@@ -96,6 +96,94 @@ export function buildTaskVerificationPlan(
     };
   }
 
+  if (taskId === "21") {
+    return {
+      schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
+      planId: "task-21.onboard-employee-offer-letter.v1",
+      taskId: "21",
+      checks: [
+        {
+          type: "object",
+          checkId: "employee-readback",
+          description:
+            "Read the created employee and confirm identity, date of birth, and department.",
+          pathTemplate: "/employee/{{result.createdEntityIds.employeeId}}",
+          query: {
+            fields: "*,department(*)",
+          },
+          responsePath: "value",
+          assertions: [
+            {
+              actualPath: "dateOfBirth",
+              equalsFromPath: "result.verification.birthDate",
+            },
+          ],
+        },
+        {
+          type: "collection",
+          checkId: "employment-details-readback",
+          description:
+            "Read employments for the created employee and confirm remunerationType, employmentForm, salary, percentage, and occupation code.",
+          pathTemplate: "/employee/employment",
+          query: {
+            employeeId: "{{result.createdEntityIds.employeeId}}",
+            fields: "*,employmentDetails(*,occupationCode(*))",
+          },
+          collectionPath: "values",
+          matchPath: "id",
+          matchFromPath: "result.createdEntityIds.employmentId",
+          assertions: [
+            {
+              actualPath: "startDate",
+              equalsFromPath: "result.verification.startDate",
+            },
+            {
+              actualPath: "employmentDetails.0.remunerationType",
+              equalsFromPath: "result.verification.remunerationType",
+            },
+            {
+              actualPath: "employmentDetails.0.employmentForm",
+              equalsFromPath: "result.verification.employmentForm",
+            },
+            {
+              actualPath: "employmentDetails.0.annualSalary",
+              equalsFromPath: "result.verification.annualSalaryNok",
+            },
+            {
+              actualPath: "employmentDetails.0.percentageOfFullTimeEquivalent",
+              equalsFromPath:
+                "result.verification.percentageOfFullTimeEquivalent",
+            },
+            {
+              actualPath: "employmentDetails.0.occupationCode.id",
+              equalsFromPath: "result.verification.occupationCodeId",
+            },
+          ],
+        },
+        {
+          type: "collection",
+          checkId: "standard-time-readback",
+          description:
+            "Read the standard worktime for the employee and confirm hours per day.",
+          pathTemplate: "/employee/standardTime",
+          query: {
+            employeeId: "{{result.createdEntityIds.employeeId}}",
+            fields: "*",
+          },
+          collectionPath: "values",
+          matchPath: "id",
+          matchFromPath: "result.createdEntityIds.standardTimeId",
+          assertions: [
+            {
+              actualPath: "hoursPerDay",
+              equalsFromPath: "result.verification.standardHoursPerDay",
+            },
+          ],
+        },
+      ],
+    };
+  }
+
   if (taskId === "11") {
     return {
       schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,

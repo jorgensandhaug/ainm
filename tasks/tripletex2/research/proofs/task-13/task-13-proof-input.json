@@ -1,0 +1,27 @@
+{
+  "employeeEmail": "ingrid.larsen@example.org",
+  "title": "Kundebesøk Trondheim",
+  "purpose": "Kundebesøk Trondheim",
+  "departureDate": "2026-03-20",
+  "returnDate": "2026-03-21",
+  "costs": [
+    {
+      "categoryName": "Fly",
+      "amountNokInclVat": 2500,
+      "comment": "Flybillett"
+    },
+    {
+      "categoryName": "Taxi",
+      "amountNokInclVat": 600,
+      "comment": "Taxi"
+    }
+  ],
+  "perDiemCompensations": [
+    {
+      "count": 2,
+      "rateNok": 800,
+      "amountNok": 1600,
+      "overnightAccommodation": "HOTEL"
+    }
+  ]
+}

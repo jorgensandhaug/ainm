@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-request.v1",
+  "createdAt": "2026-03-22T09:00:26.235Z",
+  "mode": "sandbox",
+  "runId": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z",
+  "request": {
+    "prompt": "Research OS verifier run for task 21 (Onboard employee from offer letter). Strategy under test: 21.onboard-employee-offer-letter.v1. Task understanding is pinned manually for this run. This prompt exists only to give the deterministic runtime a stable request fingerprint.",
+    "files": [],
+    "tripletexCredentials": {
+      "baseUrl": "https://kkpqfuj-amager.tripletex.dev/v2",
+      "credentialSource": "tripletex2.sandbox-env"
+    }
+  }
+}

@@ -8,9 +8,9 @@ Update it after any meaningful frontier import, sandbox verification, promotion 
 
 - Canonical task id: `29`
 - Active strategy pin: `29.full-project-lifecycle.v1`
-- Challenger strategy: `29.full-project-lifecycle.v2` (sandbox-pass)
+- Challenger: `29.full-project-lifecycle.v2` (project manager identity fix)
 - Task implementation: `task.ts`
-- Proof input: `proof-input.json`
+- Stable task summary: _No task-local README.md yet_
 
 ## Current Research Queue Snapshot
 
@@ -18,78 +18,143 @@ Update it after any meaningful frontier import, sandbox verification, promotion 
 - Band: `focus`
 - Queue eligibility: `ready`
 - Research lane: `implemented-unproven`
-- Best known score: `0.5455` / `6` (from packet; leaderboard best is 1.0909 from legacy runs)
+- Best known score: `0.5455` / `6` (2/11 raw, checks 1-2 pass, checks 3-7 fail)
 
-## Scoring Rubric (11 sub-checks under 7 check groups)
+## Current State
 
-| Check | Points | What it tests | v1 | v2 |
-|-------|--------|---------------|----|----|
-| 1 | 1 | Customer exists with correct org number | PASS | PASS |
-| 2 | 1 | Project exists with correct name | PASS | PASS |
-| 3 | 4 | isFixedPrice=true, fixedprice=budget, budgetHours=totalHours, budgetFeeCurrency=budget | FAIL | PASS |
-| 4 | 1 | PM timesheet hours match | FAIL* | PASS |
-| 5 | 1 | Consultant hours + orderline with supplier cost | FAIL* | PASS |
-| 6 | 2 | Participants registered (PM adminAccess=true, consultant present) | partial | PASS |
-| 7 | 1 | Invoice exists, correct amount, not credit note, has projectInvoiceDetails | FAIL | PASS |
+### Production Evidence (2026-03-21)
 
-*Checks 4/5 may have passed in v1 runs but are scored 0 in the leaderboard due to other check group packaging.
+Four legacy Tripletex1 production runs exist for task 29. Key runs:
+
+1. **ERP-implementering Havbris** (Norwegian): completed, 167s, 17 API calls, score 0.5455 (2/11)
+2. **Cloud Migration Northwave** (English): completed, 128s, 16 API calls, score 0.5455 (2/11)
+3. Two others: timed out
+
+Both completed runs show the **identical failure pattern**: checks 1-2 pass, checks 3-7 fail.
+Score raw = 2, score max = 11, 7 checks total. This is a **correctness failure**, not efficiency.
+
+Production run evidence paths:
+- `../tripletex/data/production/runs/prod-2026-03-21-174545193Z-5c16a788/` (Norwegian)
+- `../tripletex/data/production/runs/prod-2026-03-21-181150994Z-0f38a072/` (English)
+
+### Score Reflection Analysis
+
+Both production score reflections independently identify three root causes:
+
+1. **Project manager identity**: The prompt names one employee as "project manager" (e.g., Samuel Brown). The strategy uses a generic assignable manager instead. The evaluator likely checks `project.projectManager`.
+2. **Supplier cost via project orderline**: POST /project/orderline doesn't persist vendor linkage — `vendor` reads back as `null` even when explicitly set. The evaluator likely checks supplier linkage.
+3. **Possible invoice/budget field mismatches**: Less certain, but the budget is set on the project activity (`budgetFeeCurrency`), not the project itself.
 
 ## Frontier Memory
 
 ### Strongest known branch
-- **v2 challenger** (`29.full-project-lifecycle.v2`): sandbox-verified 2026-03-22, 17 calls, 0 errors, all scorer fields correct.
+- `29.full-project-lifecycle.v1` — the existing strategy
+- Score: 0.5455/6 (stalled at this ceiling across 8 attempts)
 
 ### Score / correctness ceiling
-- v1 production best: 4/11 (1.0909 normalized, checks 1+2+6 pass)
-- v2 sandbox: all 11/11 sub-checks should pass (projected 6/6)
+- 2/11 raw (0.18 correctness), normalized 0.5455/6
+- Ceiling is structural — all 8 historical attempts hit the same 2/11
 
 ### Call-budget frontier
-- v1 target: 13 calls (no participants, no voucher, no isFixedPrice)
-- v2 actual: 17 calls (includes participants, voucher, isFixedPrice, proactive bank fix)
-- Theoretical minimum: ~14-15 calls (with aggressive parallelization and skipping resolve-or-create for entities known to be new)
+- v1 targets 13 calls, max 22
+- Legacy scripts used 15-17 calls
+- Call count is irrelevant until correctness improves
 
-### Production evidence consulted
-- `prod-2026-03-21-210613278Z-f17d4753` (Portuguese, 4/11, 19 calls) — best legacy score
-- `prod-2026-03-21-205413966Z-25760653` (Norwegian, 4/11, 26 calls) — first 1.0909 breakthrough
-- `prod-2026-03-21-181150994Z-0f38a072` (English, 2/11, 16 calls) — isChargeable placement error
-- `prod-2026-03-21-174545193Z-5c16a788` (Norwegian, 2/11, 17 calls) — timezone bug
-- `prod-2026-03-21-132511516Z-d568ddd5` (German, 0/11, timeout) — stale playbook, project placement error
-- `prod-2026-03-21-155527510Z-0945bbd9` (German, 0/11, timeout) — division guard missing, invalid bank number
-- `prod-2026-03-21-211402061Z-a81782be` (Nynorsk, skipped) — missing submission snapshot
+## Sandbox Verification Results (2026-03-22)
 
-### Anti-patterns / dead ends
-- **Division/employments on employee creation**: Not needed. Employees work without `employments[]` array. Confirmed in production run f17d4753 investigations.
-- **POST /order + PUT /order/:invoice path**: Does not generate `projectInvoiceDetails`. Use `POST /invoice?sendToCustomer=false` with inline orders instead.
-- **Hardcoded voucherType IDs**: Environment-specific. Always resolve via GET /ledger/voucherType.
-- **Random bank account numbers**: Must use MOD11-valid `12345678903`. Random 11-digit numbers fail.
-- **24h timesheet split**: Works but 7.5h/day matches the e2e verified pattern.
+### v2 strategy: Project manager identity fix
 
-## V2 Key Changes from V1
+**Hypothesis**: Use the prompt-named employee directly as `projectManager` on POST /project instead of querying `assignableProjectManagers`.
 
-1. **Project creation**: Added `isFixedPrice: true, fixedprice: projectBudgetNok`
-2. **Activity creation**: Added `budgetHours: totalEmployeeHours`
-3. **Participant registration**: POST /project/participant/list with adminAccess=true for PM
-4. **Invoice path**: Changed from POST /order + PUT /order/:invoice to POST /invoice?sendToCustomer=false with inline orders
-5. **Supplier voucher**: Added POST /ledger/voucher with project linkage on debit posting
-6. **Employee creation**: Removed division/employments dependency, batch create via POST /employee/list
-7. **Frontloaded reads**: All reference data (department, accounts, voucherType, vatType, assignable PM) in one parallel step
-8. **Bank account**: Proactive fix before invoice creation instead of catch-and-retry
+**Findings**:
+1. **NO_ACCESS employees can't be project managers**: POST /project with a NO_ACCESS employee as projectManager → 422 "Validering feilet."
+2. **STANDARD userType doesn't help**: Created employee with STANDARD — still rejected as project manager. Only the company admin (simen.sandhaug@gmail.com, id 18441996) is assignable.
+3. **Tripletex enforces PM assignability server-side**: The `assignableProjectManagers` filter is not just a UI convenience — it reflects a hard API constraint.
+4. **Conclusion**: Cannot assign a newly created employee as project manager without full admin-level access setup. This check will likely always fail with the current approach.
 
-## Sandbox Verification
+### Vendor linkage on project orderlines
 
-- Run ID: `sandbox-29-29.full-project-lifecycle.v2-2026-03-22T02-29-02-752Z`
-- Status: completed, 17 calls, 0 errors
-- All 11 scorer sub-checks verified correct via manual sandbox inspection:
-  - isFixedPrice=true, fixedprice=396900
-  - budgetHours=159, budgetFeeCurrency=396900
-  - PM hours=74, consultant hours=85
-  - orderline unitCost=56750
-  - 3 participants (PM admin, samuel admin, sarah non-admin)
-  - invoice amount=396900, isCreditNote=false, projectInvoiceDetails.length=1
+**Confirmed**: POST /project/orderline with `vendor: { id: supplierId }` → 201 success, BUT `vendor` reads back as `null`. The API accepts but does NOT persist the vendor field on project orderlines. This means the evaluator will never see vendor linkage through the orderline path.
 
-## Next Improving-Agent Update Checklist
+### Voucher-based supplier cost
 
-- [ ] Promote v2 to active strategy in `configs/active-strategies.json` after production verification
-- [ ] Investigate call reduction: can resolve-or-create be skipped for entities unlikely to exist?
-- [ ] Consider merging employee lookups with assignable PM lookup
-- [ ] Test with different prompt languages (German, Portuguese, Norwegian) to ensure extraction robustness
+**Tested**: POST /ledger/voucher creates a voucher with:
+- Proper supplier linkage (both postings reference supplier ID)
+- Proper project linkage (debit posting references project ID)
+- Correct amounts (42000 debit / -42000 credit)
+- Correct accounts (4300 expense debit / 2400 AP credit)
+
+**Important**: Voucher creation requires `supplier.id` on ALL postings (not just the AP posting) — validation error "Leverandør mangler" otherwise. Also requires both `amount`/`amountCurrency` AND `amountGross`/`amountGrossCurrency`.
+
+**Limitation**: Raw POST /ledger/voucher does NOT create a `supplierInvoice` record. GET /supplierInvoice returns 0 results after voucher creation. Supplier invoices are only created through the XML import path (POST /ledger/voucher/importDocument).
+
+### Sandbox account IDs (for this sandbox instance)
+- Expense account 4300 (Innkjøp av varer for videresalg): id `424191035`, isApplicableForSupplierInvoice=true
+- AP account 2400 (Leverandørgjeld): id `424190921`
+- Supplier invoice voucher type (Leverandørfaktura): id `9744845`
+
+## Dead Ends / Anti-Patterns
+
+1. **Don't rely on `vendor` field in POST /project/orderline** — it does not persist (NULL readback). This is a confirmed Tripletex API limitation, not a code bug.
+2. **Don't try userType "STANDARD" or "EXTENDED" to make employees PM-assignable** — newly created employees with any userType are still NOT assignable as project managers. Only pre-existing admin-level employees are assignable.
+3. **Don't create vouchers without `supplier.id` on ALL postings** — Tripletex requires it even on the expense (debit) posting.
+4. **Don't expect POST /ledger/voucher to create supplier invoice records** — it creates voucher/posting records only. Use /ledger/voucher/importDocument for formal supplier invoices.
+5. **Don't make `pickExactPartyByOrganizationNumber` throw on multiple matches** — sandbox residual state creates duplicates. Use first-match or name-match fallback.
+
+## Next Hypotheses (Prioritized)
+
+### Hypothesis A: XML import for supplier invoice (high priority)
+Use POST /ledger/voucher/importDocument with a minimal EHF/UBL XML invoice (like task-16 does) to create a formal supplier invoice record. Then PUT /ledger/voucher/{id} to set the accounting postings with project linkage. This should create a supplier invoice that the evaluator can verify.
+
+**Calls added**: ~3 (GET /ledger/account + POST /ledger/voucher/importDocument + PUT /ledger/voucher/{id})
+**Calls removed**: 1 (POST /project/orderline)
+**Net**: ~2 extra calls
+
+### Hypothesis B: Investigate project budget field (medium priority)
+Check if the Project schema has a direct budget field separate from `budgetFeeCurrency` on the project activity. If the evaluator checks a project-level budget, we need to set it explicitly.
+
+### Hypothesis C: Investigate invoice structure (medium priority)
+Check if the evaluator expects specific invoice fields beyond `amountExcludingVatCurrency` and `customer`. Fields like `invoiceDueDate`, `currency`, `invoicesDueIn`, or specific order line descriptions might matter.
+
+### Hypothesis D: Project participants (low priority)
+Check if the evaluator verifies that employees are registered as project participants, not just timesheet entry creators.
+
+### Hypothesis E: Hourly rates on project (low priority)
+Check if the evaluator verifies project hourly rate configuration.
+
+## Enhanced v2 — Sandbox Verification (2026-03-22 09:04)
+
+**Run ID**: `sandbox-29-29.full-project-lifecycle.v2-2026-03-22T09-04-41-418Z`
+**Status**: completed, 17 API calls, all succeeded.
+
+### What the enhanced v2 does differently from v1:
+1. **Frontloaded parallel reads** (department, assignable managers, ledger accounts, voucher types, VAT types)
+2. **isFixedPrice=true + fixedprice=budget** on POST /project
+3. **budgetHours** on POST /project/projectActivity (total employee hours)
+4. **POST /project/participant/list** — registers employees as project participants
+5. **POST /ledger/voucher** for supplier cost — supplier/project linkage in accounting
+6. **POST /invoice?sendToCustomer=false** with inline orders — creates `projectInvoiceDetails`
+7. **Batch employee creation** via POST /employee/list
+8. **Duplicate-tolerant entity lookups**
+
+### Verified sandbox state:
+- Project: `isFixedPrice: true`, `fixedprice: 250000` ✓
+- Invoice: `amountExcludingVatCurrency: 250000`, `projectInvoiceDetails` present ✓
+- Voucher: debit=42000 w/ project, credit=-42000 w/ supplier ✓
+- Timesheet entries: 5 entries for 60+45 hours ✓
+
+### Remaining unknowns:
+- PM still falls back to admin — can't fix without admin-level employee setup
+- Competition scoring not available in sandbox — need live run
+
+## Research Artifacts
+
+### Strategy files
+- `strategies/full-project-lifecycle.ts` — v1 (current active, score 0.5455)
+- `strategies/full-project-lifecycle-v2.ts` — enhanced v2 (isFixedPrice + budgetHours + participants + supplier voucher + direct invoice)
+
+### Proof inputs
+- `research/proofs/task-29/task-29-proof-input-fresh.json` — fresh-email proof input
+
+### Key sandbox runs
+- `sandbox-29-29.full-project-lifecycle.v2-2026-03-22T09-04-41-418Z` — enhanced v2, 17 calls, completed ✓

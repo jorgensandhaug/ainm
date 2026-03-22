@@ -1,0 +1,22 @@
+{
+  "projectName": "AI Platform Greenfield",
+  "customerName": "Greenfield Corp",
+  "customerOrganizationNumber": "947812345",
+  "projectBudgetNok": 250000,
+  "employees": [
+    {
+      "employeeName": "Erik Solberg",
+      "email": "erik.solberg.v2test@example.org",
+      "hours": 60
+    },
+    {
+      "employeeName": "Lina Hansen",
+      "email": "lina.hansen.v2test@example.org",
+      "hours": 45
+    }
+  ],
+  "supplierName": "Nordic Consulting AS",
+  "supplierOrganizationNumber": "948765432",
+  "supplierCostNok": 42000,
+  "projectManagerEmail": "erik.solberg.v2test@example.org"
+}
