@@ -28,6 +28,7 @@ from astar.student.predictor.smh_glmm import (
 )
 from astar.student.predictor.cellwise_gbt import CellwiseGBTPredictor
 from astar.student.predictor.direct_terminal import DirectTerminalPredictor
+from astar.student.predictor.prior_operator import PriorOperatorPredictor
 from astar.student.predictor.smh_student import SemhResidualStudentPredictor
 
 SMH_GLMM_Z0_H0_COVBASE_CALNONE_V001 = "smh_glmm_z0_h0_covbase_calnone_v001"
@@ -84,6 +85,10 @@ GLMM_DT_OBSBLEND_V004 = "glmm_dt_obsblend_v004"  # t=25
 GLMM_DT_OBSBLEND_V005 = "glmm_dt_obsblend_v005"  # t=10
 GLMM_DT_OBSBLEND_V006 = "glmm_dt_obsblend_v006"  # 45% DT + t=20
 GLMM_DT_OBSBLEND_V007 = "glmm_dt_obsblend_v007"  # 40% DT + t=20
+PRIOR_OPERATOR_Z2_V001 = "prior_operator_z2_v001"
+PRIOR_OPERATOR_Z2_V002 = "prior_operator_z2_v002"
+PRIOR_OPERATOR_Z2_V003 = "prior_operator_z2_v003"
+PRIOR_OP_OBSBLEND_V001 = "prior_op_obsblend_v001"
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -1978,6 +1983,40 @@ def build_online_predictor(
                 name=normalized,
             ),
             name=normalized,
+        )
+    if normalized in (PRIOR_OPERATOR_Z2_V001, PRIOR_OPERATOR_Z2_V002, PRIOR_OPERATOR_Z2_V003, PRIOR_OP_OBSBLEND_V001):
+        workspace_paths = paths or WorkspacePaths.from_root(".")
+        bucket_predictor = _load_or_fit_historical_bucket_predictor(
+            workspace_paths,
+            historical_round_ids=historical_round_ids,
+            checkpoint_stem="historical_bucket_prior_v1",
+            model_name="historical_bucket_prior_v1",
+        )
+        ridge_map = {
+            PRIOR_OPERATOR_Z2_V001: 0.1,
+            PRIOR_OPERATOR_Z2_V002: 0.01,
+            PRIOR_OPERATOR_Z2_V003: 1.0,
+            PRIOR_OP_OBSBLEND_V001: 0.1,
+        }
+        predictor = PriorOperatorPredictor.fit_from_workspace(
+            workspace_paths,
+            round_ids=list(historical_round_ids) if historical_round_ids else None,
+            bucket_prior=bucket_predictor,
+            model_name=normalized,
+            ridge_lambda=ridge_map[normalized],
+            latent_dim=2,
+        )
+        if normalized == PRIOR_OP_OBSBLEND_V001:
+            predictor = ExactObservationBlendPredictor(
+                base_predictor=predictor,
+                beta_min=20.0,
+                beta_scale=0.0,
+                probability_floor=3e-4,
+                name=normalized,
+            )
+        return RoundPredictorAdapter(
+            predictor=predictor,
+            name=normalized if isinstance(normalized, str) else predictor.name,
         )
     if normalized in (GLMM_DT_OBSBLEND_V001, GLMM_DT_OBSBLEND_V002, GLMM_DT_OBSBLEND_V003, GLMM_DT_OBSBLEND_V004, GLMM_DT_OBSBLEND_V005, GLMM_DT_OBSBLEND_V006, GLMM_DT_OBSBLEND_V007):
         workspace_paths = paths or WorkspacePaths.from_root(".")
