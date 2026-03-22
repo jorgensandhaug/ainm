@@ -5152,7 +5152,31 @@ Per-round best (avg 10 eval):
 - 795bfb1f: 73.56 (still worst but improved from 57.58, +15.98!)
 - 36e581f1: 82.90 (improved from 72.64, +10.26!)
 
-535. Next experiments:
+535. Diminishing returns on hyperparameters with averaging:
+   - d12: 90.12 (slightly worse than d10)
+   - 5 train eps: 90.03 (worse than 3 train eps)
+   - **Optimal config confirmed: d10, 3 train eps, 10 eval avg = 90.15**
+
+## COMPREHENSIVE LEADERBOARD (16-round LOO, 2026-03-22)
+
+| Rank | Config | Score |
+|------|--------|-------|
+| **1** | **LGB d10, 3 train eps, 10 eval avg, exploration** | **90.15** |
+| 2 | LGB d10, 3 train eps, 5 eval avg | 90.08 |
+| 3 | LGB d12, 3 train eps, 10 eval avg | 90.12 |
+| 4 | LGB d10, 5 train eps, 10 eval avg | 90.03 |
+| 5 | LGB d10, 3 train eps (no avg) | 89.64 |
+| 6 | LGB d10, 10 var eps (no train aug) | 89.19 |
+| 7 | LGB d10, 5 var eps | 88.40 |
+| 8 | LGB d10, solo (no multi-ep) | 87.06 |
+| 9 | LGB d8, solo, exploration | 86.96 |
+| 10 | LGB d8, solo, coverage | 86.62 |
+| 11 | CB d8, solo, coverage | 86.11 |
+
+**Total session improvement: +5.21 points** (84.94 → 90.15)
+**Key innovations**: multi-episode variance features, training augmentation, prediction averaging
+
+536. Next experiments:
 
 ## Open Questions
 
