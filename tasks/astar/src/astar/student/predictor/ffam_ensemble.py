@@ -112,6 +112,20 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         knn_model="ffam_knn_v1",
         mode_weight=0.93,
     ),
+    # v12: 4c mode + 4% kNN + slightly different params
+    "ffam_ensemble_v12": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v12",
+        mode_model="ffam_mode_v234",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.96,
+    ),
+    # v13: v214 + 4% kNN
+    "ffam_ensemble_v13": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v13",
+        mode_model="ffam_mode_v214",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.96,
+    ),
 }
 
 
