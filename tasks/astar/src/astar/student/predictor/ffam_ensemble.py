@@ -427,6 +427,107 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_scale=1.5,
         blend_space="logodds",
     ),
+    # Agent1 experiments: variations around v50 champion
+    # v60: settle_heavy + wider kNN (v7 has k=150)
+    "ffam_ensemble_v60": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v60",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v7",  # k=150 instead of k=100
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    # v61: settle_heavy + more kNN weight
+    "ffam_ensemble_v61": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v61",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.82,
+        adaptive_blend=True,
+        adaptive_scale=2.0,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    # v62: settle_heavy + less kNN weight
+    "ffam_ensemble_v62": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v62",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.92,
+        adaptive_blend=True,
+        adaptive_scale=1.0,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    # v63: settle_heavy + higher adaptive scale for more OOD diversity
+    "ffam_ensemble_v63": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v63",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=2.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    # v64: settle_heavy + lower floor
+    "ffam_ensemble_v64": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v64",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+        probability_floor=0.0001,
+    ),
+    # v65: settle_heavy + mode_weight=0.85
+    "ffam_ensemble_v65": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v65",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.85,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    # v66: settle_heavy + mode_weight=0.90
+    "ffam_ensemble_v66": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v66",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.90,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_heavy",
+    ),
+    # v67: settle_extreme + logodds (20x settlement weight)
+    "ffam_ensemble_v67": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v67",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r3_settle_extreme",
+    ),
+    # v68: r5_settle_heavy (5 replicates)
+    "ffam_ensemble_v68": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v68",
+        mode_model="ffam_mode_v248",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+        blend_space="logodds",
+        policy_name="exploration_r5_settle_heavy",
+    ),
 }
 
 

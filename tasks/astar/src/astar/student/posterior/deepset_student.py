@@ -612,6 +612,7 @@ def _summary_vector_from_artifact_v2(path: Path) -> tuple[np.ndarray, np.ndarray
     return (
         _summary_vector_from_observations(
             observations,
+            variant="v2",
             map_width=max(1, inferred_width),
             map_height=max(1, inferred_height),
             seed_count=max(1, seed_count),
@@ -718,6 +719,7 @@ def _fit_attention_refined_student_components(
             map_width=resolved_width,
             map_height=resolved_height,
             seed_count=resolved_seed_count,
+            variant="v2",
         )
         token_groups = _observation_token_groups(
             observations,
@@ -1033,6 +1035,7 @@ class ObservationSetBankStudent(BaseModel):
             context.observations,
             map_width=context.round_context.map_width,
             map_height=context.round_context.map_height,
+            variant='v2',
             seed_count=len(context.round_context.seeds),
         )
         normalized_bank = (self.summary_vectors - self.summary_mean[None, :]) / self.summary_scale[None, :]
@@ -1122,6 +1125,7 @@ class ObservationSetDistilledStudent(BaseModel):
             context.observations,
             map_width=context.round_context.map_width,
             map_height=context.round_context.map_height,
+            variant='v2',
             seed_count=len(context.round_context.seeds),
         )
         normalized_query = (query_vector - self.summary_mean) / self.summary_scale
@@ -1234,6 +1238,7 @@ class ObservationSetRefinedStudent(BaseModel):
             context.observations,
             map_width=context.round_context.map_width,
             map_height=context.round_context.map_height,
+            variant='v2',
             seed_count=len(context.round_context.seeds),
         )
         return np.asarray((query_vector - self.summary_mean) / self.summary_scale, dtype=np.float64)
@@ -1373,6 +1378,7 @@ class ObservationSetParticleRefinedStudent(BaseModel):
             context.observations,
             map_width=context.round_context.map_width,
             map_height=context.round_context.map_height,
+            variant='v2',
             seed_count=len(context.round_context.seeds),
         )
         return np.asarray((query_vector - self.summary_mean) / self.summary_scale, dtype=np.float64)

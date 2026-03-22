@@ -1,0 +1,11 @@
+{
+  "dataset_name": "v2__query_residual_synthetic_live__policy=exploration_r3_settle_heavy__samples=6__rounds=n=6__sha1=79be873e4c",
+  "dataset_kind": "synthetic_live",
+  "policy_name": "exploration_r3_settle_heavy",
+  "episode_count": 36,
+  "samples_per_round": 6,
+  "total_query_count": 1728,
+  "round_count": 6,
+  "regime_vector_source": "round_regime_summary_v1",
+  "index_path": "/home/jorge/agent1/tasks/astar/data/artifacts/datasets/v2__query_residual_synthetic_live__policy=exploration_r3_settle_heavy__samples=6__rounds=n=6__sha1=79be873e4c/index.parquet"
+}

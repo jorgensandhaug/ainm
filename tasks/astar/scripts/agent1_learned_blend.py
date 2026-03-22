@@ -133,7 +133,7 @@ def run_learned_blend(
     model_a: str = "ffam_ensemble_v50",
     model_b: str = "hazard_posterior_v15_k5_r5_l32_m30_q2",
     policy_a: str = "exploration_r3_settle_heavy",
-    policy_b: str = "regime_probe",
+    policy_b: str = "exploration_r3",
     samples_a: int = 6,
     samples_b: int = 1,
     budget: int = 50,
@@ -302,7 +302,7 @@ if __name__ == "__main__":
     p.add_argument("--model-a", default="ffam_ensemble_v50")
     p.add_argument("--model-b", default="hazard_posterior_v15_k5_r5_l32_m30_q2")
     p.add_argument("--policy-a", default="exploration_r3_settle_heavy")
-    p.add_argument("--policy-b", default="regime_probe")
+    p.add_argument("--policy-b", default="exploration_r3")
     p.add_argument("--samples-a", type=int, default=6)
     p.add_argument("--samples-b", type=int, default=1)
     args = p.parse_args()
