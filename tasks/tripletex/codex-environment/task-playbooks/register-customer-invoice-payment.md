@@ -120,6 +120,10 @@ Verified in production on 2026-03-21 (continued):
 - `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `39859464` (`Betalt til bank`, debit `1920`)
 - `PUT /invoice/2147699357/:payment?paymentDate=2026-03-22&paymentTypeId=39859464&paidAmount=24500` reduced the remaining outstanding amount to `0`
 - this Nynorsk-language run matched the trusted standard exactly: 3 calls, 0 errors, zero wasted calls; 18th production confirmation of this task shape; first Nynorsk confirmation
+- `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` uniquely located invoice `2147702136` for customer `891380690` by `amountExcludingVatCurrency=10100`, line description `Konsulenttimer`, and positive `amountCurrencyOutstanding=12625`
+- `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` returned usable incoming payment type `39975251` (`Betalt til bank`, debit `1920`)
+- `PUT /invoice/2147702136/:payment?paymentDate=2026-03-22&paymentTypeId=39975251&paidAmount=12625` reduced the remaining outstanding amount to `0`
+- this Norwegian-language run matched the trusted standard exactly: 3 calls, 0 errors, zero wasted calls; 19th production confirmation of this task shape; second confirmation for `891380690` + `10100` + `Konsulenttimer`
 
 Observed production/account variance:
 - payment type ids differed across successful runs and environments, for example `26150973`, `26185322`, `26292975`, `26293906`, `26295180`, `26301697`, `26308312`, `26309488`, production `27076191`, production `27077955`, and sandbox `32813748`
@@ -135,6 +139,7 @@ Observed production/account variance:
 - production `28461274` added on 2026-03-21
 - production `38834237` added on 2026-03-22
 - production `39859464` added on 2026-03-22
+- production `39975251` added on 2026-03-22
 
 ## Minimal Flow
 

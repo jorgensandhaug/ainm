@@ -60,9 +60,9 @@
 GETs do not count against the score. After the payment write, verify:
 
 ```
-GET /invoice/{id}?fields=id,invoiceNumber,amountCurrency,amountCurrencyOutstanding,amountOutstanding,customer(id,name)
+GET /invoice/{id}?fields=*,customer(*),orderLines(*),orders(*,orderLines(*))
 ```
-Log: invoiceNumber, amountCurrencyOutstanding (should be 0 for full payment), customer. Confirm payment was applied correctly.
+Log: invoiceNumber, amountCurrencyOutstanding (should be 0 for full payment), customer, full invoice state. Use `fields=*` with expansions for complete logging — GETs are free.
 
 ## Known Recovery Branches
 - if a larger multi-step flow already created order/invoice but failed before payment, resume at invoice locate step, do not rebuild earlier objects
@@ -102,3 +102,4 @@ Log: invoiceNumber, amountCurrencyOutstanding (should be 0 for full payment), cu
 - 2026-03-21 production run for `830362894` + `32200` + `System Development` (English prompt) confirmed the same exact `3`-call path, located invoice `2147576060` with live outstanding `40250`, used payment type `28461274` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors; 16th production confirmation of this task shape; third English confirmation for this exact customer+amount+description combination
 - 2026-03-22 production run for `906739542` + `6800` + `Consultoria de dados` (Portuguese prompt) confirmed the same exact `3`-call path, located invoice `2147677561` with live outstanding `8500`, used payment type `38834237` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors; 17th production confirmation of this task shape; third Portuguese confirmation
 - 2026-03-22 production run for `963143230` + `19600` + `Datarådgjeving` (Nynorsk prompt) confirmed the same exact `3`-call path, located invoice `2147699357` with live outstanding `24500`, used payment type `39859464` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors; 18th production confirmation of this task shape; first Nynorsk confirmation
+- 2026-03-22 production run for `891380690` + `10100` + `Konsulenttimer` (Norwegian prompt) confirmed the same exact `3`-call path, located invoice `2147702136` with live outstanding `12625`, used payment type `39975251` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors; 19th production confirmation of this task shape; second confirmation for this exact customer+amount+description combination
