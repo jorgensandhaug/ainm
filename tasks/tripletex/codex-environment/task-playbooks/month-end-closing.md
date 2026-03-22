@@ -223,6 +223,15 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - Confirms dynamic missing-account detection + batch create saves 1 call vs hardcoded approach
 - 7th consecutive optimal run overall; all language variants (nb, nn, en, es, fr, pt, de) produce correct results
 
+### Run 12 (1700→6300 + 6010→1249 variant, English prompt, 2 calls — optimal)
+- Task: March 2026, prepaid 5450 (1700→6300), depreciation 156750/10yr (6010→1249), salary accrual (5000→2900, 45000 default)
+- Used 2 calls: 1 GET (accounts) + 1 POST (combined 6-line voucher)
+- 0 errors, theoretical minimum call count achieved
+- All 6 accounts existed: 1700, 6300, 6010, 1249, 5000, 2900
+- 2nd optimal 2-call 6010→1249 production run (first was Run 3)
+- First 10-year useful life (120 months): Math.round((156750/120)*100)/100 = 1306.25
+- 12 production runs total: 10 optimal, 1 blocked (creds), 1 suboptimal (Run 8, batch-create fix applied in Run 11)
+
 ### Sandbox confirmations
 - `account.number` + `account.name` without `id` → 422 (id is mandatory)
 - Combined 6-line voucher works, 2-call path verified when all accounts exist
@@ -236,3 +245,4 @@ For exact matches, use the trusted standard directly without re-reading this pla
 - German "Rechnungsabgrenzung von Konto 1700 auf Aufwand" maps to 1700→6300 (confirmed Run 10)
 - Account 1249 named "Andre transportmidler" in default chart; works correctly as accumulated depreciation target
 - 1710→6390 + 6030→1209 with 242900/4yr (dep 5060.42) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero
+- 1700→6300 + 6010→1249 with 156750/10yr (dep 1306.25) sandbox-verified 2026-03-22: 6 postings created, balance sums to zero
