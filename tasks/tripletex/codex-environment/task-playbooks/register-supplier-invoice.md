@@ -20,12 +20,13 @@ Do not use for:
 The current best path for **25% incoming VAT** (most common) is:
 1. `POST /supplier` (with address + bank data from PDF if present)
 2. `GET /ledger/account?number=...&isApplicableForSupplierInvoice=true&fields=*`
-3. `GET /ledger/voucherType?name=Leverandorfaktura&fields=*`
-4. `POST /ledger/voucher` with `voucherType`, `description`, `date`, and balanced `postings`; use hard-coded `vatType: { id: 1 }` on the debit posting
+3. `POST /ledger/voucher` with `voucherType: { name: "Leverandørfaktura" }`, `description`, `date`, and balanced `postings`; use hard-coded `vatType: { id: 1 }` on the debit posting
 
-This is **4 calls** total. The voucher is auto-booked (number > 0) on creation.
+This is **3 calls** total. The voucher is auto-booked (number > 0) on creation.
 
-For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3, making it **5 calls**.
+**SKIP the GET /ledger/voucherType call** — `POST /ledger/voucher` accepts `voucherType: { name: "Leverandørfaktura" }` directly. The name is stable across all tested instances. The voucherType id varies per instance but the name does not.
+
+For **non-25% VAT rates**, insert `GET /ledger/vatType?typeOfVat=INCOMING&vatDate=<invoice-date>&fields=*` between steps 2 and 3, making it **4 calls**.
 
 If the prompt says the supplier already exists, switch step 1 to `GET /supplier?organizationNumber=...&fields=*` and only `POST /supplier` if that lookup returns zero hits.
 
@@ -35,7 +36,7 @@ If the prompt says the supplier already exists, switch step 1 to `GET /supplier?
 - the `description` field matches the prompt exactly (case-sensitive)
 - `POST /ledger/voucher/importDocument` scored **0/8 on ALL production T11 runs** (10+ runs, all 4 checks failing)
 - importDocument creates an immutable auto-generated description "Faktura nummer {ID} fra {Name}" that cannot be changed via PUT — this breaks scorer description matching
-- importDocument also needs 2 extra PUT calls (postings + booking), totaling 5 calls minimum vs 4
+- importDocument also needs 2 extra PUT calls (postings + booking), totaling 5 calls minimum vs 3
 - the direct-voucher runs from 2026-03-20 achieved T11 best_score=1
 - **NEVER use importDocument for this task**
 
@@ -45,7 +46,7 @@ If the prompt says the supplier already exists, switch step 1 to `GET /supplier?
 {
   "date": "<invoice date or run date>",
   "description": "<exact prompt description, case-preserved>",
-  "voucherType": { "id": "<voucherType-id from step 3>" },
+  "voucherType": { "name": "Leverandørfaktura" },
   "postings": [
     {
       "row": 1,
@@ -93,6 +94,7 @@ Include all fields in the same `POST /supplier` — zero extra API calls.
 
 ## Known Pitfalls
 
+- do NOT waste a call on `GET /ledger/voucherType` — use `voucherType: { name: "Leverandørfaktura" }` directly; the name is stable across instances, the id is not
 - do NOT use `POST /ledger/voucher/importDocument` — all production runs scored 0/8
 - do NOT use `/incomingInvoice*` — returns 403
 - do NOT omit `row` values on postings — causes 422 (row 0 conflict)

@@ -177,19 +177,20 @@ If the prompt explicitly says the supplier already exists, or you are in a retry
 
 ## OpenAPI / Sandbox Status
 - `/supplier`, `/ledger/account`, `/ledger/vatType`, `/ledger/voucherType`, and `/ledger/voucher` verified in `./openapi.json`
-- 2026-03-22 sandbox proof of direct voucher path:
-  - supplier `Direct Voucher Test AS` / `913175212`
-  - 4 calls: POST supplier → GET account → GET voucherType → POST voucher
-  - voucher 609244169 auto-booked as number 650
-  - description "kontortjenester" preserved exactly
-  - postings: expense 6300 amount=20000 amountGross=25000 vatType.id=1; supplier -25000; system VAT 5000
-  - no separate booking step needed
-- 2026-03-20 production runs (all using direct voucher path):
-  - `Bruckentor GmbH` / `981448294` / `INV-2026-2118` / `70400` / `6590` / `25%`: 5 calls (with vatType + voucherType lookup)
-  - `Fossekraft AS` / `848657514` / `INV-2026-8735` / `61150` / `7300` / `25%`: 4 calls (existing supplier lookup)
-  - `Brightstone Ltd` / `890932991` / `INV-2026-9075` / `59800` / `6300` / `25%`: 5 calls (with vatType + voucherType lookup)
-  - T11 best_score=1 was achieved during this era (attempt 8, 2026-03-20T22:22)
+- 2026-03-22 sandbox proof of 3-call path (voucherType by name):
+  - supplier `Lumière 3Call SARL` / `999777555`
+  - 3 calls: POST supplier → GET account → POST voucher (voucherType by name)
+  - voucher 609264396 auto-booked as number 721
+  - `voucherType: { name: "Leverandørfaktura" }` accepted without prior GET /ledger/voucherType
+  - description "services de bureau" preserved exactly
+  - postings: expense 7140 amount=60400 amountGross=75500 vatType.id=1; supplier -75500; system VAT 15100
+- 2026-03-22 sandbox proof that `account: { number: N }` does NOT work in postings:
+  - `account: { number: 7140 }` returns 422 "Kan ikke være null" for account.name
+  - `account: { number: 7140, name: "correct name" }` returns 422 "Feltet må fylles ut" for account
+  - GET /ledger/account remains mandatory to resolve the expense account id
+- 2026-03-22 production run (c290243c, French prompt, 25% VAT):
+  - `Lumière SARL` / `904564184` / `INV-2026-5683` / `75500` / `7140` / `25%`
+  - used 4 calls (with unnecessary GET /ledger/voucherType) — next run should use 3
+  - voucher 609263595 auto-booked as number 1
 - 2026-03-21 production runs (ALL using importDocument -- ALL scored 0/8):
-  - 10+ runs with optimal importDocument execution all scored 0/8 with all 4 checks failing
-  - root cause: importDocument creates immutable description "Faktura nummer {ID} fra {Name}" that mismatches prompt
-  - this path is now BANNED for this task
+  - 10+ runs scored 0/8 — importDocument path is BANNED

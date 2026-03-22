@@ -740,7 +740,8 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - `GET` search — supports `?name=<exact name>&count=1&fields=*` filter for targeted lookup (e.g. `?name=Lønnsbilag`)
   - voucherType ids are **account-specific** — do NOT hardcode them
   - for payroll Lønnsbilag vouchers: prefer `voucherType: { name: "Lønnsbilag" }` inline in `POST /ledger/voucher` — this resolves the type by name without a separate GET call; sandbox-verified 2026-03-21; saves 1 call
-  - for other voucher types: use `GET /ledger/voucherType?name=<name>&count=1&fields=*` if the id is needed
+  - for supplier-invoice Leverandørfaktura vouchers: prefer `voucherType: { name: "Leverandørfaktura" }` inline in `POST /ledger/voucher` — sandbox-verified 2026-03-22 (voucher 609264396 auto-booked as number 721); saves 1 call vs GET lookup
+  - general rule: `POST /ledger/voucher` accepts `voucherType: { name: "..." }` for any standard voucher type — prefer inline name over id-based lookup whenever the name is known and stable
 
 ## Ledger Voucher
 - `/ledger/voucher`
@@ -773,7 +774,7 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
   - free-dimension linkage on a posting uses `freeAccountingDimension1`, `freeAccountingDimension2`, or `freeAccountingDimension3` according to the dimension index
   - on 2026-03-20 persistent sandbox re-verification, the exact `6590` manual-voucher path succeeded with linkage under `freeAccountingDimension3`, proving again that the posting field must be derived from the returned dimension index
   - on 2026-03-20 persistent sandbox re-verification, `GET /ledger/account?number=5000,1920&fields=*` returned both accounts and the next `POST /ledger/voucher` with balanced `50600` / `-50600` salary-cost postings succeeded
-  - for supplier-invoice tasks, use direct `POST /ledger/voucher` with `voucherType: Leverandørfaktura` (looked up via `GET /ledger/voucherType?name=Leverandørfaktura&fields=*`); this creates and auto-books the voucher in one call; do NOT use `POST /ledger/voucher/importDocument` which scored 0/8 on all production T11 runs due to immutable auto-generated description
+  - for supplier-invoice tasks, use direct `POST /ledger/voucher` with `voucherType: { name: "Leverandørfaktura" }` (no GET lookup needed); this creates and auto-books the voucher in one call; do NOT use `POST /ledger/voucher/importDocument` which scored 0/8 on all production T11 runs due to immutable auto-generated description
   - if `importDocument` is used for non-supplier-invoice tasks, note it returns a **list wrapper** `{ values: [{ id, version }] }`, not `{ value: { id } }`; extract from `response.values[0]`
   - **CRITICAL**: `POST /ledger/voucher` also requires explicit `row` values on postings; without them, all postings default to row 0, which is system-reserved and triggers `422` with `posteringene på rad 0 (guiRow 0) er systemgenererte`; always use `row: 1` for the first posting and `row: 2` for the second
   - **CRITICAL**: on ALL `POST /ledger/voucher` postings, use `amountGross` and `amountGrossCurrency` (both required, same value for NOK base currency); the `amount` field alone is silently accepted (API returns 201) but stored as 0 — no validation error, just zero financial impact; sandbox-verified 2026-03-21: `amount: 50400` → stored as 0; `amountGross: 50400, amountGrossCurrency: 50400` → stored correctly; this applies to ALL voucherTypes including Lønnsbilag and null
