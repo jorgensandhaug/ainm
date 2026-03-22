@@ -1,54 +1,75 @@
 # Clank3 Progress — Norgesgruppen Object Detection
 
 ## Current Best Score
-- **Hybrid (all 356 classes): 0.8445** (with flip TTA + WBF max fusion)
-- Without TTA: 0.8389
+- **Hybrid (all 356 classes): 0.8518** (V2 model + flip TTA + WBF max)
+- V2 standalone: 0.8464
+- V1 baseline: 0.8389
 - Target: ~0.93
 
-## Model Details
+## Best Model
 - Architecture: YOLO26x (59.6M params, 213 GFLOPs)
-- Training: 6-stage 960px pipeline (sweep_precision → hardopt → rebalanceft → finalfull → confcurr_s1 → confcurr_s2)
-- Checkpoint: `runs/960_confcurr_s2_v2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt` (115MB)
-- Dataset: 248 images (199 train, 49 val), 356 product classes
+- Checkpoint: `runs/v2_confcurr2_e20_img960_b4_lr0.0001_mix0_cp0_seed601/weights/best.pt` (115MB)
+- Training: V2 6-stage 960px pipeline with different seeds and augmentation
+- Inference: flip TTA + WBF(max) fusion at conf=0.0003, NMS IoU=0.55
 
 ## Scoring Formula
 `hybrid = 0.7 * detection_AP@0.5 (class-agnostic) + 0.3 * classification_mAP@0.5 (all 356 classes)`
 
+## Dataset
+- 248 images total (199 train, 49 val), 356 product classes
+- 278 classes present in val, 78 absent (auto AP=0)
+- Derived datasets: balanced (749 train), fulltrain (248 train), confusion curriculum (592 train)
+
 ## Experiments Log
 
-### Experiment 1: Baseline 960 Pipeline (6-stage)
-- **Score**: hybrid_all=0.8389
-- Detection AP@0.5: 0.9310
-- Classification mAP@0.5 (present 278 classes): 0.7993
-- Classification mAP@0.5 (all 356 classes): 0.6242
-- Note: 78/356 classes absent from val → AP=0, caps cls_all at 278/356 * present_AP
+### Exp 1: V1 Baseline 960 Pipeline (6-stage, original seeds)
+- **hybrid_all=0.8389** | det=0.9310 | cls_present=0.7993 | cls_all=0.6242
+- Checkpoint: `runs/960_confcurr_s2_v2_e18_img960_b4_lr8e-05_mix0_cp0_seed123/weights/best.pt`
 
-### Experiment 2: Confidence Threshold Sweep
-- Tested conf=[0.0001 to 0.30], NMS IoU=[0.45 to 0.65]
-- Result: No improvement from threshold tuning. Best at conf=0.0001, iou=0.55
-- AP is rank-based so low conf just adds weak predictions at end of ranked list
+### Exp 2: Confidence + NMS IoU Sweep
+- No improvement. AP is rank-based; conf threshold doesn't affect score.
 
-### Experiment 3: Resolution Scaling at Inference
-- 960px (train size): hybrid_all=0.8389 ← best
-- 1280px: hybrid_all=0.8159 (worse, +230px mismatch)
-- 1536px: hybrid_all=0.7962 (worse)
-- Built-in TTA (augment=True): Not supported by YOLO26x architecture
+### Exp 3: Resolution Scaling
+- 960px best. 1280px/1536px worse due to train-inference resolution mismatch.
+- Built-in TTA (augment=True): Not supported by YOLO26x.
 
-### Experiment 4: Manual Flip TTA + Box Fusion
-- **Best: flip + WBF(max) → hybrid_all=0.8445 (+0.56%)**
-- flip + NMS: 0.8442
-- flip + WBF(avg): 0.8383
-- Horizontal flip adds complementary detections, WBF(max) preserves high-confidence scores
+### Exp 4: Manual Flip TTA (on V1)
+- flip+WBF(max): hybrid_all=0.8445 (+0.56%)
+- Flip adds complementary detections.
 
-## Key Bottlenecks
-1. Classification mAP is the main limitation (0.62 all-class vs 0.80 present-class)
-2. 78 absent classes in val set cap theoretical max cls_all at 0.781
-3. Many classes have very few GT instances (25 classes with AP=0 among present)
-4. Model sees 356 fine-grained product classes with limited training data (199 images)
+### Exp 5: Heavy Augmentation from Scratch (120 epochs)
+- hybrid_all=0.8020 — WORSE. 6-stage curriculum crucial, can't skip.
 
-## Next Experiments Planned
-1. Train longer with heavier augmentation (more mosaic, erasing, copy-paste)
-2. Train at higher resolution (1280) from scratch
-3. Multi-model ensemble with WBF
-4. Retrain with focal loss tuning for rare classes
-5. Investigate class weight balancing during training
+### Exp 6: Fine-tune V1 with Different Seed
+- hybrid_all=0.8355 — no improvement (same model slightly perturbed).
+
+### Exp 7: V2 Diverse Pipeline (different seeds + augmentation)
+- **hybrid_all=0.8464** (+0.75% over V1)
+- Seeds: 137→223→307→401→503→601 (vs V1: 62→77→91→123→123→123)
+- Augmentation: slightly different mixup/copy-paste/scale at each stage
+- det=0.9408 (+1.0%), cls_present=0.8020, cls_all=0.6262
+- Pipeline: `yolo/train_960_pipeline_v2_resume.sh`
+
+### Exp 8: V2 + Flip TTA
+- **hybrid_all=0.8518** (NEW BEST)
+- det=0.9464 | cls_present=0.8084 | cls_all=0.6313
+
+### Exp 9: Ensemble V1+V2 (failed)
+- Naive ensemble HURTS: hybrid_all=0.7680 (detection AP drops from 0.94 to 0.85)
+- Reason: doubled false positives overwhelm AP calculation
+- Ensemble only works if models find DIFFERENT boxes; same-arch models find same boxes
+
+## Key Insights
+1. 6-stage curriculum training is essential — training from scratch underperforms
+2. Seed diversity in pipeline stages creates genuinely better models
+3. Flip TTA consistently helps (~0.5% gain)
+4. Naive model ensemble hurts due to FP doubling
+5. Classification mAP capped by 78 absent val classes (max cls_all ≈ 0.781)
+6. For ensemble to work, need class-agnostic detection + separate classifier
+
+## Next Steps
+1. Continue fine-tuning V2 with additional curriculum rounds
+2. Try crop-and-classify approach using product images
+3. Train with larger model (e.g., YOLO11x if available)
+4. Investigate class-balanced focal loss for rare classes
+5. Try stochastic weight averaging (SWA) for better generalization
