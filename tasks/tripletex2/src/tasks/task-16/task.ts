@@ -89,7 +89,7 @@ export async function loadTaskModule(): Promise<RegisterSupplierInvoiceTaskModul
   const { strategy: strategyV2 } = await import("./strategies/import-and-book-voucher-v2");
   return {
     task,
-    strategies: [strategy, strategyV2],
+    strategies: [strategyV2, strategy],
   };
 }
 export const taskRegistration = {

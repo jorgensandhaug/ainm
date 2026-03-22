@@ -600,13 +600,14 @@ function assertNonEmptyLines(
   }
 }
 
-function assertPositiveNumber(value: number, fieldName: string): void {
-  if (!Number.isFinite(value) || value <= 0) {
+function assertPositiveNumber(value: unknown, fieldName: string): void {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) {
     throw new Error(`${fieldName} must be a positive number.`);
   }
 }
 
-function normalizeOrganizationNumber(value: string | number | undefined): string {
+function normalizeOrganizationNumber(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, "");
 }
 
@@ -615,12 +616,12 @@ function normalizeOptionalText(value: unknown): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function normalizeAccountNumber(value: string | number | undefined): string {
+function normalizeAccountNumber(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, "");
 }
 
-function sameText(left: string, right: string): boolean {
-  return left.localeCompare(right, undefined, { sensitivity: "base" }) === 0;
+function sameText(left: unknown, right: unknown): boolean {
+  return String(left ?? "").localeCompare(String(right ?? ""), undefined, { sensitivity: "base" }) === 0;
 }
 
 function isMissingBankAccountError(error: unknown): boolean {

@@ -437,5 +437,5 @@ function empEmail(e: EmployeeSummary): string | undefined { return e.email ?? e.
 function catLabel(c: CostCategorySummary): string { return c.description ?? c.name ?? ""; }
 function numId(v: unknown): number | undefined { const n = Number(v); return Number.isFinite(n) ? n : undefined; }
 function normalizeOptionalText(v: unknown): string | undefined { const s = String(v ?? "").trim(); return s.length > 0 ? s : undefined; }
-function normalizeText(v: string): string { return v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase(); }
-function sameText(a: string, b: string): boolean { return a.localeCompare(b, undefined, { sensitivity: "base" }) === 0; }
+function normalizeText(v: unknown): string { return String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase(); }
+function sameText(a: unknown, b: unknown): boolean { return String(a ?? "").localeCompare(String(b ?? ""), undefined, { sensitivity: "base" }) === 0; }

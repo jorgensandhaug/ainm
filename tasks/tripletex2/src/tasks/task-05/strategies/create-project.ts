@@ -225,22 +225,22 @@ function requireId(value: number | undefined, entityName: string): number {
   return value;
 }
 
-function assertNonEmptyText(value: string, fieldName: string): void {
-  if (value.trim().length === 0) {
+function assertNonEmptyText(value: unknown, fieldName: string): void {
+  if (String(value ?? "").trim().length === 0) {
     throw new Error(`${fieldName} must be a non-empty string.`);
   }
 }
 
-function normalizeOrganizationNumber(value: string | undefined): string {
-  return (value ?? "").replace(/\s+/g, "");
+function normalizeOrganizationNumber(value: unknown): string {
+  return String(value ?? "").replace(/\s+/g, "");
 }
 
-function normalizeEmail(value: string | undefined): string {
-  return (value ?? "").trim().toLowerCase();
+function normalizeEmail(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
 }
 
-function sameText(left: string | undefined, right: string | undefined): boolean {
-  return (left ?? "").trim().localeCompare((right ?? "").trim(), undefined, {
+function sameText(left: unknown, right: unknown): boolean {
+  return String(left ?? "").trim().localeCompare(String(right ?? "").trim(), undefined, {
     sensitivity: "base",
   }) === 0;
 }

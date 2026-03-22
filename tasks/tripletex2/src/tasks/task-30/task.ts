@@ -81,15 +81,17 @@ export type AnnualClosingTaskUnderstandingResult = TaskUnderstandingResult<
 >;
 
 export async function loadTaskModule(): Promise<AnnualClosingTaskModule> {
-  const [{ strategy: notImplemented }, { strategy: simplifiedAnnualClosing }] =
+  const [{ strategy: notImplemented }, { strategy: v1 }, { strategy: v2 }, { strategy: v3 }] =
     await Promise.all([
       import("./strategies/not-implemented"),
       import("./strategies/simplified-annual-closing"),
+      import("./strategies/simplified-annual-closing-v2"),
+      import("./strategies/simplified-annual-closing-v3"),
     ]);
 
   return {
     task,
-    strategies: [notImplemented, simplifiedAnnualClosing],
+    strategies: [v3, v2, v1, notImplemented],
   };
 }
 

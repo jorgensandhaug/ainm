@@ -677,8 +677,8 @@ function hasDuplicateSupplierMessage(message: string): boolean {
   );
 }
 
-function sameText(left: string | undefined, right: string | undefined): boolean {
-  return (left ?? "").localeCompare(right ?? "", undefined, {
+function sameText(left: unknown, right: unknown): boolean {
+  return String(left ?? "").localeCompare(String(right ?? ""), undefined, {
     sensitivity: "base",
   }) === 0;
 }
@@ -702,8 +702,8 @@ function formatPercent(value: number): string {
   return Number.isInteger(value) ? String(value) : formatMoney(value);
 }
 
-function xmlEscape(value: string): string {
-  return value
+function xmlEscape(value: unknown): string {
+  return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -711,18 +711,19 @@ function xmlEscape(value: string): string {
     .replaceAll("'", "&apos;");
 }
 
-function normalizeOrganizationNumber(value: string | undefined): string {
-  return (value ?? "").replace(/\s+/g, "");
+function normalizeOrganizationNumber(value: unknown): string {
+  return String(value ?? "").replace(/\s+/g, "");
 }
 
-function assertNonEmptyText(value: string, fieldName: string): void {
-  if (value.trim().length === 0) {
+function assertNonEmptyText(value: unknown, fieldName: string): void {
+  if (String(value ?? "").trim().length === 0) {
     throw new Error(`${fieldName} must be a non-empty string.`);
   }
 }
 
-function assertPositiveAmount(value: number, fieldName: string): void {
-  if (!Number.isFinite(value) || value <= 0) {
+function assertPositiveAmount(value: unknown, fieldName: string): void {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) {
     throw new Error(`${fieldName} must be a positive number.`);
   }
 }

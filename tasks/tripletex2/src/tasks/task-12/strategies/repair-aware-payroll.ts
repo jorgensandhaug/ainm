@@ -1086,26 +1086,27 @@ function formatPayrollMonthLabel(payrollPeriod: PayrollPeriod): string {
   return payrollPeriod.payrollMonth;
 }
 
-function assertNonEmptyText(value: string, fieldName: string): void {
-  if (value.trim().length === 0) {
+function assertNonEmptyText(value: unknown, fieldName: string): void {
+  if (String(value ?? "").trim().length === 0) {
     throw new Error(`${fieldName} must be a non-empty string.`);
   }
 }
 
-function assertPositiveNumber(value: number, fieldName: string): void {
-  if (!Number.isFinite(value) || value <= 0) {
+function assertPositiveNumber(value: unknown, fieldName: string): void {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) {
     throw new Error(`${fieldName} must be a positive number.`);
   }
 }
 
-function normalizeEmail(value: string | undefined): string {
-  return (value ?? "").trim().toLowerCase();
+function normalizeEmail(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
 }
 
-function normalizeText(value: string | undefined): string {
-  return (value ?? "").trim().toLowerCase();
+function normalizeText(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
 }
 
-function sameText(left: string, right: string): boolean {
-  return left.localeCompare(right, undefined, { sensitivity: "base" }) === 0;
+function sameText(left: unknown, right: unknown): boolean {
+  return String(left ?? "").localeCompare(String(right ?? ""), undefined, { sensitivity: "base" }) === 0;
 }

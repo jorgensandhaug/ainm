@@ -345,24 +345,25 @@ function normalizeComparableNumber(value: unknown): number | undefined {
   return undefined;
 }
 
-function assertNonEmptyText(value: string, fieldName: string): void {
-  if (value.trim().length === 0) {
+function assertNonEmptyText(value: unknown, fieldName: string): void {
+  if (String(value ?? "").trim().length === 0) {
     throw new Error(`${fieldName} must be a non-empty string.`);
   }
 }
 
 function assertMaxLength(
-  value: string,
+  value: unknown,
   maxLength: number,
   fieldName: string,
 ): void {
-  if (value.length > maxLength) {
+  if (String(value ?? "").length > maxLength) {
     throw new Error(`${fieldName} must be at most ${maxLength} characters.`);
   }
 }
 
-function assertPositiveNumber(value: number, fieldName: string): void {
-  if (!Number.isFinite(value) || value <= 0) {
+function assertPositiveNumber(value: unknown, fieldName: string): void {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) {
     throw new Error(`${fieldName} must be a positive number.`);
   }
 }

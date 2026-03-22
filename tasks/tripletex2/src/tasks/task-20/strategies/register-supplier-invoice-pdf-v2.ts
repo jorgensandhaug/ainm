@@ -765,27 +765,28 @@ function requireNumber(
   return value;
 }
 
-function assertNonEmptyText(value: string | undefined, label: string): void {
-  if (typeof value !== "string" || value.trim().length === 0) {
+function assertNonEmptyText(value: unknown, label: string): void {
+  if (String(value ?? "").trim().length === 0) {
     throw new Error(`Expected non-empty ${label}.`);
   }
 }
 
-function assertPositiveAmount(value: number, label: string): void {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+function assertPositiveAmount(value: unknown, label: string): void {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) {
     throw new Error(`Expected positive ${label}.`);
   }
 }
 
-function normalizeOrganizationNumber(value: string | undefined): string {
+function normalizeOrganizationNumber(value: unknown): string {
   return String(value ?? "").replace(/\D+/g, "");
 }
 
-function sameText(left: string | undefined, right: string | undefined): boolean {
+function sameText(left: unknown, right: unknown): boolean {
   return normalizeText(left) === normalizeText(right);
 }
 
-function normalizeText(value: string | undefined): string {
+function normalizeText(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
 }
 
@@ -813,13 +814,13 @@ function looksLikeDuplicateSupplierError(error: unknown): boolean {
   );
 }
 
-function basenameLike(value: string): string {
-  const segments = value.split(/[\\/]/).filter(Boolean);
+function basenameLike(value: unknown): string {
+  const segments = String(value ?? "").split(/[\\/]/).filter(Boolean);
   return segments[segments.length - 1] ?? "attachment.pdf";
 }
 
-function xmlEscape(value: string): string {
-  return value
+function xmlEscape(value: unknown): string {
+  return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")

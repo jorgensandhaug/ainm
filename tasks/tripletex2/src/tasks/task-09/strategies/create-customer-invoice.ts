@@ -543,30 +543,31 @@ function needsBankAccountRepair(error: unknown): error is TripletexHttpError {
   );
 }
 
-function normalizeOrganizationNumber(value: string | undefined): string {
-  return (value ?? "").replace(/\s+/g, "");
+function normalizeOrganizationNumber(value: unknown): string {
+  return String(value ?? "").replace(/\s+/g, "");
 }
 
-function normalizeProductRef(value: string | undefined): string | undefined {
-  const normalized = value?.trim();
-  return normalized ? normalized : undefined;
+function normalizeProductRef(value: unknown): string | undefined {
+  const normalized = String(value ?? "").trim();
+  return normalized.length > 0 ? normalized : undefined;
 }
 
-function normalizeProductName(value: string | undefined): string | undefined {
-  const normalized = value?.trim();
-  return normalized ? normalized : undefined;
+function normalizeProductName(value: unknown): string | undefined {
+  const normalized = String(value ?? "").trim();
+  return normalized.length > 0 ? normalized : undefined;
 }
 
-function normalizeVatPercentage(value: number | undefined): number | undefined {
+function normalizeVatPercentage(value: unknown): number | undefined {
   if (value === undefined || value === null) {
     return undefined;
   }
 
-  if (!Number.isFinite(value)) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
     throw new Error(`Invalid vatRatePercent value "${value}".`);
   }
 
-  return Number(value);
+  return num;
 }
 
 function uniqueNumbers(values: readonly (number | undefined)[]): number[] {
@@ -605,8 +606,8 @@ function resolvedProductVatTypeId(
   return typeof product?.vatType?.id === "number" ? product.vatType.id : undefined;
 }
 
-function sameText(left: string, right: string): boolean {
-  return left.localeCompare(right, undefined, { sensitivity: "base" }) === 0;
+function sameText(left: unknown, right: unknown): boolean {
+  return String(left ?? "").localeCompare(String(right ?? ""), undefined, { sensitivity: "base" }) === 0;
 }
 
 function addDays(dateString: string, days: number): string {

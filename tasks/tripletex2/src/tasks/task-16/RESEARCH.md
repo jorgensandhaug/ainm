@@ -4,7 +4,7 @@
 
 - Canonical task id: `16`
 - Leaderboard tx_task_id: `11` (corrected from `16` — see mapping section)
-- Active strategy pin: `16.import-then-book-voucher.v1` (5 calls, sendToLedger=false)
+- Active strategy pin: `16.import-and-book-voucher.v2` (5 calls, sendToLedger=true, promoted 2026-03-22)
 - Challenger strategy: `16.import-and-book-voucher.v2` (5 calls, sendToLedger=true, vatType hardcoded)
 
 ## Current Research Queue Snapshot

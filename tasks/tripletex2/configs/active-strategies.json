@@ -1,6 +1,6 @@
 {
   "schemaVersion": "tripletex2.active-strategy-selection.v1",
-  "selectionConfigId": "active-strategies-2026-03-22-task13-v3-dates-a",
+  "selectionConfigId": "active-strategies-2026-03-22-task16-23-30-a",
   "taskStrategies": {
     "07": "07.create-dimension-and-post-voucher.v1",
     "08": "08.order-then-invoice-send.v1",
@@ -15,7 +15,7 @@
     "10": "10.issue-full-credit-note.v1",
     "17": "17.register-payment.v1",
     "15": "15.register-hours-then-project-order-invoice.v1",
-    "16": "16.import-then-book-voucher.v1",
+    "16": "16.import-and-book-voucher.v2",
     "13": "13.create-and-deliver-travel-expense.v3",
     "18": "18.reverse-payment.v1",
     "12": "12.repair-aware-payroll.v1",
@@ -24,13 +24,13 @@
     "20": "20.register-supplier-invoice-pdf.v1",
     "21": "21.onboard-employee-offer-letter.v1",
     "22": "22.receipt-expense-booking.v1",
-    "23": "23.reconcile-bank-statement.v1",
+    "23": "23.reconcile-bank-statement.v2",
     "24": "24.correct-ledger-errors.v1",
     "25": "25.overdue-reminder-fee.v1",
     "26": "26.not-implemented.v1",
     "27": "27.not-implemented.v1",
     "28": "28.cost-analysis-projects.v1",
     "29": "29.full-project-lifecycle.v1",
-    "30": "30.not-implemented.v1"
+    "30": "30.simplified-annual-closing.v2"
   }
 }

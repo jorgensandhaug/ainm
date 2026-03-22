@@ -322,7 +322,7 @@ export const CANONICAL_TASK_REGISTRY = [
     taskSlug: "simplified-annual-closing",
     taskName: "Simplified annual closing (2025)",
     summary:
-      "Perform the simplified annual closing for 2025: calculate and book annual depreciation for three assets, post year-end cost allocation, and create annual closing vouchers.",
+      "Perform the simplified annual closing for a fiscal year: calculate and book annual depreciation for fixed assets (separate voucher each), reverse prepaid expenses, calculate and book tax expense (22% of taxable result), and post result disposition.",
     legacyTripletex1TaskIds: ["30"],
   },
 ] as const satisfies readonly CanonicalTaskRegistryEntry[];

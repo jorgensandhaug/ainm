@@ -177,25 +177,25 @@ async function resolveDivision(ctx: StrategyContext): Promise<{ id: number } | n
   return typeof divisionId === "number" ? { id: divisionId } : null;
 }
 
-function splitEmployeeName(employeeName: string): { firstName: string; lastName: string } {
-  const parts = employeeName.split(/\s+/).filter(Boolean);
+function splitEmployeeName(employeeName: unknown): { firstName: string; lastName: string } {
+  const parts = String(employeeName ?? "").split(/\s+/).filter(Boolean);
   if (parts.length < 2) throw new Error("employeeName must contain at least a first name and a last name.");
   return { firstName: parts.slice(0, -1).join(" "), lastName: parts[parts.length - 1] };
 }
 
-function normalizeEmployeeName(value: string): string {
+function normalizeEmployeeName(value: unknown): string {
   const normalized = stripWrappingQuotes(value).trim().replace(/\s+/g, " ");
   if (normalized.length === 0) throw new Error("employeeName must be a non-empty string.");
   return normalized;
 }
 
-function normalizeDepartmentName(value: string): string {
+function normalizeDepartmentName(value: unknown): string {
   const normalized = stripWrappingQuotes(value).trim().replace(/\s+/g, " ");
   if (normalized.length === 0) throw new Error("departmentName must be a non-empty string.");
   return normalized;
 }
 
-function normalizeIsoDate(value: string, fieldName: string): string {
+function normalizeIsoDate(value: unknown, fieldName: string): string {
   const trimmed = stripWrappingQuotes(value).trim();
   if (trimmed.length === 0) throw new Error(`${fieldName} must be a non-empty string.`);
   const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
@@ -225,7 +225,7 @@ function formatIsoDate(year: number, month: number, day: number, fieldName: stri
   return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
 }
 
-function normalizeOptionalEmail(value: string | undefined): string | undefined {
+function normalizeOptionalEmail(value: unknown): string | undefined {
   if (value == null) return undefined;
   let normalized = stripWrappingQuotes(value).trim();
   if (normalized.length === 0) return undefined;
@@ -237,7 +237,7 @@ function normalizeOptionalEmail(value: string | undefined): string | undefined {
   return normalized;
 }
 
-function normalizeOptionalDigits(value: string | undefined, fieldName: string, expectedLength: number): string | undefined {
+function normalizeOptionalDigits(value: unknown, fieldName: string, expectedLength: number): string | undefined {
   if (value == null) return undefined;
   const digits = stripWrappingQuotes(value).replace(/\D/g, "");
   if (digits.length === 0) return undefined;
@@ -245,14 +245,14 @@ function normalizeOptionalDigits(value: string | undefined, fieldName: string, e
   return digits;
 }
 
-function normalizeEmploymentType(value: string | undefined): EmploymentType {
+function normalizeEmploymentType(value: unknown): EmploymentType {
   const normalized = normalizeEnumLike(value);
   if (!normalized) return "ORDINARY";
   if (normalized === "ORDINARY" || normalized === "MARITIME" || normalized === "FREELANCE" || normalized === "NOT_CHOSEN") return normalized;
   throw new Error(`Unsupported employmentType ${JSON.stringify(value)}.`);
 }
 
-function normalizeEmploymentForm(value: string | undefined): EmploymentForm {
+function normalizeEmploymentForm(value: unknown): EmploymentForm {
   const normalized = normalizeEnumLike(value);
   if (!normalized) return "PERMANENT";
   if (normalized === "FAST_STILLING" || normalized === "FAST") return "PERMANENT";
@@ -260,7 +260,7 @@ function normalizeEmploymentForm(value: string | undefined): EmploymentForm {
   throw new Error(`Unsupported employmentForm ${JSON.stringify(value)}.`);
 }
 
-function normalizeRemunerationType(value: string | undefined): RemunerationType {
+function normalizeRemunerationType(value: unknown): RemunerationType {
   const normalized = normalizeEnumLike(value);
   if (!normalized) return "MONTHLY_WAGE";
   if (normalized === "FASTLONN" || normalized === "MANEDSLONN" || normalized === "MAANEDSLONN" || normalized === "MONTHLY_SALARY") return "MONTHLY_WAGE";
@@ -268,7 +268,7 @@ function normalizeRemunerationType(value: string | undefined): RemunerationType 
   throw new Error(`Unsupported remunerationType ${JSON.stringify(value)}.`);
 }
 
-function normalizeWorkingHoursScheme(value: string | undefined): WorkingHoursScheme {
+function normalizeWorkingHoursScheme(value: unknown): WorkingHoursScheme {
   const normalized = normalizeEnumLike(value);
   if (!normalized) return "NOT_SHIFT";
   if (normalized === "DAGTID" || normalized === "DAYTIME" || normalized === "NORMAL_DAYTIME") return "NOT_SHIFT";
@@ -276,24 +276,27 @@ function normalizeWorkingHoursScheme(value: string | undefined): WorkingHoursSch
   throw new Error(`Unsupported workingHoursScheme ${JSON.stringify(value)}.`);
 }
 
-function normalizePercentage(value: number): number {
-  if (!Number.isFinite(value)) throw new Error("percentageOfFullTimeEquivalent must be a finite number.");
-  const normalized = value > 0 && value <= 1 ? value * 100 : value;
+function normalizePercentage(value: unknown): number {
+  const num = Number(value);
+  if (!Number.isFinite(num)) throw new Error("percentageOfFullTimeEquivalent must be a finite number.");
+  const normalized = num > 0 && num <= 1 ? num * 100 : num;
   if (normalized <= 0 || normalized > 100) throw new Error("percentageOfFullTimeEquivalent must be greater than 0 and at most 100.");
   return roundToTwo(normalized);
 }
 
-function normalizePositiveInteger(value: number, fieldName: string): number {
-  if (!Number.isInteger(value) || value <= 0) throw new Error(`${fieldName} must be a positive integer.`);
-  return value;
+function normalizePositiveInteger(value: unknown, fieldName: string): number {
+  const num = Number(value);
+  if (!Number.isInteger(num) || num <= 0) throw new Error(`${fieldName} must be a positive integer.`);
+  return num;
 }
 
-function normalizePositiveNumber(value: number, fieldName: string): number {
-  if (!Number.isFinite(value) || value <= 0) throw new Error(`${fieldName} must be a positive number.`);
-  return roundToTwo(value);
+function normalizePositiveNumber(value: unknown, fieldName: string): number {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) throw new Error(`${fieldName} must be a positive number.`);
+  return roundToTwo(num);
 }
 
-function normalizeOptionalPositiveNumber(value: number | undefined, fieldName: string): number | undefined {
+function normalizeOptionalPositiveNumber(value: unknown, fieldName: string): number | undefined {
   if (value == null) return undefined;
   return normalizePositiveNumber(value, fieldName);
 }
@@ -312,16 +315,16 @@ function requireId(value: number | null | undefined, label: string): number {
   return value;
 }
 
-function normalizeEnumLike(value: string | undefined): string | undefined {
+function normalizeEnumLike(value: unknown): string | undefined {
   if (value == null) return undefined;
   const normalized = foldText(stripWrappingQuotes(value)).replace(/[()/]/g, " ").replace(/\s+/g, " ").trim().replace(/[\s-]+/g, "_").toUpperCase();
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function foldNaturalLanguageDate(value: string): string { return foldText(value).replace(/[,]+/g, " ").replace(/\s+/g, " ").trim(); }
-function foldText(value: string): string { return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/\u00df/g, "ss").toLowerCase(); }
-function lookupMonth(token: string, fieldName: string): number { const month = MONTH_LOOKUP[token]; if (!month) throw new Error(`${fieldName} contained unsupported month ${token}.`); return month; }
-function stripWrappingQuotes(value: string): string { return value.replace(/^["'`\u201c\u201d\u2018\u2019]+|["'`\u201c\u201d\u2018\u2019]+$/g, ""); }
+function foldNaturalLanguageDate(value: unknown): string { return foldText(value).replace(/[,]+/g, " ").replace(/\s+/g, " ").trim(); }
+function foldText(value: unknown): string { return String(value ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/\u00df/g, "ss").toLowerCase(); }
+function lookupMonth(token: unknown, fieldName: string): number { const key = String(token ?? ""); const month = MONTH_LOOKUP[key]; if (!month) throw new Error(`${fieldName} contained unsupported month ${key}.`); return month; }
+function stripWrappingQuotes(value: unknown): string { return String(value ?? "").replace(/^["'`\u201c\u201d\u2018\u2019]+|["'`\u201c\u201d\u2018\u2019]+$/g, ""); }
 function roundToTwo(value: number): number { return Math.round(value * 100) / 100; }
 
 const MONTH_LOOKUP: Record<string, number> = {

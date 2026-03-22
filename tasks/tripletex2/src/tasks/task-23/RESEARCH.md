@@ -7,7 +7,7 @@ Update it after any meaningful frontier import, sandbox verification, promotion 
 ## Current Runtime Surface
 
 - Canonical task id: `23`
-- Active strategy pin: `23.reconcile-bank-statement.v1`
+- Active strategy pin: `23.reconcile-bank-statement.v2` (promoted 2026-03-22)
 - Task implementation: `task.ts`
 - Strategy: `src/tasks/task-23/strategies/reconcile-bank-statement.ts` (1308 lines)
 
@@ -232,7 +232,7 @@ Added a fallback for outgoing rows that don't match supplier invoices and aren't
 
 ## Next Steps
 
-1. **Pin v2 as active strategy** in `configs/active-strategies.json`
+1. **Active runtime pin updated** to `23.reconcile-bank-statement.v2` in `configs/active-strategies.json` (2026-03-22)
 2. **Production test** the complete flow to confirm Check 1 passes (expected score: 6/6)
 3. **Optimize call count** if production testing reveals room:
    - Could skip the GET /bank/statement/transaction call by using positional mapping from import response (saves 1 call)

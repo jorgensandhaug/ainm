@@ -116,8 +116,8 @@ export const strategy = {
   },
 } satisfies CreateCustomerStrategy;
 
-function assertNonEmptyText(value: string, fieldName: string): string {
-  const normalizedValue = value.trim();
+function assertNonEmptyText(value: unknown, fieldName: string): string {
+  const normalizedValue = String(value ?? "").trim();
   if (normalizedValue.length === 0) {
     throw new Error(`${fieldName} must be a non-empty string.`);
   }
@@ -125,8 +125,8 @@ function assertNonEmptyText(value: string, fieldName: string): string {
   return normalizedValue;
 }
 
-function normalizeOrganizationNumber(value: string): string {
-  const normalizedValue = value.replace(/\s+/g, "");
+function normalizeOrganizationNumber(value: unknown): string {
+  const normalizedValue = String(value ?? "").replace(/\s+/g, "");
   if (normalizedValue.length === 0) {
     throw new Error("organizationNumber must be a non-empty string.");
   }

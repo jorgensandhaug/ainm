@@ -711,8 +711,9 @@ function assertTravelRows(input: RegisterTravelExpenseInput): void {
   });
 }
 
-function assertPositiveNumber(value: number, fieldName: string): void {
-  if (!Number.isFinite(value) || value <= 0) {
+function assertPositiveNumber(value: unknown, fieldName: string): void {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) {
     throw new Error(`${fieldName} must be a positive number.`);
   }
 }
@@ -725,8 +726,8 @@ function requireId(value: number | undefined, entityName: string): number {
   return value;
 }
 
-function normalizeEmail(value: string | undefined): string {
-  return (value ?? "").trim().toLowerCase();
+function normalizeEmail(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
 }
 
 function getEmployeeEmail(employee: EmployeeSummary): string | undefined {
@@ -756,16 +757,16 @@ function normalizeOptionalText(value: unknown): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function normalizeText(value: string): string {
-  return value
+function normalizeText(value: unknown): string {
+  return String(value ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
 }
 
-function sameText(left: string, right: string): boolean {
-  return left.localeCompare(right, undefined, { sensitivity: "base" }) === 0;
+function sameText(left: unknown, right: unknown): boolean {
+  return String(left ?? "").localeCompare(String(right ?? ""), undefined, { sensitivity: "base" }) === 0;
 }
 
 function isNonDestinationToken(token: string): boolean {

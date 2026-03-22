@@ -1137,7 +1137,7 @@ function splitCsvLine(line: string, delimiter: string): string[] {
   return cells.map((cell) => cell.trim());
 }
 
-function normalizeHeader(value: string): string {
+function normalizeHeader(value: unknown): string {
   return normalizeText(value);
 }
 
@@ -1165,8 +1165,8 @@ function findHeaderIndex(
   return index >= 0 ? index : undefined;
 }
 
-function normalizeDateCell(value: string): string | undefined {
-  const trimmed = value.trim();
+function normalizeDateCell(value: unknown): string | undefined {
+  const trimmed = String(value ?? "").trim();
   if (!trimmed) {
     return undefined;
   }
@@ -1187,8 +1187,8 @@ function normalizeDateCell(value: string): string | undefined {
   return `${year}-${month}-${day}`;
 }
 
-function parseAmountCell(value: string): number | undefined {
-  const trimmed = value.trim();
+function parseAmountCell(value: unknown): number | undefined {
+  const trimmed = String(value ?? "").trim();
   if (!trimmed) {
     return undefined;
   }
@@ -1196,8 +1196,8 @@ function parseAmountCell(value: string): number | undefined {
   return roundToTwo(parseNormalizedNumber(trimmed));
 }
 
-function parseSignedAmountCell(value: string): number | undefined {
-  const trimmed = value.trim();
+function parseSignedAmountCell(value: unknown): number | undefined {
+  const trimmed = String(value ?? "").trim();
   if (!trimmed) {
     return undefined;
   }
@@ -1205,8 +1205,8 @@ function parseSignedAmountCell(value: string): number | undefined {
   return roundToTwo(parseNormalizedNumber(trimmed));
 }
 
-function parseNormalizedNumber(value: string): number {
-  const compact = value
+function parseNormalizedNumber(value: unknown): number {
+  const compact = String(value ?? "")
     .replace(/\s+/g, "")
     .replace(/\u00A0/g, "")
     .replace(/\.(?=\d{3}(?:\D|$))/g, "")
@@ -1219,12 +1219,13 @@ function parseNormalizedNumber(value: string): number {
   return parsed;
 }
 
-function normalizeText(value: string | null | undefined): string {
-  if (!value) {
+function normalizeText(value: unknown): string {
+  const str = String(value ?? "");
+  if (!str) {
     return "";
   }
 
-  return value
+  return str
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
@@ -1242,11 +1243,11 @@ function normalizeAccountNumber(value: string | number | null | undefined): stri
   return String(value ?? "").replace(/\D+/g, "");
 }
 
-function hasMeaningfulTokenOverlap(left: string, right: string): boolean {
+function hasMeaningfulTokenOverlap(left: unknown, right: unknown): boolean {
   const leftTokens = new Set(
-    left.split(/\s+/).filter((token) => token.length >= 4),
+    String(left ?? "").split(/\s+/).filter((token) => token.length >= 4),
   );
-  const rightTokens = right
+  const rightTokens = String(right ?? "")
     .split(/\s+/)
     .filter((token) => token.length >= 4);
   return rightTokens.some((token) => leftTokens.has(token));

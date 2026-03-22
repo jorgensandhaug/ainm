@@ -2,6 +2,7 @@ import type {
   StrategyContext,
   StrategyResult,
 } from "../../../runtime/contracts";
+import { assertText } from "../../shared/coerce";
 import type { TemplateTaskInput, TemplateTaskStrategy } from "../task";
 import { TEMPLATE_TASK_ID } from "../task";
 
@@ -25,16 +26,10 @@ export const strategy = {
     _ctx: StrategyContext,
     input: TemplateTaskInput,
   ): Promise<StrategyResult> {
-    assertNonEmptyText(input.primaryValue, "primaryValue");
+    assertText(input.primaryValue, "primaryValue");
 
     throw new Error(
       "Replace the template run() body with the concrete task-specific Tripletex call sequence.",
     );
   },
 } satisfies TemplateTaskStrategy;
-
-function assertNonEmptyText(value: string, fieldName: string): void {
-  if (value.trim().length === 0) {
-    throw new Error(`${fieldName} must be a non-empty string.`);
-  }
-}
