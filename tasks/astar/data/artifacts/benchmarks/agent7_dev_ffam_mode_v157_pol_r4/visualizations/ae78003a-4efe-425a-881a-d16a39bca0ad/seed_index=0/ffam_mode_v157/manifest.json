@@ -1,0 +1,88 @@
+{
+  "report_key": "historical_benchmark_seed",
+  "title": "Historical Benchmark Round 6 Seed 0 ffam_mode_v157",
+  "report_path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_pol_r4/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/ffam_mode_v157/report.md",
+  "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+  "seed_index": 0,
+  "metadata": {
+    "mode": "online_interactive",
+    "round_number": 6,
+    "model_name": "ffam_mode_v157",
+    "score": 54.75085307959267,
+    "weighted_kl": 0.20079241201681536,
+    "training_round_count": 7,
+    "training_analyzed_seed_count": 0,
+    "training_cell_count": 0,
+    "mean_prediction_entropy": 1.0441886629444348,
+    "mean_ground_truth_entropy": 0.7894469981680904,
+    "argmax_agreement_rate": 0.24625,
+    "predicted_class_mass": [
+      0.3287189052022781,
+      0.4640148478490022,
+      0.033103577223117714,
+      0.042580679880209395,
+      0.13062775551486777,
+      0.000954234330524644
+    ],
+    "ground_truth_class_mass": [
+      0.5741874999999997,
+      0.2129406250000001,
+      0.01307812500000001,
+      0.026256249999999984,
+      0.16228749999999978,
+      0.01125
+    ],
+    "residual_class_mass": [
+      -0.24546859479772165,
+      0.2510742228490021,
+      0.020025452223117704,
+      0.01632442988020941,
+      -0.03165974448513201,
+      -0.010295765669475355
+    ]
+  },
+  "figures": [
+    {
+      "key": "initial_map",
+      "title": "Initial map",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_pol_r4/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/ffam_mode_v157/initial_map.png",
+      "description": "Collapsed initial terrain and starting settlements."
+    },
+    {
+      "key": "classwise_comparison",
+      "title": "ffam_mode_v157 vs ground truth by class",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_pol_r4/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/ffam_mode_v157/classwise_comparison.png",
+      "description": "Per-class probability heatmaps, left source against right source."
+    },
+    {
+      "key": "prediction_atlas",
+      "title": "ffam_mode_v157 atlas",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_pol_r4/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/ffam_mode_v157/prediction_atlas.png",
+      "description": "All class probability maps for ffam_mode_v157."
+    },
+    {
+      "key": "ground_truth_atlas",
+      "title": "ground truth atlas",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_pol_r4/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/ffam_mode_v157/ground_truth_atlas.png",
+      "description": "All class probability maps for ground truth."
+    },
+    {
+      "key": "residual_atlas",
+      "title": "ffam_mode_v157 minus ground truth",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_pol_r4/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/ffam_mode_v157/residual_atlas.png",
+      "description": "Signed probability residuals per class."
+    },
+    {
+      "key": "entropy_comparison",
+      "title": "Entropy comparison",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_pol_r4/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/ffam_mode_v157/entropy_comparison.png",
+      "description": "Uncertainty maps for both tensors."
+    },
+    {
+      "key": "kl_divergence",
+      "title": "Cellwise KL divergence",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_pol_r4/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=0/ffam_mode_v157/kl_divergence.png",
+      "description": "Per-cell KL divergence from ground truth to the left tensor."
+    }
+  ]
+}

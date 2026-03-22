@@ -1,0 +1,88 @@
+{
+  "report_key": "historical_benchmark_seed",
+  "title": "Historical Benchmark Round 3 Seed 0 ffam_mode_v157",
+  "report_path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_s6_budget0/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=0/ffam_mode_v157/report.md",
+  "round_id": "f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb",
+  "seed_index": 0,
+  "metadata": {
+    "mode": "online_interactive",
+    "round_number": 3,
+    "model_name": "ffam_mode_v157",
+    "score": 41.0835346466288,
+    "weighted_kl": 0.29652092054154167,
+    "training_round_count": 7,
+    "training_analyzed_seed_count": 0,
+    "training_cell_count": 0,
+    "mean_prediction_entropy": 0.7368345742449605,
+    "mean_ground_truth_entropy": 0.06202963638818603,
+    "argmax_agreement_rate": 0.971875,
+    "predicted_class_mass": [
+      0.6074151965991814,
+      0.16353556716952292,
+      0.013086050179480222,
+      0.018789061771452294,
+      0.18919775413613407,
+      0.00797637014422922
+    ],
+    "ground_truth_class_mass": [
+      0.7430218750000003,
+      0.002034374999999993,
+      7.5e-05,
+      0.0005250000000000004,
+      0.2262187499999999,
+      0.028125
+    ],
+    "residual_class_mass": [
+      -0.13560667840081886,
+      0.1615011921695229,
+      0.013011050179480222,
+      0.018264061771452293,
+      -0.03702099586386584,
+      -0.020148629855770782
+    ]
+  },
+  "figures": [
+    {
+      "key": "initial_map",
+      "title": "Initial map",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_s6_budget0/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=0/ffam_mode_v157/initial_map.png",
+      "description": "Collapsed initial terrain and starting settlements."
+    },
+    {
+      "key": "classwise_comparison",
+      "title": "ffam_mode_v157 vs ground truth by class",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_s6_budget0/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=0/ffam_mode_v157/classwise_comparison.png",
+      "description": "Per-class probability heatmaps, left source against right source."
+    },
+    {
+      "key": "prediction_atlas",
+      "title": "ffam_mode_v157 atlas",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_s6_budget0/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=0/ffam_mode_v157/prediction_atlas.png",
+      "description": "All class probability maps for ffam_mode_v157."
+    },
+    {
+      "key": "ground_truth_atlas",
+      "title": "ground truth atlas",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_s6_budget0/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=0/ffam_mode_v157/ground_truth_atlas.png",
+      "description": "All class probability maps for ground truth."
+    },
+    {
+      "key": "residual_atlas",
+      "title": "ffam_mode_v157 minus ground truth",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_s6_budget0/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=0/ffam_mode_v157/residual_atlas.png",
+      "description": "Signed probability residuals per class."
+    },
+    {
+      "key": "entropy_comparison",
+      "title": "Entropy comparison",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_s6_budget0/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=0/ffam_mode_v157/entropy_comparison.png",
+      "description": "Uncertainty maps for both tensors."
+    },
+    {
+      "key": "kl_divergence",
+      "title": "Cellwise KL divergence",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v157_s6_budget0/visualizations/f1dac9a9-5cf1-49a9-8f17-d6cb5d5ba5cb/seed_index=0/ffam_mode_v157/kl_divergence.png",
+      "description": "Per-cell KL divergence from ground truth to the left tensor."
+    }
+  ]
+}

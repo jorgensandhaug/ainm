@@ -1,0 +1,10 @@
+{
+  "name": "ffam_ensemble_v31",
+  "mode_weight": 0.88,
+  "probability_floor": 0.0003,
+  "adaptive_blend": true,
+  "adaptive_scale": 1.5,
+  "blend_space": "logodds",
+  "mode_checkpoint_path": "/home/jorge/agent7/tasks/astar/data/artifacts/models/ffam_ensemble_v31__policy=exploration_r3__samples=6/mode_predictor/checkpoint.json",
+  "knn_checkpoint_path": "/home/jorge/agent7/tasks/astar/data/artifacts/models/ffam_ensemble_v31__policy=exploration_r3__samples=6/knn_predictor/checkpoint.json"
+}

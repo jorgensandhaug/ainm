@@ -1,0 +1,10 @@
+{
+  "dataset_name": "v1__ffam_synthetic_live__policy=exploration_r3__samples=4__rounds=sha1=1780b64fc0",
+  "dataset_kind": "synthetic_live",
+  "policy_name": "exploration_r3",
+  "episode_count": 16,
+  "samples_per_round": 4,
+  "total_query_count": 768,
+  "round_count": 4,
+  "index_path": "/tmp/astar_ffam_probe_v1/data/artifacts/datasets/v1__ffam_synthetic_live__policy=exploration_r3__samples=4__rounds=sha1=1780b64fc0/index.parquet"
+}

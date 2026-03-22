@@ -1,0 +1,88 @@
+{
+  "report_key": "historical_benchmark_seed",
+  "title": "Historical Benchmark Round 6 Seed 2 ffam_mode_v70",
+  "report_path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v70_exploration_r3_r3r6r7r8_s2/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=2/ffam_mode_v70/report.md",
+  "round_id": "ae78003a-4efe-425a-881a-d16a39bca0ad",
+  "seed_index": 2,
+  "metadata": {
+    "mode": "online_interactive",
+    "round_number": 6,
+    "model_name": "ffam_mode_v70",
+    "score": 56.9169287745458,
+    "weighted_kl": 0.1878591236998114,
+    "training_round_count": 3,
+    "training_analyzed_seed_count": 0,
+    "training_cell_count": 0,
+    "mean_prediction_entropy": 1.0178603877807046,
+    "mean_ground_truth_entropy": 0.8069427190990688,
+    "argmax_agreement_rate": 0.626875,
+    "predicted_class_mass": [
+      0.4041220073000463,
+      0.40196601946147964,
+      0.02579748327040838,
+      0.019565992160104163,
+      0.12514996996216074,
+      0.023398527845799558
+    ],
+    "ground_truth_class_mass": [
+      0.572378125,
+      0.20220625000000034,
+      0.019393749999999998,
+      0.027478125000000006,
+      0.1591687500000002,
+      0.019375
+    ],
+    "residual_class_mass": [
+      -0.16825611769995363,
+      0.1997597694614793,
+      0.0064037332704083814,
+      -0.007912132839895843,
+      -0.03401878003783945,
+      0.004023527845799558
+    ]
+  },
+  "figures": [
+    {
+      "key": "initial_map",
+      "title": "Initial map",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v70_exploration_r3_r3r6r7r8_s2/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=2/ffam_mode_v70/initial_map.png",
+      "description": "Collapsed initial terrain and starting settlements."
+    },
+    {
+      "key": "classwise_comparison",
+      "title": "ffam_mode_v70 vs ground truth by class",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v70_exploration_r3_r3r6r7r8_s2/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=2/ffam_mode_v70/classwise_comparison.png",
+      "description": "Per-class probability heatmaps, left source against right source."
+    },
+    {
+      "key": "prediction_atlas",
+      "title": "ffam_mode_v70 atlas",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v70_exploration_r3_r3r6r7r8_s2/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=2/ffam_mode_v70/prediction_atlas.png",
+      "description": "All class probability maps for ffam_mode_v70."
+    },
+    {
+      "key": "ground_truth_atlas",
+      "title": "ground truth atlas",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v70_exploration_r3_r3r6r7r8_s2/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=2/ffam_mode_v70/ground_truth_atlas.png",
+      "description": "All class probability maps for ground truth."
+    },
+    {
+      "key": "residual_atlas",
+      "title": "ffam_mode_v70 minus ground truth",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v70_exploration_r3_r3r6r7r8_s2/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=2/ffam_mode_v70/residual_atlas.png",
+      "description": "Signed probability residuals per class."
+    },
+    {
+      "key": "entropy_comparison",
+      "title": "Entropy comparison",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v70_exploration_r3_r3r6r7r8_s2/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=2/ffam_mode_v70/entropy_comparison.png",
+      "description": "Uncertainty maps for both tensors."
+    },
+    {
+      "key": "kl_divergence",
+      "title": "Cellwise KL divergence",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_fast_probe_ffam_mode_v70_exploration_r3_r3r6r7r8_s2/visualizations/ae78003a-4efe-425a-881a-d16a39bca0ad/seed_index=2/ffam_mode_v70/kl_divergence.png",
+      "description": "Per-cell KL divergence from ground truth to the left tensor."
+    }
+  ]
+}

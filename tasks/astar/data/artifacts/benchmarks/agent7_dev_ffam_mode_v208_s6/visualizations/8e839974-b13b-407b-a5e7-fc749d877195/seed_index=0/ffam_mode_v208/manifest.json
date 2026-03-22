@@ -1,0 +1,88 @@
+{
+  "report_key": "historical_benchmark_seed",
+  "title": "Historical Benchmark Round 4 Seed 0 ffam_mode_v208",
+  "report_path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v208_s6/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/ffam_mode_v208/report.md",
+  "round_id": "8e839974-b13b-407b-a5e7-fc749d877195",
+  "seed_index": 0,
+  "metadata": {
+    "mode": "online_interactive",
+    "round_number": 4,
+    "model_name": "ffam_mode_v208",
+    "score": 39.19958707068494,
+    "weighted_kl": 0.31216799105275167,
+    "training_round_count": 7,
+    "training_analyzed_seed_count": 0,
+    "training_cell_count": 0,
+    "mean_prediction_entropy": 0.927330852857644,
+    "mean_ground_truth_entropy": 0.45210741165846485,
+    "argmax_agreement_rate": 0.75875,
+    "predicted_class_mass": [
+      0.6466487771411409,
+      0.10842688938433807,
+      0.00789501267874807,
+      0.010778125667117324,
+      0.2194018333296701,
+      0.006849361798986047
+    ],
+    "ground_truth_class_mass": [
+      0.6722437500000013,
+      0.07697500000000007,
+      0.006021875000000002,
+      0.007090625000000009,
+      0.21829374999999962,
+      0.019375
+    ],
+    "residual_class_mass": [
+      -0.025594972858860365,
+      0.031451889384338,
+      0.0018731376787480677,
+      0.003687500667117315,
+      0.0011080833296704673,
+      -0.012525638201013954
+    ]
+  },
+  "figures": [
+    {
+      "key": "initial_map",
+      "title": "Initial map",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v208_s6/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/ffam_mode_v208/initial_map.png",
+      "description": "Collapsed initial terrain and starting settlements."
+    },
+    {
+      "key": "classwise_comparison",
+      "title": "ffam_mode_v208 vs ground truth by class",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v208_s6/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/ffam_mode_v208/classwise_comparison.png",
+      "description": "Per-class probability heatmaps, left source against right source."
+    },
+    {
+      "key": "prediction_atlas",
+      "title": "ffam_mode_v208 atlas",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v208_s6/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/ffam_mode_v208/prediction_atlas.png",
+      "description": "All class probability maps for ffam_mode_v208."
+    },
+    {
+      "key": "ground_truth_atlas",
+      "title": "ground truth atlas",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v208_s6/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/ffam_mode_v208/ground_truth_atlas.png",
+      "description": "All class probability maps for ground truth."
+    },
+    {
+      "key": "residual_atlas",
+      "title": "ffam_mode_v208 minus ground truth",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v208_s6/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/ffam_mode_v208/residual_atlas.png",
+      "description": "Signed probability residuals per class."
+    },
+    {
+      "key": "entropy_comparison",
+      "title": "Entropy comparison",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v208_s6/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/ffam_mode_v208/entropy_comparison.png",
+      "description": "Uncertainty maps for both tensors."
+    },
+    {
+      "key": "kl_divergence",
+      "title": "Cellwise KL divergence",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v208_s6/visualizations/8e839974-b13b-407b-a5e7-fc749d877195/seed_index=0/ffam_mode_v208/kl_divergence.png",
+      "description": "Per-cell KL divergence from ground truth to the left tensor."
+    }
+  ]
+}

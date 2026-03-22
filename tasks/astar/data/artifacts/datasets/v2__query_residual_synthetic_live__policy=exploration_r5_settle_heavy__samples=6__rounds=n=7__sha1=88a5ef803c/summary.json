@@ -1,0 +1,10 @@
+{
+  "dataset_name": "v2__query_residual_synthetic_live__policy=exploration_r5_settle_heavy__samples=6__rounds=n=7__sha1=88a5ef803c",
+  "dataset_kind": "synthetic_live",
+  "policy_name": "exploration_r5_settle_heavy",
+  "episode_count": 42,
+  "samples_per_round": 6,
+  "total_query_count": 2100,
+  "round_count": 7,
+  "index_path": "/home/jorge/agent7/tasks/astar/data/artifacts/datasets/v2__query_residual_synthetic_live__policy=exploration_r5_settle_heavy__samples=6__rounds=n=7__sha1=88a5ef803c/index.parquet"
+}

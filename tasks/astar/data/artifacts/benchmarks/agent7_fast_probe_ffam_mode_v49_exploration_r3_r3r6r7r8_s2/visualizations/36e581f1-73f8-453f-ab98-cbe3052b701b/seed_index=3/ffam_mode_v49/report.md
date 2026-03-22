@@ -1,0 +1,35 @@
+# Historical Benchmark Round 7 Seed 3 ffam_mode_v49
+
+- round_id: `36e581f1-73f8-453f-ab98-cbe3052b701b`
+- seed_index: `3`
+- argmax_agreement_rate: `0.895`
+- ground_truth_class_mass: `[0.6677937500000002, 0.13155312499999977, 0.007662500000000001, 0.00934375000000001, 0.17114687499999967, 0.0125]`
+- mean_ground_truth_entropy: `0.3873142729513437`
+- mean_prediction_entropy: `0.7064585090906307`
+- mode: `online_interactive`
+- model_name: `ffam_mode_v49`
+- predicted_class_mass: `[0.657011614108054, 0.09252507714417646, 0.015095788049664242, 0.017027991819501282, 0.19657111206131297, 0.02176841681729148]`
+- residual_class_mass: `[-0.01078213589194621, -0.03902804785582331, 0.007433288049664241, 0.007684241819501272, 0.025424237061313304, 0.009268416817291479]`
+- round_number: `7`
+- score: `48.530022029908416`
+- training_analyzed_seed_count: `0`
+- training_cell_count: `0`
+- training_round_count: `3`
+- weighted_kl: `0.24099585620898134`
+
+## Figures
+
+- initial_map: `initial_map.png`
+  Collapsed initial terrain and starting settlements.
+- classwise_comparison: `classwise_comparison.png`
+  Per-class probability heatmaps, left source against right source.
+- prediction_atlas: `prediction_atlas.png`
+  All class probability maps for ffam_mode_v49.
+- ground_truth_atlas: `ground_truth_atlas.png`
+  All class probability maps for ground truth.
+- residual_atlas: `residual_atlas.png`
+  Signed probability residuals per class.
+- entropy_comparison: `entropy_comparison.png`
+  Uncertainty maps for both tensors.
+- kl_divergence: `kl_divergence.png`
+  Per-cell KL divergence from ground truth to the left tensor.

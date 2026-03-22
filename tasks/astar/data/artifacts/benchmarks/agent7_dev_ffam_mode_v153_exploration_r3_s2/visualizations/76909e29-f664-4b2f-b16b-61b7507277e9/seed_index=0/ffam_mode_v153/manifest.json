@@ -1,0 +1,88 @@
+{
+  "report_key": "historical_benchmark_seed",
+  "title": "Historical Benchmark Round 2 Seed 0 ffam_mode_v153",
+  "report_path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v153_exploration_r3_s2/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=0/ffam_mode_v153/report.md",
+  "round_id": "76909e29-f664-4b2f-b16b-61b7507277e9",
+  "seed_index": 0,
+  "metadata": {
+    "mode": "online_interactive",
+    "round_number": 2,
+    "model_name": "ffam_mode_v153",
+    "score": 92.06705057288025,
+    "weighted_kl": 0.02755102127257457,
+    "training_round_count": 7,
+    "training_analyzed_seed_count": 0,
+    "training_cell_count": 0,
+    "mean_prediction_entropy": 0.8159048070597753,
+    "mean_ground_truth_entropy": 0.6835663852182375,
+    "argmax_agreement_rate": 0.9675,
+    "predicted_class_mass": [
+      0.5694568915250158,
+      0.19902137807598186,
+      0.0148150094439456,
+      0.021266666180376,
+      0.19245259181386098,
+      0.0029874629608192638
+    ],
+    "ground_truth_class_mass": [
+      0.598325,
+      0.178146875,
+      0.0090625,
+      0.016215625000000046,
+      0.17949999999999938,
+      0.01875
+    ],
+    "residual_class_mass": [
+      -0.028868108474984222,
+      0.02087450307598185,
+      0.0057525094439456,
+      0.005051041180375953,
+      0.012952591813861603,
+      -0.015762537039180735
+    ]
+  },
+  "figures": [
+    {
+      "key": "initial_map",
+      "title": "Initial map",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v153_exploration_r3_s2/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=0/ffam_mode_v153/initial_map.png",
+      "description": "Collapsed initial terrain and starting settlements."
+    },
+    {
+      "key": "classwise_comparison",
+      "title": "ffam_mode_v153 vs ground truth by class",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v153_exploration_r3_s2/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=0/ffam_mode_v153/classwise_comparison.png",
+      "description": "Per-class probability heatmaps, left source against right source."
+    },
+    {
+      "key": "prediction_atlas",
+      "title": "ffam_mode_v153 atlas",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v153_exploration_r3_s2/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=0/ffam_mode_v153/prediction_atlas.png",
+      "description": "All class probability maps for ffam_mode_v153."
+    },
+    {
+      "key": "ground_truth_atlas",
+      "title": "ground truth atlas",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v153_exploration_r3_s2/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=0/ffam_mode_v153/ground_truth_atlas.png",
+      "description": "All class probability maps for ground truth."
+    },
+    {
+      "key": "residual_atlas",
+      "title": "ffam_mode_v153 minus ground truth",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v153_exploration_r3_s2/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=0/ffam_mode_v153/residual_atlas.png",
+      "description": "Signed probability residuals per class."
+    },
+    {
+      "key": "entropy_comparison",
+      "title": "Entropy comparison",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v153_exploration_r3_s2/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=0/ffam_mode_v153/entropy_comparison.png",
+      "description": "Uncertainty maps for both tensors."
+    },
+    {
+      "key": "kl_divergence",
+      "title": "Cellwise KL divergence",
+      "path": "/home/jorge/agent7/tasks/astar/data/artifacts/benchmarks/agent7_dev_ffam_mode_v153_exploration_r3_s2/visualizations/76909e29-f664-4b2f-b16b-61b7507277e9/seed_index=0/ffam_mode_v153/kl_divergence.png",
+      "description": "Per-cell KL divergence from ground truth to the left tensor."
+    }
+  ]
+}

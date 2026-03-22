@@ -1,0 +1,10 @@
+{
+  "dataset_name": "v2__query_residual_synthetic_live__policy=exploration_r3__samples=12__rounds=n=7__sha1=a3c8be00a0",
+  "dataset_kind": "synthetic_live",
+  "policy_name": "exploration_r3",
+  "episode_count": 84,
+  "samples_per_round": 12,
+  "total_query_count": 4032,
+  "round_count": 7,
+  "index_path": "/home/jorge/agent7/tasks/astar/data/artifacts/datasets/v2__query_residual_synthetic_live__policy=exploration_r3__samples=12__rounds=n=7__sha1=a3c8be00a0/index.parquet"
+}
