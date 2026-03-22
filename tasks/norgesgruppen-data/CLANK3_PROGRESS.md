@@ -1,18 +1,29 @@
 # Clank3 Progress — Norgesgruppen Object Detection
 
 ## Current Best Score
-- **Hybrid (all 356 classes): 0.8658** (V6 model + flip NMS TTA)
-- V6 standalone: 0.8616
-- V2 + flip TTA: 0.8518
+- **Hybrid (all 356 classes): 0.8689** (ONNX FP16 + letterbox + batched_nms + flip TTA)
+- ONNX no flip: 0.8659
+- PyTorch eval: 0.8658 (with flip TTA via ultralytics)
 - V1 baseline: 0.8389
 - Target: ~0.93
 
-## Best Model
+## Best Model & Submission
 - Architecture: YOLO26x (59.6M params, 213 GFLOPs)
-- Checkpoint: `runs/v6_polish_e20_img960_b4_lr6e-05_mix0_cp0_seed1777/weights/best.pt`
-- Training: V6 5-stage pipeline (init→extended_hardopt_150ep→balanced→fulltrain→polish)
-- Key innovation: 150-epoch Stage 2 with cosine LR schedule
-- Inference: flip TTA + NMS fusion at conf=0.0003, NMS IoU=0.55
+- PT checkpoint: `runs/v6_polish_e20_img960_b4_lr6e-05_mix0_cp0_seed1777/weights/best.pt` (115MB)
+- ONNX submission: `submission/model.onnx` (108MB FP16, opset 17, raw logits)
+- Submission zip: `submission_v6_fp16_fliptta.zip` (99MB compressed)
+- Training: V6 5-stage pipeline (`yolo/train_v6_pipeline.sh`)
+- Key innovation: 150-epoch Stage 2 with cosine LR
+- Inference: letterbox + per-class NMS (torchvision.batched_nms) + flip TTA
+
+## Submission Compliance
+- No `import os` (uses pathlib) ✓
+- FP16 ONNX, 108MB (< 420MB) ✓
+- 1 weight file (< 3 max) ✓
+- 1 Python file (< 10 max) ✓
+- Runtime ~75s on CPU, ~15-20s estimated on L4 GPU (< 300s) ✓
+- opset 17 ✓
+- ONNX raw logits + custom NMS (no ultralytics dependency at inference) ✓
 
 ## Scoring Formula
 `hybrid = 0.7 * detection_AP@0.5 (class-agnostic) + 0.3 * classification_mAP@0.5 (all 356 classes)`
