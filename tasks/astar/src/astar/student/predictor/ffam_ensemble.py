@@ -256,6 +256,24 @@ FFAM_ENSEMBLE_CONFIGS: dict[str, FFAMEnsembleConfig] = {
         adaptive_blend=True,
         adaptive_scale=1.5,
     ),
+    # v29: Large MLP (h=128) + adaptive kNN
+    "ffam_ensemble_v29": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v29",
+        mode_model="ffam_mode_v251",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+    ),
+    # v30: Use 2-cluster mode (v214) + adaptive kNN (compare cluster effect in ensemble)
+    "ffam_ensemble_v30": FFAMEnsembleConfig(
+        model_name="ffam_ensemble_v30",
+        mode_model="ffam_mode_v214",
+        knn_model="ffam_knn_v1",
+        mode_weight=0.88,
+        adaptive_blend=True,
+        adaptive_scale=1.5,
+    ),
 }
 
 
