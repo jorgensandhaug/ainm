@@ -1,0 +1,1 @@
+Score-reflection written. Summary: run was clean (1 write, 0 errors, correct product), expected perfect 2.0/2.0 score, actual score still queued at snapshot time. No changes needed — task shape is mature with 13 consecutive perfect runs.

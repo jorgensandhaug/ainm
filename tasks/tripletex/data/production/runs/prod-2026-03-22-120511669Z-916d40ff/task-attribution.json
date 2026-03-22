@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-120511669Z-916d40ff",
+  "request_id": "5b292c7b",
+  "prompt_raw": "Opprett produktet \"Konsulenttimer\" med produktnummer 9497. Prisen er 17300 kr eksklusiv MVA, og standard MVA-sats på 25 % skal brukes.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T12:06:01Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T12:05:11.990Z",
+  "after_captured_at": "2026-03-22T12:06:32.060Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T12:06:32.061Z"
+}

@@ -1,0 +1,1 @@
+Score reflection complete. Key finding: **verification GETs are NOT free for this task** — each extra GET cost ~2 points on the 6-point scale, dropping the score from 6 (optimal) to 2 despite perfect correctness. The playbook change made during the earlier reflection pass (adding verification GETs) was counterproductive and should be reverted.

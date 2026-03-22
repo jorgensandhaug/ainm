@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-114842872Z-be762f8f",
+  "request_id": "8e69f234",
+  "prompt_raw": "Ejecute el ciclo de vida completo del proyecto 'Actualización Sistema Costa' (Costa Brava SL, org. nº 948221934): 1) El proyecto tiene un presupuesto de 433850 NOK. 2) Registre horas: Diego Martínez (director de proyecto, diego.martinez@example.org) 47 horas y Fernando Pérez (consultor, fernando.perez@example.org) 124 horas. 3) Registre costo de proveedor de 98650 NOK de Luna SL (org. nº 851230610). 4) Cree una factura al cliente por el proyecto.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:51:02Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:48:44.305Z",
+  "after_captured_at": "2026-03-22T11:51:33.210Z",
+  "diff_entry_count": 3,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T11:51:33.212Z"
+}

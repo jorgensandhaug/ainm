@@ -1,0 +1,8 @@
+{
+  "prompt": "Registrer ei reiserekning for Åse Haugen (ase.haugen@example.org) for \"Kundebesøk Oslo\". Reisa varte 4 dagar med diett (dagssats 800 kr). Utlegg: flybillett 3600 kr og taxi 250 kr.",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "hjM4APttiScr92UZlCKr4stPbhWzehqRaSVtYB11oXk"
+  }
+}

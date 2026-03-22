@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-115530441Z-7f72daa6",
+  "request_id": "2d241b4b",
+  "prompt_raw": "Registrer en reiseregning for Magnus Bakken (magnus.bakken@example.org) for \"Kundebesøk Oslo\". Reisen varte 5 dager med diett (dagsats 800 kr). Utlegg: flybillett 7150 kr og taxi 450 kr.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:57:16Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:55:30.494Z",
+  "after_captured_at": "2026-03-22T11:59:37.121Z",
+  "diff_entry_count": 0,
+  "inference_status": "no_change_detected",
+  "generated_at": "2026-03-22T11:59:37.124Z"
+}

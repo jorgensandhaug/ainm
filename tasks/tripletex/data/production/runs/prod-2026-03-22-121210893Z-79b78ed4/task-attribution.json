@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-121210893Z-79b78ed4",
+  "request_id": "ef1f80f1",
+  "prompt_raw": "Opprett prosjektet \"Oppgradering Fjordkraft\" knyttet til kunden Fjordkraft AS (org.nr 953177234). Prosjektleder er Henrik Johansen (henrik.johansen@example.org).",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T12:13:11Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T12:12:12.102Z",
+  "after_captured_at": "2026-03-22T12:13:41.994Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T12:13:41.995Z"
+}

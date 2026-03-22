@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-122600834Z-07918ee7",
+  "request_id": "cd7c5404",
+  "prompt_raw": "Registrer ei reiserekning for Åse Haugen (ase.haugen@example.org) for \"Kundebesøk Oslo\". Reisa varte 4 dagar med diett (dagssats 800 kr). Utlegg: flybillett 3600 kr og taxi 250 kr.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T12:27:46Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T12:26:00.906Z",
+  "after_captured_at": "2026-03-22T12:28:16.914Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T12:28:16.915Z"
+}

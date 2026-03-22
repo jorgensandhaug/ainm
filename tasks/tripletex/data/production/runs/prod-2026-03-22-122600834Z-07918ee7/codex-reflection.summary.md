@@ -1,0 +1,1 @@
+Score reflection written. T13 best_score unchanged at 1.125/4 — the count=overnights hypothesis is **disproven**. 25 runs with exhaustive parameter variation all produce the same score. The root cause is structural, not parametric.

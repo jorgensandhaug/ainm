@@ -1,0 +1,32 @@
+[
+  {
+    "tx_task_id": "07",
+    "attempt_delta": 1,
+    "best_score_before": 2,
+    "best_score_after": 2,
+    "last_attempt_before": "2026-03-22T11:19:56.392877+00:00",
+    "last_attempt_after": "2026-03-22T11:49:24.595109+00:00",
+    "total_attempts_before": 28,
+    "total_attempts_after": 29
+  },
+  {
+    "tx_task_id": "18",
+    "attempt_delta": 1,
+    "best_score_before": 4,
+    "best_score_after": 4,
+    "last_attempt_before": "2026-03-22T11:24:03.182853+00:00",
+    "last_attempt_after": "2026-03-22T11:49:58.734304+00:00",
+    "total_attempts_before": 22,
+    "total_attempts_after": 23
+  },
+  {
+    "tx_task_id": "29",
+    "attempt_delta": 1,
+    "best_score_before": 1.0909090909090908,
+    "best_score_after": 1.0909090909090908,
+    "last_attempt_before": "2026-03-22T10:56:43.492167+00:00",
+    "last_attempt_after": "2026-03-22T11:51:15.647314+00:00",
+    "total_attempts_before": 19,
+    "total_attempts_after": 20
+  }
+]

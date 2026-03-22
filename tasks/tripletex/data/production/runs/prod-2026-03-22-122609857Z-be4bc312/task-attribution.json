@@ -1,0 +1,16 @@
+{
+  "run_id": "prod-2026-03-22-122609857Z-be4bc312",
+  "request_id": "e4588d0d",
+  "prompt_raw": "Kunden Nordlys AS (org.nr 829535181) har reklamert på fakturaen for \"Nettverksteneste\" (15550 kr ekskl. MVA). Opprett ei fullstendig kreditnota som reverserer heile fakturaen.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T12:27:26Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T12:26:10.450Z",
+  "after_captured_at": "2026-03-22T12:27:58.316Z",
+  "diff_entry_count": 2,
+  "inference_status": "ambiguous",
+  "generated_at": "2026-03-22T12:27:58.317Z"
+}

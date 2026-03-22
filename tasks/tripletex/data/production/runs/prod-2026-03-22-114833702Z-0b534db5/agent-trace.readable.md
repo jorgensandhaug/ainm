@@ -1,0 +1,310 @@
+# Claude Trace Snapshot
+
+- provider: claude
+- session_id: a56e8361-b305-44cb-86a8-0f34d938ba83
+- session_file: /home/jorge/.claude/projects/-home-jorge-repos-ainm-tasks-tripletex-codex-environment/a56e8361-b305-44cb-86a8-0f34d938ba83.jsonl
+- completed: true
+- assistant_messages: 1
+- tool_calls: 3
+- tool_results: 3
+
+## 2026-03-22T11:48:38.180Z user_message
+Scored Tripletex run.
+Follow ./AGENTS.md exactly.
+
+Highest priorities:
+- Get the final Tripletex state exactly correct.
+- Use the fewest API calls possible.
+- Avoid all avoidable 4xx errors.
+
+Knowledge order:
+- 1. ./trusted-standards/
+- 2. ./task-playbooks/
+- 3. ./openapi.json
+- If this is an exact trusted-standard match, ALWAYS read (cat) the matching .md file BEFORE writing any script. Never write from memory. Then execute it directly without re-checking ./openapi.json.
+
+Run-specific rules:
+- Only interact with the Tripletex API by writing TypeScript and running it with bun.
+- Put all API-interaction scripts only in this run scripts directory: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-114833702Z-0b534db5/scripts
+- Do not place API-interaction scripts anywhere else.
+- Reuse POST/PUT responses instead of doing follow-up GETs whenever possible.
+- Ideal read count is zero. If a read is required, prefer one decisive GET with fields=*.
+- Use only the provided base URL and session token.
+- Authenticate with Basic Auth username 0 and password = session token.
+- If the provided base URL already includes /v2, do not build URLs in a way that escapes back to the host root.
+- If credentials are obviously fake, or the first attempted call returns invalid/expired token, treat the run as blocked instead of guessing.
+- Do not ask questions. Do not talk to the user. Do only the task.
+
+Task:
+Kunden Fjordkraft AS (org.nr 891380690) har en utestående faktura på 10100 kr eksklusiv MVA for "Konsulenttimer". Registrer full betaling på denne fakturaen.
+
+Tripletex API base URL:
+https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2
+
+Tripletex session token:
+sa-eL924-qzR-2BBKpQi51caGrdm_iXRetAB9gFyXr0
+
+Run scripts directory:
+/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-114833702Z-0b534db5/scripts
+
+Runner configuration:
+- provider: claude
+- model: claude-opus-4-6
+- effort: high
+- backend: proxy
+- proxy_base_url: https://europe-west1-ai-nm26osl-1706.cloudfunctions.net/claude-proxy
+- disable_experimental_betas: false
+
+## 2026-03-22T11:48:43.202Z tool_call
+tool: Read
+call_id: toolu_vrtx_01DbGJ1K2hqN8d7jyoXRjUvd
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/codex-environment/trusted-standards/register-customer-invoice-payment.md"
+}
+```
+
+## 2026-03-22T11:48:44.444Z tool_result
+tool: Read
+call_id: toolu_vrtx_01DbGJ1K2hqN8d7jyoXRjUvd
+
+```text
+     1→# Register Customer Invoice Payment
+     2→
+     3→## Trust Level
+     4→- Trusted standard
+     5→- Use directly for exact matches
+     6→- Skip `./openapi.json` re-checking for exact matches
+     7→
+     8→## Exact Match
+     9→- register full payment on one existing outgoing customer invoice
+    10→- prompt identifies the invoice strongly enough to find it in one decisive read
+    11→- no need to create the invoice first in the same task
+    12→- same-run context does not already contain the exact invoice id
+    13→
+    14→## Do Not Use This Standard If
+    15→- task includes creating the order/invoice first
+    16→- task is supplier invoice payment
+    17→- prompt explicitly asks to settle a foreign-currency invoice at a new exchange rate and book the realized FX loss
+    18→- prompt is too ambiguous to identify one invoice safely
+    19→
+    20→## Standard Flow
+    21→1. `GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))` to identify the exact unpaid invoice
+    22→2. filter locally by `customer.organizationNumber`, `amountExcludingVatCurrency`, positive `amountCurrencyOutstanding`, and order-line description match
+    23→3. Reuse a previously resolved same-run incoming `paymentTypeId` if one is already known for the same company and currency
+    24→4. Otherwise `GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)` once to resolve a valid incoming payment type
+    25→5. `PUT /invoice/{id}/:payment?paymentDate=<YYYY-MM-DD>&paymentTypeId=<id>&paidAmount=<amountCurrencyOutstanding>` — all parameters are **query parameters**, NOT a JSON body
+    26→6. verify from payment write response
+    27→7. stop
+    28→
+    29→## Critical API Shape Notes
+    30→- `GET /invoice` requires both `invoiceDateFrom` and `invoiceDateTo`; omitting either returns `422`
+    31→- `fields=*` alone returns ID-only references for nested objects (`orderLines`, `customer`, `orders`); you MUST use `fields=*,customer(*),orderLines(*),orders(*,orderLines(*))` to get descriptions and org numbers for local filtering
+    32→- `customerOrganizationNumber` and `invoiceStatus` are NOT valid query parameters on `GET /invoice` (not in OpenAPI spec) and are silently ignored; always filter locally after expanding with `customer(*)`
+    33→- the only valid customer-scoping param is `customerId` (requires knowing the numeric ID, which would add a `GET /customer` call)
+    34→- `GET /invoice/paymentType` with `fields=*` alone does not expand debit/credit accounts; use `fields=*,debitAccount(*),creditAccount(*)` to get `debitAccount.number` for selection
+    35→- `PUT /invoice/{id}/:payment` takes `paymentDate`, `paymentTypeId`, `paidAmount` (and optional `paidAmountCurrency`) as **query parameters**; sending them as a JSON request body causes `422` with all fields reported as null
+    36→- for payment type selection: prefer `description === "Betalt til bank"` or `debitAccount.number` starting with `19`; `isBankAccount` and `isInvoiceAccount` may not be consistently available across accounts
+    37→
+    38→## Canonical Call Count
+    39→- standalone exact-match payment task with no cached same-run payment type: `3` calls
+    40→- same task shape with a cached same-run incoming `paymentTypeId`: `2` calls
+    41→- do not treat cross-run or cross-account cached ids as reusable
+    42→- the 2026-03-20 Portuguese production run plus same-day persistent-sandbox re-proof found no public `2`-call shortcut from prompt facts alone; without a same-run cached `paymentTypeId`, `3` calls remains the realistic floor
+    43→
+    44→## Payload Rules
+    45→- identify invoice by prompt identifiers, not by guessing
+    46→- when paying, use actual outstanding amount from invoice object
+    47→- do not use the prompt lookup amount if the live outstanding amount differs
+    48→- for text matching, treat top-level `orderLines[]` and nested `orders[].orderLines[]` as one invoice-level evidence set
+    49→- normalize payment-type account numbers before heuristic matching
+    50→- do not require `paymentType.name`; valid incoming payment types can have `name=null`
+    51→- acceptable incoming payment types can have `creditAccount=null`
+    52→- `paymentTypeId` is required on `PUT /invoice/{id}/:payment`; omitting it is not a valid lower-call shortcut
+    53→
+    54→## Reuse From Write Response
+    55→- invoice id from locate step
+    56→- outstanding amount from invoice locate step
+    57→- post-payment remaining amount from write response
+    58→
+    59→## Verification (GETs are FREE — use them)
+    60→GETs do not count against the score. After the payment write, verify:
+    61→
+    62→```
+    63→GET /invoice/{id}?fields=id,invoiceNumber,amountCurrency,amountCurrencyOutstanding,amountOutstanding,customer(id,name)
+    64→```
+    65→Log: invoiceNumber, amountCurrencyOutstanding (should be 0 for full payment), customer. Confirm payment was applied correctly.
+    66→
+    67→## Known Recovery Branches
+    68→- if a larger multi-step flow already created order/invoice but failed before payment, resume at invoice locate step, do not rebuild earlier objects
+    69→- if the same run already resolved one valid incoming `paymentTypeId`, reuse it instead of reading `/invoice/paymentType` again
+    70→- if the decisive invoice read shows a true foreign-currency invoice and the prompt explicitly asks for realized FX-loss booking on settlement, switch to `./trusted-standards/register-foreign-currency-customer-invoice-payment.md` instead of reusing the ordinary `paidAmount=<live outstanding>` rule
+    71→
+    72→## OpenAPI / Sandbox Status
+    73→- `/invoice/{id}/:payment` verified in `./openapi.json`
+    74→- locate-and-pay flow proven in existing payment playbook
+    75→- persistent sandbox re-check on 2026-03-20 confirmed `PUT /invoice/{id}/:payment` fails with `422 paymentTypeId: Kan ikke være null.` when `paymentTypeId` is omitted
+    76→- same-day persistent sandbox re-proof on invoice `2147531841` confirmed `GET /invoice?...fields=*` still did not expose a reusable incoming `paymentTypeId`, so the standalone public path is still `3` calls unless the same run already cached one
+    77→- 2026-03-20 production run for `866440034` + `30000` + `Almacenamiento en la nube` confirmed the exact `3`-call path `GET /invoice` -> `GET /invoice/paymentType` -> `PUT /invoice/{id}/:payment` and proved again that the paid amount must come from `amountCurrencyOutstanding`/`amountOutstanding` (`37500` there), not from the prompt lookup amount
+    78→- same-day persistent sandbox re-proof on invoice `2147551675` again settled the invoice in exactly `3` calls; the locate read exposed no reusable payment-related fields at all, and the chosen incoming bank payment type had `name=null`, `debitAccount.number=1920`, and `creditAccount=null`
+    79→- 2026-03-20 production run for `830362894` + `32200` + `System Development` confirmed the same exact `3`-call path and again required paying the invoice object's live outstanding amount (`40250` there), not the prompt lookup amount
+    80→- 2026-03-20 production run for `939210970` + `23900` + `Manutenção` confirmed the same exact `3`-call path on a Portuguese prompt, located invoice `2147540727`, and again required paying the live outstanding amount (`29875` there), not the prompt lookup amount
+    81→- 2026-03-20 production run for `891380690` + `10100` + `Konsulenttimer` confirmed the same exact `3`-call path, located invoice `2147541069`, and again required paying the invoice object's live outstanding amount (`12625` there), not the prompt lookup amount
+    82→- 2026-03-20 production run for `913245539` + `36450` + `Session de formation` confirmed the same exact `3`-call path on a French prompt, located invoice `2147541030`, and again required paying the live outstanding amount (`45562.5` there), not the prompt lookup amount
+    83→- same-day persistent sandbox re-proof on invoice `2147552467` again settled the invoice in exactly `3` calls; the locate read still exposed no reusable `paymentTypeId`, and the chosen incoming bank payment type remained `32813748` on debit account `1920`
+    84→- same-day persistent sandbox re-proof on analog invoice `2147531840` (`907791616` + `6200` + `Fakturerbart arbeid sandbox proof`) again settled the invoice in exactly `3` calls, and the locate read exposed no payment-related keys at all; the chosen incoming bank payment type was still `32813748` with `name=null`, `creditAccount=null`, `debitAccount.number=1920`, `isBankAccount=true`, and `isInvoiceAccount=true`
+    85→- same-day persistent sandbox re-proof on invoice `2147551798` (`841254546` + `28500` + `System Development`) again settled the invoice in exactly `3` calls, used payment type `32813748`, and reduced `remainingOutstanding` to `0`
+    86→- that same sandbox account also contained duplicate unpaid analogs for the same `customer.organizationNumber + exact ex-VAT amount + exact line description`; treat that as persistent-sandbox state noise, not as a reason to add a default `GET /customer` or weaken the fresh-account exact-match standard
+    87→- in the 2026-03-20 persistent sandbox re-proof, all `4` matching analogs belonged to the same customer, so `GET /customer?organizationNumber=...` was not a real disambiguation branch anyway; either rely on extra prompt fields or treat the ambiguity as sandbox-only proof noise rather than adding a wasted read
+    88→- 2026-03-21 production run for `896571559` + `15200` + `Datarådgivning` confirmed the same exact `3`-call path, located invoice `2147567128`, and again required paying the invoice object's live outstanding amount (`19000` there), not the prompt lookup amount; payment type was `27869893` with debit account `1920`
+    89→- same-day persistent sandbox re-proof confirmed `GET /invoice?...&fields=*,paymentType(*)` returns `400`, so there is no field-expansion shortcut to embed a reusable `paymentTypeId` inside the invoice locate read
+    90→- 2026-03-21 production run for `909268265` + `31300` + `Konsulenttimer` located invoice `2147572074` with live outstanding `39125`, used payment type `28180406` (`Betalt til bank`), and reduced remaining outstanding to `0`; this run wasted 3 extra calls (6 total) due to: (a) omitting required `invoiceDateFrom`/`invoiceDateTo` → avoidable 422, (b) using `fields=*` without nested expansions → null descriptions → script logic failure → repeated GET, (c) sending `PUT /:payment` params as JSON body instead of query parameters → avoidable 422
+    91→- same-day sandbox re-proof confirmed `customerOrganizationNumber` is silently ignored on `GET /invoice` (returns all invoices even with a nonexistent value); `invoiceStatus` is also silently ignored; only `customerId` (numeric ID) is a valid customer-scoping filter per OpenAPI spec
+    92→- same-day sandbox re-proof confirmed `fields=*` on `GET /invoice` returns `orderLines` as ID-only references without `description`; `customer(*)` expansion is required to get `organizationNumber`; `orderLines(*)` expansion is required to get `description`
+    93→- same-day sandbox re-proof confirmed `fields=*` on `GET /invoice/paymentType` returns `debitAccount` as ID-only reference without `number`; `debitAccount(*)` expansion is required; `isBankAccount` was `undefined` even with expansion on this account
+    94→- 2026-03-21 production run for `841333608` + `14200` + `Skylagring` confirmed the same exact `3`-call path, located invoice `2147573361` with live outstanding `17750`, used payment type `28273555` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors
+    95→- 2026-03-21 production run for `888415769` + `32800` + `Datenberatung` (German prompt) confirmed the same exact `3`-call path, located invoice `2147574550` with live outstanding `41000`, used payment type `28351269` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors
+    96→- same-day sandbox re-proof confirmed `GET /invoice?...&fields=*,voucher(*)` returns voucher fields but no payment-type info; `GET /ledger/account?number=1920` returns account info but no paymentTypeId; no 2-call standalone shortcut exists
+    97→- 2026-03-21 production run for `924324104` + `44750` + `Cloud Storage` confirmed the same exact `3`-call path, located invoice `2147574655` with live outstanding `55937.5`, used payment type `28358423` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors; 12th production confirmation of this task shape
+    98→- 2026-03-21 production run for `975013723` + `45100` + `Licence logicielle` (French prompt) confirmed the same exact `3`-call path, located invoice `2147575109` with live outstanding `56375`, used payment type `28394732` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors; 13th production confirmation of this task shape
+    99→- 2026-03-21 production run for `939210970` + `23900` + `Manutenção` (Portuguese prompt) confirmed the same exact `3`-call path, located invoice `2147575326` with live outstanding `29875`, used payment type `28406443` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors; 14th production confirmation of this task shape; second Portuguese confirmation
+   100→- same-day sandbox re-proof confirmed `fields=*,payments(*)`, `fields=*,payment(*)`, and `fields=*,paymentTypes(*)` all return `400` on `GET /invoice`; `paymentTypeId=0` on `PUT /:payment` returns `500`; `/ledger/paymentType` returns `404`; no 2-call standalone shortcut exists
+   101→- 2026-03-21 production run for `866946108` + `43300` + `Sesión de formación` (Spanish prompt) confirmed the same exact `3`-call path, located invoice `2147575475` with live outstanding `54125`, used payment type `28417664` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors; 15th production confirmation of this task shape; second Spanish confirmation
+   102→- 2026-03-21 production run for `830362894` + `32200` + `System Development` (English prompt) confirmed the same exact `3`-call path, located invoice `2147576060` with live outstanding `40250`, used payment type `28461274` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors; 16th production confirmation of this task shape; third English confirmation for this exact customer+amount+description combination
+   103→- 2026-03-22 production run for `906739542` + `6800` + `Consultoria de dados` (Portuguese prompt) confirmed the same exact `3`-call path, located invoice `2147677561` with live outstanding `8500`, used payment type `38834237` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors; 17th production confirmation of this task shape; third Portuguese confirmation
+   104→- 2026-03-22 production run for `963143230` + `19600` + `Datarådgjeving` (Nynorsk prompt) confirmed the same exact `3`-call path, located invoice `2147699357` with live outstanding `24500`, used payment type `39859464` (`Betalt til bank`, debit `1920`), and reduced remaining outstanding to `0`; this run matched the trusted standard exactly with zero wasted calls or errors; 18th production confirmation of this task shape; first Nynorsk confirmation
+   105→
+```
+
+## 2026-03-22T11:49:08.506Z tool_call
+tool: Write
+call_id: toolu_vrtx_01S88ti3UGxVUWDpJBW4oYwq
+
+```json
+{
+  "file_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-114833702Z-0b534db5/scripts/pay-invoice.ts",
+  "content": "const BASE = \"https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2\";\nconst TOKEN = \"sa-eL924-qzR-2BBKpQi51caGrdm_iXRetAB9gFyXr0\";\nconst AUTH = \"Basic \" + btoa(\"0:\" + TOKEN);\nconst TODAY = \"2026-03-22\";\n\nconst ORG = \"891380690\";\nconst EX_VAT = 10100;\nconst DESC = \"Konsulenttimer\";\n\nasync function api(method: string, path: string, body?: any) {\n  const url = `${BASE}${path}`;\n  const opts: any = { method, headers: { \"Authorization\": AUTH, \"Content-Type\": \"application/json\" } };\n  if (body) opts.body = JSON.stringify(body);\n  const r = await fetch(url, opts);\n  const text = await r.text();\n  console.log(`${method} ${path} → ${r.status}`);\n  let json: any;\n  try { json = JSON.parse(text); } catch { json = text; }\n  if (r.status >= 400) { console.log(JSON.stringify(json, null, 2)); throw new Error(`${r.status}`); }\n  return json;\n}\n\nfunction extract(json: any) {\n  if (json.values !== undefined) return json.values;\n  if (json.value !== undefined) return json.value;\n  return json;\n}\n\nasync function main() {\n  // Step 1: Locate the invoice\n  const invoices = extract(await api(\"GET\", \"/invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*))\"));\n\n  const match = invoices.find((inv: any) => {\n    if (inv.customer?.organizationNumber !== ORG) return false;\n    if (inv.amountExcludingVatCurrency !== EX_VAT && inv.amountExcludingVat !== EX_VAT) return false;\n    if ((inv.amountCurrencyOutstanding || inv.amountOutstanding || 0) <= 0) return false;\n    // Check description in orderLines or orders.orderLines\n    const descs: string[] = [];\n    (inv.orderLines || []).forEach((ol: any) => { if (ol.description) descs.push(ol.description); });\n    (inv.orders || []).forEach((o: any) => (o.orderLines || []).forEach((ol: any) => { if (ol.description) descs.push(ol.description); }));\n    return descs.some((d: string) => d.includes(DESC));\n  });\n\n  if (!match) { console.log(\"No matching invoice found\"); return; }\n  const invoiceId = match.id;\n  const outstanding = match.amountCurrencyOutstanding ?? match.amountOutstanding;\n  console.log(`Found invoice ${match.invoiceNumber} (id=${invoiceId}), outstanding=${outstanding}`);\n\n  // Step 2: Get payment types\n  const ptypes = extract(await api(\"GET\", \"/invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*)\"));\n\n  let pt = ptypes.find((p: any) => p.description === \"Betalt til bank\");\n  if (!pt) pt = ptypes.find((p: any) => {\n    const dn = p.debitAccount?.number;\n    return dn && String(dn).startsWith(\"19\");\n  });\n  if (!pt) pt = ptypes[0];\n\n  console.log(`Using paymentType ${pt.id} (${pt.description})`);\n\n  // Step 3: Register payment\n  const payResult = await api(\"PUT\", `/invoice/${invoiceId}/:payment?paymentDate=${TODAY}&paymentTypeId=${pt.id}&paidAmount=${outstanding}`);\n  console.log(\"Payment result:\", JSON.stringify(extract(payResult), null, 2));\n\n  // Step 4: Verification GET (free)\n  const verify = extract(await api(\"GET\", `/invoice/${invoiceId}?fields=id,invoiceNumber,amountCurrency,amountCurrencyOutstanding,amountOutstanding,customer(id,name)`));\n  console.log(\"Verification:\", JSON.stringify(verify, null, 2));\n}\n\nmain().catch(e => { console.error(e); process.exit(1); });\n"
+}
+```
+
+## 2026-03-22T11:49:08.560Z tool_result
+tool: Write
+call_id: toolu_vrtx_01S88ti3UGxVUWDpJBW4oYwq
+
+```text
+File created successfully at: /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-114833702Z-0b534db5/scripts/pay-invoice.ts
+```
+
+## 2026-03-22T11:49:12.101Z tool_call
+tool: Bash
+call_id: toolu_vrtx_01SbEbn6JUpu775V5KRMK4us
+
+```json
+{
+  "command": "cd /home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-114833702Z-0b534db5/scripts && bun run pay-invoice.ts",
+  "description": "Execute invoice payment script",
+  "timeout": 30000
+}
+```
+
+## 2026-03-22T11:49:18.135Z tool_result
+tool: Bash
+call_id: toolu_vrtx_01SbEbn6JUpu775V5KRMK4us
+
+```text
+GET /invoice?invoiceDateFrom=2020-01-01&invoiceDateTo=2030-12-31&count=1000&sorting=-invoiceDate&fields=*,customer(*),currency(*),orderLines(*),orders(*,orderLines(*)) → 200
+Found invoice 1 (id=2147702136), outstanding=12625
+GET /invoice/paymentType?count=1000&fields=*,debitAccount(*),creditAccount(*) → 200
+Using paymentType 39975251 (Betalt til bank)
+PUT /invoice/2147702136/:payment?paymentDate=2026-03-22&paymentTypeId=39975251&paidAmount=12625 → 200
+Payment result: {
+  "id": 2147702136,
+  "version": 3,
+  "url": "kkpqfuj-amager.tripletex.dev/v2/invoice/2147702136",
+  "invoiceNumber": 1,
+  "invoiceDate": "2026-03-01",
+  "customer": {
+    "id": 108600415,
+    "url": "kkpqfuj-amager.tripletex.dev/v2/customer/108600415"
+  },
+  "creditedInvoice": 0,
+  "isCredited": false,
+  "invoiceDueDate": "2026-03-31",
+  "kid": "",
+  "invoiceComment": "",
+  "comment": "",
+  "orders": [
+    {
+      "id": 402082184,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/order/402082184"
+    }
+  ],
+  "orderLines": [
+    {
+      "id": 1607615425,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/order/orderline/1607615425"
+    }
+  ],
+  "travelReports": [],
+  "projectInvoiceDetails": [
+    {
+      "id": 1965830465,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/invoice/details/1965830465"
+    }
+  ],
+  "voucher": {
+    "id": 609430610,
+    "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609430610"
+  },
+  "deliveryDate": "2026-03-01",
+  "amount": 12625,
+  "amountCurrency": 12625,
+  "amountExcludingVat": 10100,
+  "amountExcludingVatCurrency": 10100,
+  "amountRoundoff": 0,
+  "amountRoundoffCurrency": 0,
+  "amountOutstanding": 0,
+  "amountCurrencyOutstanding": 0,
+  "amountOutstandingTotal": 0,
+  "amountCurrencyOutstandingTotal": 0,
+  "sumRemits": 0,
+  "currency": {
+    "id": 1,
+    "url": "kkpqfuj-amager.tripletex.dev/v2/currency/1"
+  },
+  "isCreditNote": false,
+  "isCharged": true,
+  "isApproved": false,
+  "postings": [
+    {
+      "id": 3846540759,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846540759"
+    },
+    {
+      "id": 3846541538,
+      "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846541538"
+    }
+  ],
+  "reminders": [],
+  "invoiceRemarks": "",
+  "invoiceRemark": null,
+  "isPeriodizationPossible": true,
+  "documentId": 1024379882
+}
+GET /invoice/2147702136?fields=id,invoiceNumber,amountCurrency,amountCurrencyOutstanding,amountOutstanding,customer(id,name) → 200
+Verification: {
+  "id": 2147702136,
+  "invoiceNumber": 1,
+  "customer": {
+    "id": 108600415,
+    "name": "Fjordkraft AS"
+  },
+  "amountCurrency": 12625,
+  "amountOutstanding": 0,
+  "amountCurrencyOutstanding": 0
+}
+```
+
+## 2026-03-22T11:49:21.082Z assistant_message
+Done. 3 writes/reads, 0 errors. Invoice #1 for Fjordkraft AS (12625 NOK incl. VAT) fully paid — `amountCurrencyOutstanding=0`.

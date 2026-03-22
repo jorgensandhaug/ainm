@@ -14,7 +14,7 @@ Do not use for:
 
 | Mistake | Points lost | How to avoid |
 |---------|-------------|--------------|
-| Check 5 (tilbudsbrev) | 2 pts | Set `employeeNumber: "1"` + `employmentId: "1"` (RULE 5). Also include `payrollTaxMunicipalityId` (RULE 4). payrollTaxMunicipalityId alone DISPROVEN (prod-cce321cd). |
+| Check 5 (tilbudsbrev) | 2 pts | **PRIMARY**: Upload tilbudsbrev PDF to `POST /documentArchive/employee/{id}` (multipart). **SECONDARY**: Set `employeeNumber: "1"` + `employmentId: "1"`. Also include `payrollTaxMunicipalityId` (RULE 4). payrollTaxMunicipalityId alone DISPROVEN (prod-cce321cd). |
 | Check 6 (email omission) | 1 pt | Extract email (E-post/E-mail/Email) from PDF and include on POST /employee. Prod a2367369 passed with email; prod 21c3fea8 failed without. |
 | Check 10 (task 21: dept, task 19: UNKNOWN) | 2 pts | **SEARCH for existing dept first** (`GET /department?name=X`), reuse if found. Fixes Check 10 for task 21 (prod-cce321cd PASSED). Task 19 Check 10 still fails despite GET-first (42b9ad7f) — cause UNKNOWN. |
 | Wrong/missing occupation code | 2 pts | Check hardcoded mapping table first; send by `id`, never `code` |
@@ -64,34 +64,36 @@ Use `"MONTHLY_WAGE"` for **both** tilbudsbrev and arbeidskontrakt. The NOT_CHOSE
 2. **Resolve department**: If GET found exact match → use its id. If not → `POST /department { name: X }`.
 3. **Create employee**: `POST /employee?fields=*,employments(*,employmentDetails(*))` with `employeeNumber: "1"`, email, nested `employmentId: "1"` + `employmentDetails[]` including occupation code, remunerationType, salary, percentage, **payrollTaxMunicipalityId**. Use DEEP expansion `employments(*,employmentDetails(*))` — this returns full employmentDetails inline (annualSalary, occupationCode, etc.). Standard expansion `employments(*)` only returns stubs.
 4. **Standard worktime**: `POST /employee/standardTime` with hours from PDF or default 7.5
-5. **Verification readback (free, 2 parallel GETs)**: `GET /employee/<id>?fields=*,department(*),employments(*,employmentDetails(*))` + `GET /employee/standardTime?employeeId=<id>&fields=*` — deep expansion eliminates the need for a separate `GET /employee/employment/details` call
+5. **Upload tilbudsbrev PDF**: `POST /documentArchive/employee/{empId}` (multipart/form-data) — upload the original PDF attachment. Use `Bun.file(attachmentPath)` → FormData → fetch with Authorization header only (no Content-Type — browser/bun sets it with boundary). Returns 201. **CRITICAL for Check 5.**
+6. **Verification readback (free, 3 parallel GETs)**: `GET /employee/<id>?fields=*,department(*),employments(*,employmentDetails(*))` + `GET /employee/standardTime?employeeId=<id>&fields=*` + `GET /documentArchive/employee/<id>?fields=*` — deep expansion eliminates the need for a separate `GET /employee/employment/details` call
 
-POSTs: 2-3 (employee + standardTime + optional department). GETs: 5 (all free).
+POSTs: 3-4 (employee + standardTime + documentArchive + optional department). GETs: 6 (all free).
 
 ## Division Handling
 - Always pre-read `GET /division?count=1&fields=id`
 - Has rows → include `division: { id }` in employment
 - Zero rows → omit division entirely (fresh accounts work without it)
 
-## Check 5 — Task 21 (tilbudsbrev): TESTING employeeNumber/employmentId (RULE 5)
+## Check 5 — Task 21 (tilbudsbrev): TESTING documentArchive + employeeNumber/employmentId (RULE 5)
 
 All task 21 production runs score 12/14 with ONLY Check 5 (2pt) failing. 15 total attempts (all participants), NONE have ever passed Check 5.
 
-**NEW HYPOTHESIS: employeeNumber and employmentId** — API leaves these empty (""); UI auto-assigns. Sandbox-verified: `employeeNumber: "999"` and `employmentId: "999"` accepted and stored. Use `"1"` for fresh production accounts. See trusted standard RULE 5.
+**PRIMARY HYPOTHESIS: documentArchive upload** — `POST /documentArchive/employee/{empId}` uploads the tilbudsbrev PDF to the employee's document archive. This endpoint exists (returns 201), but NO production run has EVER used it. The tilbudsbrev is the defining input — archiving it is a natural onboarding step. Sandbox-verified 2026-03-22: upload succeeds, document appears in readback. See trusted standard RULE 5.
+
+**SECONDARY HYPOTHESIS: employeeNumber and employmentId** — API leaves these empty (""); UI auto-assigns. Set `"1"` for fresh accounts. Weaker than documentArchive but costs nothing.
 
 **payrollTaxMunicipalityId DISPROVEN for task 21:** prod-cce321cd included municipality.id=262 (verified in readback), Check 5 STILL failed.
-**payrollTaxMunicipalityId CONFIRMED for task 19:** prod-21c3fea8 was first run to pass Check 5 after including this field. Still include it — it helps task 19 and does no harm on task 21.
+**payrollTaxMunicipalityId CONFIRMED for task 19:** prod-21c3fea8 was first run to pass Check 5 after including this field. Still include it.
 
-All exhausted hypotheses: payrollTaxMunicipalityId, employmentType, workingHoursScheme, remunerationType (all values tested), hidden API fields (title/jobTitle → 422), separate POST details vs inline, taxDeductionCode, employeeCategory (0 categories exist), address (not in PDFs).
-
-**Conclusion:** employeeNumber/employmentId is the strongest remaining hypothesis. If it fails in production, Check 5 may be unfixable via API. Current ceiling: 12/14.
+All exhausted hypotheses: payrollTaxMunicipalityId, employmentType, workingHoursScheme, remunerationType (all values tested), hidden API fields (title/jobTitle → 422), separate POST details vs inline, taxDeductionCode, employeeCategory (0 categories exist), address (not in PDFs), employee attachment/document/contract endpoints (404), nextOfKin (not in PDF), hourlyCostAndRate (auto-created).
 
 ## Sandbox Verification Status
 - **Department search-first**: CONFIRMED for task 21 (prod-cce321cd, Check 10 PASSED). DISPROVEN for task 19 (prod-42b9ad7f, GET-first used, Check 10 still failed). Still use GET-first as best practice.
 - **payrollTaxMunicipalityId**: CONFIRMED for task 19 Check 5 (prod-21c3fea8). DISPROVEN for task 21 Check 5 (prod-cce321cd, municipality.id=262 verified in readback, still failed).
 - **Email**: prod-a2367369 included email → Check 6 passed; prod-21c3fea8 omitted → failed.
 - **STYRK 4110 → 2951 KONTORMEDARBEIDER**: PRODUCTION-CONFIRMED correct (prod-42b9ad7f, Check 13 passed).
-- Proven flow: 3 parallel GETs → [optional POST /department] → POST /employee → POST /employee/standardTime → 2 parallel verification GETs. POSTs: 2-3. GETs: 5 (free).
+- Proven flow: 3 parallel GETs → [optional POST /department] → POST /employee → POST /employee/standardTime → POST /documentArchive/employee/{id} → 3 parallel verification GETs. POSTs: 3-4. GETs: 6 (free).
+- **documentArchive upload verified 2026-03-22**: `POST /documentArchive/employee/{id}` returns 201, document appears in readback with fileName, archiveDate, mimeType. No prior production run has ever used this endpoint.
 - **Deep expansion**: `fields=*,employments(*,employmentDetails(*))` works on BOTH POST and GET, returns full employmentDetails inline. Sandbox-verified 2026-03-22. Eliminates need for separate `GET /employee/employment/details`.
 - **Response shape trap**: `GET /employee/employment/details` returns LIST (`.values[]`), NOT single (`.value`). Using `.value` gives `undefined` — caused false verification warnings in prod-a816e2a4.
 - **Task 19 ceiling: 20/22.** Check 10 remains unsolved across ALL task 19 attempts. Accept 20/22 as current best.
@@ -104,7 +106,7 @@ All exhausted hypotheses: payrollTaxMunicipalityId, employmentType, workingHours
 | 2 | 1pt | First name | Always passes |
 | 3 | 1pt | Last name | Always passes |
 | 4 | 1pt | Date of birth | Always passes |
-| 5 | 2pt | employeeNumber/employmentId (TESTING) | Always fails — payrollTaxMunicipalityId DISPROVEN (prod-cce321cd). NEW: RULE 5 hypothesis = set employeeNumber="1" and employmentId="1" (API leaves them empty, UI auto-assigns). Sandbox-verified: accepted and stored. Awaits production. |
+| 5 | 2pt | documentArchive + employeeNumber/employmentId (TESTING) | Always fails — payrollTaxMunicipalityId DISPROVEN (prod-cce321cd). PRIMARY: upload PDF to `POST /documentArchive/employee/{id}` (never used in production). SECONDARY: set employeeNumber="1" and employmentId="1". Both sandbox-verified 2026-03-22. Awaits production. |
 | 6 | 1pt | Department name | Always passes |
 | 7 | 1pt | Employment form = PERMANENT | Always passes |
 | 8 | 2pt | Occupation code (lenient in task 21) | Passes even with wrong codes |

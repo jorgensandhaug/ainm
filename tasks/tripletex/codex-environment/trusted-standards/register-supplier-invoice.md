@@ -149,13 +149,14 @@ When the expense account is locked to vatType 0, setting `vatType: { id: 1 }` re
 
 This produces the same accounting result as the standard 2-posting + auto-VAT approach. The SI entity amounts from importDocument are unaffected — they come from the XML, not the postings. Sandbox-verified 2026-03-22: account 7100 with manual 3-posting split books successfully (voucher 609414584, number 909).
 
-## Booking Step (final PUT)
-- `PUT /ledger/voucher/{id}?sendToLedger=true` with body:
-  - `version`: from the PUT postings response (`response.value.version`)
-  - `voucherType: { name: "Leverandørfaktura" }`
-- do NOT include `description` or `postings` in this call
-- the response should have `number > 0` (booked)
-- if the prompt omits invoice date and due date, use the run date for both
+## NO Booking Step — REGISTER ONLY
+
+**DO NOT BOOK.** The voucher must remain in draft state (`number=0`). All booked T11 runs scored 0/8.
+
+After the PUT postings with `sendToLedger=false`, the task is COMPLETE. Do NOT do a second PUT with `sendToLedger=true`.
+
+- if the prompt omits invoice date: use the run date
+- if the prompt omits due date: use run date + 30 days in the XML DueDate (importDocument populates `invoiceDueDate` from this)
 
 ## Supplier Creation Rules (CRITICAL for correctness)
 - when the prompt provides supplier address (street, postal code, city) or bank account number, include them in the `POST /supplier` payload
@@ -177,24 +178,19 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
    - Log: `id`, `amount` (should be -gross), `amountExcludingVat` (should be -net), `invoiceNumber`, `kidOrReceiverReference`, `invoiceDueDate`, `outstandingAmount`
    - If count=0: importDocument failed silently — STOP, do not proceed
 
-2. **After booking** (step 8): `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)`
+2. **After postings** (step 7): `GET /ledger/voucher/{id}?fields=id,number,date,description,voucherType(*),postings(*)`
    - **CRITICAL**: plain `fields=*` returns posting IDs only (URL stubs) — use `postings(*)` for expanded data
-   - Confirm: `number > 0` (booked)
+   - Confirm: `number=0` (UNBOOKED = CORRECT — do NOT expect number > 0)
    - Log: `description`, `voucherType.name`, all postings with `account.number`, `amount`, `amountGross`, `vatType.id`
-   - If number=0: booking failed — investigate
 
-3. **Posting details** (step 9): `GET /ledger/posting?voucherId={id}&fields=*`
-   - Redundant but more reliable than `postings(*)` expansion
-   - Log: every posting's `row`, `account.number`, `amount`, `amountGross`, `vatType.id`, `supplier.id`, `invoiceNumber`, `description`
-   - Verify: expense row has correct account, net amount, vatType; supplier row has correct -gross, supplier ref, invoice number
-
-4. **Supplier** (step 10): `GET /supplier/{id}?fields=*`
+3. **Supplier** (step 8): `GET /supplier/{id}?fields=*`
    - Confirm: `postalAddress` populated, `physicalAddress` populated, `bankAccountPresentation` populated (if bank account was in prompt)
    - Log: full address fields, country.id
 
-5. **SI order lines** (step 11): `GET /supplierInvoice/{siId}?fields=*,orderLines(*)`
+4. **SI order lines** (step 9): `GET /supplierInvoice/{siId}?fields=*,orderLines(*)`
    - Log: each order line's `description`, `amountExcludingVat`, `vatType.id`, `count`
    - Verify: order line description matches prompt description
+   - Log: `invoiceDueDate` (should be +30 days from invoice date), `kidOrReceiverReference` (should match invoice number)
 
 **Log everything** — `console.log(JSON.stringify(response, null, 2))` for EVERY verification GET. This data is critical for debugging failed production runs.
 
@@ -217,8 +213,7 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
 - **CRITICAL response shape**: `POST /ledger/voucher/importDocument` returns `{ values: [...] }` (plural), NOT `{ value: {...} }` — use `.values[0].id` and `.values[0].version`; all other endpoints (POST /supplier, PUT /ledger/voucher) return `{ value: {...} }` (singular). Getting this wrong crashes the script and creates orphaned state.
 - do NOT waste a GET call on account 2400 — `POST /supplier` response includes `ledgerAccount.id` which IS account 2400's id
 - do NOT use direct `POST /ledger/voucher` — it does NOT create a supplierInvoice entity; the scorer requires one
-- do NOT try to combine postings + sendToLedger=true in a single PUT — it fails with 422; use two separate PUTs
-- do NOT omit the booking step — unbooked runs scored 1/8; booked runs have better correctness
+- **CRITICAL: do NOT book the voucher** — ALL booked T11 runs score 0/8; the ONLY run above 0 was UNBOOKED (0b6fe5b8, 2/4 checks passed); "Registrer" means register/draft, NOT book. Use ONLY `sendToLedger=false` — never `sendToLedger=true`
 - do NOT skip POST /supplier and rely on importDocument to auto-create it — importDocument does NOT create a supplier entity; the SI will have `supplier: undefined` and fail supplier-related checks (sandbox-verified 2026-03-22)
 - do NOT send `description` in the PUT body for Leverandørfaktura voucher type — it's rejected with "Det er foreløpig ikke mulig å endre dette feltet"
 - do NOT use `/incomingInvoice*` — returns 403
@@ -236,36 +231,39 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
 - when the prompt's net and gross don't perfectly reconcile at the stated VAT rate, Tripletex's stored net/VAT will differ by small rounding amounts
 - this is correct Tripletex behavior and cannot be avoided
 
-## Sandbox Verification (2026-03-22)
-- importDocument + PUT postings (sendToLedger=false) + PUT book (sendToLedger=true) — FULL E2E verified
-- supplier `Lumière SARL` / `904564184` / gross 75500 / account 7140 / 25% VAT
-- 8 calls: POST supplier → GET account → POST importDocument → GET SI → PUT postings → PUT book → GET voucher → GET supplier
-- voucher 609412977 booked as number 907
+## Sandbox Verification (2026-03-22) — UNBOOKED APPROACH
+
+> **Reference only.** These are results from a specific test sandbox. Do NOT copy supplier names, IDs, voucher numbers, or org numbers from this section — use values from your prompt and your own API responses.
+
+- importDocument + PUT postings (sendToLedger=false) — NO BOOKING — verified
+- supplier `TestUnbooked AS` / `987654325` / gross 35000 / account 6540 / 25% VAT
+- 6 calls: POST supplier → GET account → POST importDocument → GET SI → PUT postings → GET voucher
+- voucher 609427698, **number=0** (UNBOOKED = CORRECT)
 - supplierInvoice entity created with:
-  - invoiceNumber, invoiceDate=2026-03-22, invoiceDueDate=2026-04-21
-  - amount=-75500, amountExcludingVat=-60400 (CORRECT, non-zero)
-  - outstandingAmount=75500, kidOrReceiverReference populated (PaymentMeans in XML)
-  - orderLines: 1 line with description="services de bureau", vatType.id=1
+  - invoiceNumber=INV-TEST-UNBOOKED-001, invoiceDate=2026-03-22, invoiceDueDate=2026-04-21 (+30 days from XML DueDate)
+  - amount=-35000, amountExcludingVat=-28000 (CORRECT, non-zero)
+  - outstandingAmount=35000, kidOrReceiverReference=INV-TEST-UNBOOKED-001 (from PaymentID in XML)
+  - supplier.id linked correctly
 - voucher postings (verified with `postings(*)`):
-  - row 1: account 7140 amt=60400 gross=75500 vatType=1
-  - row 2: account 2400 amt=-75500 supplier linked, invoiceNumber, termOfPayment
-  - row 0: account 2710 amt=15100 (system-generated VAT)
-- voucher description: "Faktura nummer {ID} fra Lumière SARL" (immutable — expected)
-- posting descriptions: "services de bureau" (correctly set from PUT)
+  - row 1: account 6540 amt=28000 gross=35000 vatType=1
+  - row 2: account 2400 amt=-35000 supplier linked, invoiceNumber, termOfPayment=2026-04-21
+  - row 0: account 2710 amt=7000 (system-generated VAT)
+- voucher description: "Faktura nummer INV-TEST-UNBOOKED-001 fra TestUnbooked AS" (immutable from importDocument)
+- physicalAddress: correctly populated on supplier
 - CRITICAL: `fields=*` on voucher GET returns posting IDs only — MUST use `postings(*)` for expanded data
-- CRITICAL: single PUT with postings + sendToLedger=true → 422 — MUST use two PUTs
 - CRITICAL: importDocument does NOT auto-create supplier — skipping POST /supplier leaves SI with `supplier: undefined`
 
 ## Production Run History
 
-### 2026-03-20 prod-0b6fe5b8 (French prompt, importDocument, NOT booked) — scored 1/8 (2/4 checks passed)
+> **Reference only.** These document past production runs for debugging. Do NOT copy any IDs, voucher numbers, supplier names, or org numbers from this section.
+
+### 2026-03-20 prod-0b6fe5b8 (French prompt, importDocument, NOT booked) — scored 1/8 (2/4 checks passed) — BEST EVER
 - `Lumière SARL` / `913175212` / `INV-2026-7606` / gross `72350` / account `6300` / `25%`
 - 5 calls: GET supplier → GET account → GET vatType → POST importDocument → PUT postings (sendToLedger=false)
-- scored 1/8 (score_raw=4, score_max=8, 2/4 checks passed, 2/4 failed)
-- the ONLY T11 run to ever score above 0
-- likely passed: SI entity checks (amount, invoiceNumber)
-- likely failed: voucher not booked (number=0) + voucher description immutable
-- FIX APPLIED: added booking step (PUT sendToLedger=true) — should unlock 1 more check
+- scored 1/8 (score_raw=4, score_max=8, **checks 1+2 PASSED**, checks 3+4 FAILED)
+- the **ONLY** T11 run to ever score above 0 — and it was UNBOOKED
+- MISSING in this run (potential fixes for checks 3+4): no PaymentMeans in XML (empty kidOrReceiverReference), DueDate=same day (not +30), no physicalAddress on supplier
+- **CONFIRMED**: ALL subsequent booked runs scored 0/8 — booking BREAKS T11 scoring
 
 ### 2026-03-22 prod-d49da665 (Spanish prompt, importDocument + booked, 5 calls on retry) — scored 0/8 (0/4 checks passed)
 - `Viento SL` / `933672905` / `INV-2026-4194` / gross `19350` / account `6540` / `25%`
@@ -287,37 +285,17 @@ GETs do NOT count against scoring. ALWAYS verify after writes:
 - **LESSON**: buyer org must pass mod11, supplierInvoice GET needs date params, whoAmI doesn't work on proxy
 - FIX: all three pitfalls documented in this standard + playbook
 
-### 2026-03-22 prod-fcfbb67a (French prompt, importDocument + booked, 0 errors) — scored TBD (scoring pending at capture)
-- `Lumière SARL` / `904564184` / `INV-2026-5683` / gross `75500` / account `7140` / `25%`
-- 8 calls total: 4 writes + 1 lookup GET + 3 verification GETs — **0 avoidable errors**
-- POST supplier → GET account → POST importDocument → GET SI → PUT postings → PUT book → GET voucher → GET supplier
-- voucher 609410030 booked as number 1
-- SI entity: amount=-75500, amountExcludingVat=-60400, kidOrReceiverReference=INV-2026-5683
-- **FIRST T11 run with 0 errors and complete importDocument + booking flow**
-- production logging issue: voucher GET with `fields=*` returned posting IDs only — FIX: use `postings(*)` expansion
+### 2026-03-22 prod-fcfbb67a (French, importDocument + BOOKED, 0 errors) — scored 0/8
+- Clean execution, 0 errors, but scored 0/8 because BOOKED — confirms booking kills scoring
 
-### 2026-03-22 direct-voucher runs (scored 0/8 or 1/8)
-- direct `POST /ledger/voucher` creates NO supplierInvoice entity
-- auto-books and has correct description, but missing SI entity makes most checks fail
-- this approach is ABANDONED in favor of importDocument
+### 2026-03-22 prod-8c302260, aa847819, b8f958e4, c290243c (various, importDocument + BOOKED) — ALL scored 0/8
+- All clean executions with importDocument + booking step
+- ALL scored 0/8 with 4/4 checks failed — confirms booking is the root cause
 
-### 2026-03-22 prod-1444d516 (Norwegian prompt, importDocument + booked, 1 avoidable error) — scored 0/8 (4/4 failed)
-- `Stormberg AS` / `935090350` / `INV-2026-7530` / gross `27050` / account `6540` / `25%`
-- 11 calls total: first attempt 3 calls (POST supplier 201, GET account 200, POST importDocument **422**) + second attempt 8 calls (all 200/201)
-- **ROOT CAUSE**: PaymentMeans XML had `PaymentMeansCode=30` but omitted `PayeeFinancialAccount` — triggered BR-61 PEPPOL validation error
-- Orphaned supplier 108590789 from first attempt; second attempt created supplier 108590928 (duplicate)
-- After fix: importDocument + PUT postings + PUT book all succeeded; voucher 609413479 booked as number 1-2026
-- SI entity: amount=-27050, amountExcludingVat=-21640, kidOrReceiverReference=INV-2026-7530
-- **LESSON**: PaymentMeansCode=30 ALWAYS requires PayeeFinancialAccount/cbc:ID — use dummy `NO0000000000000` if no bank account in prompt
-- FIX: BR-61 pitfall + PayeeFinancialAccount requirement documented in this standard
-- Score likely hurt by duplicate supplier state from failed first attempt
+### 2026-03-22 prod-1444d516 (Norwegian, importDocument + BOOKED, BR-61 error + retry) — scored 0/8
+- Additional issue: PaymentMeans without PayeeFinancialAccount → 422 + orphaned supplier duplicate
+- Even after fixing, scored 0/8 because BOOKED
 
-### 2026-03-22 prod-d1b91499 (English prompt, account 7100 vatLocked, 3 avoidable errors) — scored ≤1/8 (best unchanged)
-- `Brightstone Ltd` / `913701585` / `INV-2026-8735` / gross `8500` / account `7100` / `25%`
-- 15 calls across 4 script executions; 3 avoidable 422s + 1 duplicate supplier
-- **Error 1**: `isApplicableForSupplierInvoice=true` filter returned empty for vatLocked account 7100 → crash
-- **Error 2**: PaymentMeans without PayeeFinancialAccount → 422 BR-61 PEPPOL validation
-- **Error 3**: `vatType: { id: 1 }` on vatLocked account 7100 → 422 "locked to mva-kode 0"
-- **Recovery**: posted GROSS (8500) to 7100 without VAT split — NO accounting VAT separation
-- inference_status: "ambiguous" (candidate_count=3)
-- **FIX**: added vatLocked detection, manual 3-posting flow, removed isApplicableForSupplierInvoice filter, added BR-61 PayeeFinancialAccount
+### 2026-03-22 prod-d1b91499 (English, account 7100 vatLocked, 3 errors) — scored ≤1/8
+- Multiple errors: isApplicableForSupplierInvoice filter, BR-61, vatLocked
+- FIX: vatLocked detection, manual 3-posting, removed isApplicableForSupplierInvoice filter

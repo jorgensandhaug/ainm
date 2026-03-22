@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "completed_at": "2026-03-22T12:15:41Z",
+  "session_id": "45b9a52a-ac70-400c-b7b8-ba36e8212b6f",
+  "tmux_window": "prod-2026-03-22-121210893Z-79b78ed4",
+  "reflection_summary_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-121210893Z-79b78ed4/codex-reflection.summary.md",
+  "reflection_events_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-121210893Z-79b78ed4/codex-reflection.events.jsonl",
+  "provider": "claude",
+  "runtime_status_path": "/home/jorge/repos/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-121210893Z-79b78ed4/codex-reflection.runtime-status.json",
+  "exit_code": 0
+}

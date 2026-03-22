@@ -1,0 +1,8 @@
+{
+  "prompt": "Opprett prosjektet \"Oppgradering Fjordkraft\" knyttet til kunden Fjordkraft AS (org.nr 953177234). Prosjektleder er Henrik Johansen (henrik.johansen@example.org).",
+  "files": [],
+  "tripletex_credentials": {
+    "base_url": "https://tx-proxy-jwanbnu3pq-lz.a.run.app/v2",
+    "session_token": "Kn3vqTs2rMPo2pgzhVlFkpJVXjh_dvYk0KMdsMN52ZQ"
+  }
+}

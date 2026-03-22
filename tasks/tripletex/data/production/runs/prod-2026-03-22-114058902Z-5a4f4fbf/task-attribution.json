@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-114058902Z-5a4f4fbf",
+  "request_id": "be43815e",
+  "prompt_raw": "Gjer forenkla årsoppgjer for 2025: 1) Rekn ut og bokfør årlege avskrivingar for tre eigedelar: Inventar (170000 kr, 4 år lineært, konto 1240), Kontormaskiner (176500 kr, 5 år, konto 1200), IT-utstyr (360100 kr, 9 år, konto 1210). Bruk konto 6010 for avskrivingskostnad og 1209 for akkumulerte avskrivingar. 2) Reverser forskotsbetalt kostnad (totalt 59500 kr på konto 1700). 3) Rekn ut og bokfør skattekostnad (22 % av skattbart resultat) på konto 8700/2920. Bokfør kvar avskriving som eit eige bilag.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T11:43:58Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T11:41:00.678Z",
+  "after_captured_at": "2026-03-22T11:44:29.453Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "30",
+  "attempt_delta": 2,
+  "generated_at": "2026-03-22T11:44:29.454Z"
+}

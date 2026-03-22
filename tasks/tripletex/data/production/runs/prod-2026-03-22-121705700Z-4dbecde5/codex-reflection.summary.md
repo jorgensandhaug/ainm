@@ -1,0 +1,1 @@
+Score reflection written. Task 17 (free-dimension): 12th consecutive correct run, likely 3.0/4 (down from 3.5 best due to probable scoring formula change). No actionable improvements — the 5-call path is the proven minimum.

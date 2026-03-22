@@ -59,6 +59,35 @@ The receipts show "herav MVA 25%: X" which means "of which VAT" — the VAT is A
 
 ---
 
+## Receipt Parsing — Extract the RIGHT Line
+
+Each receipt PDF contains **multiple line items** (2-3 items), but the prompt asks you to book only **ONE specific line**. You MUST:
+
+1. **Read the receipt PDF** from the prompt's attached files
+2. **Identify the ONE line** matching the keyword in the prompt (e.g., if prompt says "Tastatur", find the line "Tastatur 6900")
+3. **Ignore all other lines** — they are noise (e.g., Mus 120, Headset 310, USB-hub 190). Do NOT book them.
+4. **Extract the receipt date** from `Dato: DD.MM.YYYY` — convert to ISO `YYYY-MM-DD` for the voucher date
+5. **Use the line amount directly** as `amountGross` — see the GROSS section below
+
+Receipt format (all receipts follow this):
+```
+Olivia AS
+Org nr 999999999, MVA-registrert
+Dato: DD.MM.YYYY              ← receipt date (convert to YYYY-MM-DD)
+
+Tastatur              6900     ← target line (if prompt says "Tastatur")
+Mus                    120     ← IGNORE — noise item
+Headset                310     ← IGNORE — noise item
+
+Totalt               7330     ← sum of ALL lines (do NOT use this)
+herav MVA 25%:       1832.50  ← VAT already included (do NOT multiply)
+Betalt med: Bedriftskort
+```
+
+The prompt will say something like "book the Tastatur line" — use `6900` as `amountGross`, not `7330`.
+
+---
+
 ## Branch Selection — Decision Tree
 
 Read the receipt line text from the prompt. Match to one of 4 branches:
