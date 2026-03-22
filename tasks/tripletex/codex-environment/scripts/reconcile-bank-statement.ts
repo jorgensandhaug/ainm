@@ -1,8 +1,10 @@
 /**
  * Pre-built bank reconciliation script for Task 23.
+ * v3: Adds invoice-number-reference matching (Faktura/Invoice/Rechnung/Fatura/Factura/Facture XXXX).
+ *     Production 0c420db1 scored 0/10 because amount-based matching swapped Moe AS invoices.
+ *     Fix: extract invoice ref from CSV description, match via csvRef%1000 to invoiceNumber.
  * v2: Optimized with batch matching (L→P calls) + combined OB+supplier voucher (2→1 call).
  * Sandbox-verified: batch match 5-in-1 → 201, combined voucher → 201 (2026-03-22).
- * Production v1 (a986e65f): 20 mutating, 0 errors, 10/10 matches. v2 target: ~10 mutating.
  *
  * Usage: bun reconcile-bank-statement.ts <BASE_URL> <TOKEN> <CSV_FILE_PATH>
  */
@@ -67,9 +69,9 @@ const firstCsvDate = csvLines[0].date;
 const lastCsvDate = csvLines[csvLines.length - 1].date;
 const dayAfterLast = (() => { const d = new Date(lastCsvDate); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; })();
 
-// Classify lines
-const customerLines = csvLines.filter(l => /Innbetaling fra/i.test(l.desc));
-const supplierLines = csvLines.filter(l => /Betaling\s+(Proveedor|Supplier|Leverandor|Lieferant|Fournisseur|Fornecedor)\s/i.test(l.desc));
+// Classify lines — multi-language: nb/nn "Innbetaling fra/frå", en "Payment from", de "Einzahlung von", es "Pago de", pt "Pagamento de", fr "Paiement de"
+const customerLines = csvLines.filter(l => /(?:Innbetaling\s+fr[aå]|Payment\s+from|Einzahlung\s+von|Pago\s+de|Pagamento\s+de|Paiement\s+de)\s/i.test(l.desc));
+const supplierLines = csvLines.filter(l => /(?:Betaling\s+(?:Proveedor|Supplier|Leverand[oø]r|Lieferant|Fournisseur|Fornecedor)|Zahlung\s+(?:Lieferant|Supplier)|Payment\s+(?:Supplier|Vendor)|Paiement\s+Fournisseur|Pagamento\s+Fornecedor|Pago\s+Proveedor)\s/i.test(l.desc));
 const nonInvoiceLines = csvLines.filter(l =>
   !customerLines.includes(l) && !supplierLines.includes(l)
 );
@@ -159,7 +161,7 @@ if (openingBalance !== 0) {
 
 // Supplier payment postings (DR 2400 / CR 1920)
 for (const line of supplierLines) {
-  const supplierName = line.desc.replace(/Betaling\s+(Proveedor|Supplier|Leverandor|Lieferant|Fournisseur|Fornecedor)\s+/i, "").trim();
+  const supplierName = line.desc.replace(/(?:Betaling\s+(?:Proveedor|Supplier|Leverand[oø]r|Lieferant|Fournisseur|Fornecedor)|Zahlung\s+(?:Lieferant|Supplier)|Payment\s+(?:Supplier|Vendor)|Paiement\s+Fournisseur|Pagamento\s+Fornecedor|Pago\s+Proveedor)\s+/i, "").trim();
   const amount = Math.abs(line.ut);
   const suppId = Object.entries(supplierMap).find(([name]) => name.includes(supplierName.toLowerCase()))?.[1];
 
@@ -226,18 +228,41 @@ console.log(`\n=== STEP 3: Customer payments ===`);
 const outstandingTracker: Record<number, number> = {};
 for (const inv of invoices) outstandingTracker[inv.id] = inv.amountCurrencyOutstanding ?? inv.amountOutstanding ?? 0;
 
+// Invoice reference regex — covers all languages: Faktura(nb/nn), Invoice(en), Rechnung(de), Fatura(pt), Factura(es), Facture(fr)
+const invRefRegex = /(?:Faktura|Invoice|Rechnung|Fatura|Factura|Facture)\s+(\d+)/i;
+
+// Customer name extraction regex — covers all language variants
+const custNameRegex = /(?:Innbetaling\s+fr[aå]|Payment\s+from|Einzahlung\s+von|Pago\s+de|Pagamento\s+de|Paiement\s+de)\s+(.+?)(?:\s*\/\s*(?:Faktura|Invoice|Rechnung|Fatura|Factura|Facture)|$)/i;
+
 // Build payment plan first (sequential matching to avoid double-booking), then fire all at once
 const paymentPlan: { invId: number; invNum: number; amount: number; date: string; custName: string }[] = [];
 for (const line of customerLines) {
-  const match = line.desc.match(/Innbetaling fra (.+?) \/ Faktura/);
-  const custName = match ? match[1].trim() : "";
+  const nameMatch = line.desc.match(custNameRegex);
+  const custName = nameMatch ? nameMatch[1].trim() : "";
   const amount = line.inn;
 
   const candidates = invoices.filter((inv: any) =>
     (inv.customer?.name || "").toLowerCase().includes(custName.toLowerCase()) && outstandingTracker[inv.id] > 0.01
   );
 
-  let best = candidates.find((inv: any) => Math.abs(outstandingTracker[inv.id] - amount) < 0.01);
+  let best: any = undefined;
+
+  // PRIORITY 1: Invoice reference matching (Faktura XXXX → invoiceNumber)
+  const refMatch = line.desc.match(invRefRegex);
+  if (refMatch) {
+    const csvRef = parseInt(refMatch[1]);
+    best = candidates.find((inv: any) => inv.invoiceNumber === csvRef)
+      || candidates.find((inv: any) => inv.invoiceNumber === csvRef % 1000)
+      || candidates.find((inv: any) => inv.invoiceNumber === csvRef % 10000);
+    if (best) console.log(`  Ref match: Faktura ${csvRef} → inv #${best.invoiceNumber} (via ${best.invoiceNumber === csvRef ? 'direct' : 'modulo'})`);
+  }
+
+  // PRIORITY 2: Exact outstanding amount match
+  if (!best) {
+    best = candidates.find((inv: any) => Math.abs(outstandingTracker[inv.id] - amount) < 0.01);
+  }
+
+  // PRIORITY 3: Smallest outstanding >= bankAmount, then lowest invoiceNumber
   if (!best) {
     const larger = candidates.filter((inv: any) => outstandingTracker[inv.id] >= amount - 0.01);
     larger.sort((a: any, b: any) => outstandingTracker[a.id] - outstandingTracker[b.id]);

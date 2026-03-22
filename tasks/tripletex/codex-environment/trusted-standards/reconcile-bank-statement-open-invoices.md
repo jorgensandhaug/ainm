@@ -105,13 +105,19 @@ Pick the payment type where `debitAccount.number === 1920`.
 ### Step 3: Match and pay customer invoices
 
 For each incoming bank line:
-1. Extract customer name from description (case-insensitive)
-2. Find open invoices matching customer name
-3. Priority: exact outstanding match → smallest outstanding >= bankAmount → lowest invoiceNumber
-4. Pay: `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<amount>`
-5. Update local outstanding tracker after each payment (same customer may have multiple bank lines)
+1. Extract customer name from description (multi-language: `Innbetaling fra/frå`, `Payment from`, `Einzahlung von`, `Pago de`, `Pagamento de`, `Paiement de`)
+2. Extract invoice reference number from description if present (multi-language: `Faktura`, `Invoice`, `Rechnung`, `Fatura`, `Factura`, `Facture` + digits)
+3. Find open invoices matching customer name
+4. **Matching priority** (CRITICAL — production run 0c420db1 scored 0/10 because invoice reference was ignored):
+   - **PRIORITY 1: Invoice reference match** — if CSV says "Faktura XXXX", try `invoiceNumber === XXXX`, then `invoiceNumber === XXXX % 1000`, then `invoiceNumber === XXXX % 10000`. This handles the common pattern where CSV uses e.g. "Faktura 1001" but system has `invoiceNumber: 1`.
+   - **PRIORITY 2: Exact outstanding match** — `Math.abs(outstanding - bankAmount) < 0.01`
+   - **PRIORITY 3: Smallest outstanding >= bankAmount** → lowest invoiceNumber fallback
+5. Pay: `PUT /invoice/{id}/:payment?paymentDate=<date>&paymentTypeId=<id>&paidAmount=<amount>`
+6. Update local outstanding tracker after each payment (same customer may have multiple bank lines)
 
 Partial payment: when bankAmount < outstanding, send bankAmount (not full outstanding).
+
+**Why invoice reference matching matters**: when a customer has 2 invoices (e.g., Moe AS: #1 for 7000, #3 for 5250) and the CSV has two partial payments (4200 on Faktura 1001, 5250 on Faktura 1003), amount-based matching picks the wrong invoices (4200 → #3 because 5250 is "smallest ≥ 4200"), while reference matching correctly maps 1001→#1 and 1003→#3.
 
 ### Step 4: Handle supplier payments
 

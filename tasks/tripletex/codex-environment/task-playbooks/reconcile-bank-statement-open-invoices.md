@@ -22,6 +22,13 @@ If the pre-built script is missing, read the trusted standard and write one comp
 
 ## Production Run Results
 
+### Norwegian run 2 (0c420db1, 13 mutating, 0 errors) — SCORED 0/10 (invoice matching bug)
+- Used pre-built script v2 (batch matching + combined voucher). 10 CSV lines spanning Jan-Feb 2026. 5 customer payments (3 full + 2 partial for Moe AS), 3 supplier payments (Ødegård/Moe/Hansen), 2 Bankgebyr.
+- 13 mutating calls (optimal for 2-period 5-customer CSV), 29 GETs, 0 errors.
+- **ROOT CAUSE: invoice matching was wrong.** Moe AS had invoices #1 (7000) and #3 (5250). CSV had Faktura 1001 (4200, partial) and Faktura 1003 (5250, full). Amount-based matching picked inv #3 for 4200 (smallest ≥ 4200 = 5250) and inv #1 for 5250, swapping the correct assignment. Both Moe invoices ended up with wrong outstanding amounts (1050 and 1750 instead of 0 and 2800).
+- **FIX in v3**: Extract invoice reference from CSV description ("Faktura XXXX") and use `csvRef % 1000` to match `invoiceNumber`. Priority: ref match → exact amount → smallest outstanding. Sandbox-verified: correct matching produces inv #1 outstanding=2800, inv #3 outstanding=0.
+- All other aspects worked correctly: OB voucher, supplier voucher, bank import, batch matching (2 batches for 2 months), recon close with correct balances (105912.50 / 103506.43).
+
 ### Spanish run 4 (a986e65f, 20 mutating, 0 errors) — FIRST pre-built script run, score pending
 - Used pre-built script v1. All 10 CSV lines in Jan 2026 (single period). 6 reads + 1 OB voucher + 5 customer payments (4 full + 1 partial: González SL 2550/6375) + 1 combined voucher (10 postings: 3 supplier + 2 Skattetrekk Inn) + 1 bank import + 1 GET postings + 1 create recon + 10 individual matches + 1 close recon = 20 mutating calls, 0 errors. All 10 bank txns matched, recon closed with balance 151044.75.
 - **Optimization applied in v2**: batch matching (10→1 match calls = -9) + combined OB+supplier voucher (2→1 voucher = -1). Target: 10 mutating calls.
@@ -221,18 +228,16 @@ Key findings:
 ## Matching Heuristics
 
 ### Customer incoming lines
-- match on the combination of:
-  - normalized customer name from the bank text (case-insensitive contains)
-  - bank amount vs. live positive outstanding amount
-  - live open-invoice inventory
-- do not require the bank text invoice label to equal Tripletex `invoiceNumber`
-- when multiple invoices match the customer name:
-  1. try exact outstanding amount match first
-  2. if no exact match, pick the invoice with smallest outstanding >= bankAmount (best partial payment candidate)
-  3. if still multiple, pick the one with the lowest invoiceNumber
+- match using a 3-tier priority system:
+  1. **Invoice reference match (HIGHEST PRIORITY)**: Extract the invoice number from the CSV description (regex: `(?:Faktura|Invoice|Rechnung|Fatura|Factura|Facture)\s+(\d+)`). Try matching `invoiceNumber === csvRef`, then `invoiceNumber === csvRef % 1000`, then `invoiceNumber === csvRef % 10000`. This handles the common pattern where CSV says "Faktura 1001" but Tripletex has `invoiceNumber: 1`.
+  2. **Exact outstanding match**: `Math.abs(outstanding - bankAmount) < 0.01`
+  3. **Smallest outstanding >= bankAmount** → lowest invoiceNumber fallback
+- **CRITICAL**: production run 0c420db1 scored 0/10 because invoice reference was ignored and amount-based matching swapped Moe AS invoices (4200 → inv #3 instead of #1, 5250 → inv #1 instead of #3). With reference matching: Faktura 1001 → inv #1 (correct partial), Faktura 1003 → inv #3 (correct full payment).
+- the bank text invoice label (e.g. "Faktura 1001") does not literally equal Tripletex `invoiceNumber` (e.g. 1), but `csvRef % 1000` resolves the mapping
 - when bank amount < outstanding, register the bank amount as partial payment
 - when bank amount == outstanding, register as full payment
 - after each payment, update the local outstanding value for subsequent matches (same customer may have multiple bank lines)
+- extract customer name using multi-language regex: `Innbetaling fra/frå`(nb/nn), `Payment from`(en), `Einzahlung von`(de), `Pago de`(es), `Pagamento de`(pt), `Paiement de`(fr)
 
 ### Supplier outgoing lines
 - match on supplier name (case-insensitive contains)
@@ -266,6 +271,7 @@ Sandbox-verified: voucher #609157175 with Renteinntekter Ut/8050 posted successf
 
 ## Pitfalls To Avoid
 
+- **INVOICE REFERENCE MATCHING IS CRITICAL FOR PARTIAL PAYMENTS**: When a customer has multiple invoices, amount-based matching can pick the wrong invoice. CSV "Faktura 1001" maps to `invoiceNumber: 1` (via `csvRef % 1000`). **ALWAYS try invoice reference match first**, then fall back to amount-based. Production run 0c420db1 scored 0/10 because Moe AS invoices were swapped by amount-based matching (4200 → inv #3 instead of #1). Pre-built script v3 fixes this.
 - **ALL 4 STEPS REQUIRED FOR CHECK 1 (8 points)**: Step 0 (opening balance) + Step 6 (bank import) + Step 7 (match txns to postings via `POST /bank/reconciliation/match`) + Step 8 (close recon). Without matching, bank txns remain `NO_MATCH` and reconciliation has empty `transactions: []`.
 - **MULTI-PERIOD RECONCILIATION IS MANDATORY**: CSVs typically span 2 months (e.g., Jan 16 – Feb 4). A bank txn can ONLY match a recon whose accounting period covers the txn's date. Creating a single recon for the last month causes ALL earlier-month txns to fail with `422 "Banktransaksjoner er ikke en del av bankavstemmingen."` (production-confirmed 2026-03-22: 8/11 matches failed). **FIX**: create SEPARATE recon per period. Per-period closing balance = Saldo of last CSV line in that period.
 - **DO NOT GET bank txns separately**: Import response `transactions` array has valid IDs in CSV order. Use positional mapping. Saves 1 API call. Sandbox-verified 2026-03-22.
