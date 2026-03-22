@@ -5246,7 +5246,43 @@ WHEN to trust spatial context vs raw cellwise prediction.
 
 **TOTAL IMPROVEMENT: 84.94 → 90.41 = +5.47 points!**
 
-541. Next experiments:
+541. Stacking variations:
+   - s2_d10: 90.40 (slightly worse)
+   - s2_800t: 90.39 (slightly worse)
+   - Original s2_d8/400t remains best at 90.41
+
+542. Spatial smoothing sweep:
+   - σ=0.3: 90.13 (barely hurts)
+   - σ=0.5: 79.57 (bad)
+   - σ=0.7: 65.66 (terrible)
+   - σ=1.0: 56.91 (catastrophic)
+   - Raw cellwise predictions are better than spatially smoothed ones
+
+## FINAL SESSION SUMMARY
+
+**Best model: Stacking v1 = 90.41**
+
+Architecture:
+- Stage 1: LGB(800t, d10, lr=0.02) × 6 classes, entropy-weighted
+- Stage 2: LGB(400t, d8, lr=0.02) × 6 classes, with stage-1 predictions + spatial smoothed predictions (σ=1,2,4) + spatial residuals + prediction entropy as additional features
+- Multi-episode: 3 train episodes, 10 eval averaging episodes
+- Policy: exploration (coverage + 5 diagnostic repeats)
+- Features: ~170 base features + ~45 stacking features = ~215 total
+
+Improvement trajectory:
+1. Old LGB v5 on 8 rounds: 84.94
+2. More data (16 rounds): 86.62 (+1.68)
+3. Exploration policy: 86.96 (+0.34)
+4. Deeper trees d10: 87.06 (+0.10)
+5. Multi-ep variance (5 eps): 88.40 (+1.34)
+6. Multi-ep variance (10 eps): 89.19 (+0.79)
+7. Training augmentation (3 eps): 89.64 (+0.45)
+8. Prediction averaging (10 eps): 90.15 (+0.51)
+9. 2-stage stacking: 90.41 (+0.26)
+
+**Total: +5.47 points from 84.94 to 90.41**
+
+543. Next experiments:
 
 ## Open Questions
 
