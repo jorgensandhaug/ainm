@@ -18,12 +18,12 @@ Book depreciation, reverse prepaid expenses, and calculate/book tax expense for 
 
 ## Critical instructions the trusted standard covers but you MUST NOT skip
 
-- **Phase 0: Activate the year-end module FIRST** — `POST /company/salesmodules` with `{ "name": "YEAR_END_REPORTING_AS" }`. This has NEVER been done in any production run. It is the #1 hypothesis for why checks 4+5 always fail.
+- **Phase 0: Activate the year-end module** — `POST /company/salesmodules` with `{ "name": "YEAR_END_REPORTING_AS" }`. Then `GET /yearEnd?year=2025&fields=*` to log baseline state and `GET /company/modules?fields=*` to confirm activation. Keep this phase — it is correct practice even though it alone does not fix checks 4+5.
 - **Use `r2()` rounding** — `Math.round(v * 100) / 100` for ALL depreciation amounts. Integer rounding causes scoring failures.
 - **Use accounts 8700/2920** for tax expense (as the task specifies)
 - **Post-then-read balance sheet** — read the balance sheet AFTER posting depreciation + prepaid vouchers, range 3000–8299 (excludes tax accounts)
 - **Result disposition is MANDATORY** — use 8800/2050, NOT 8960
-- **Phase 6: Final verification GETs** — `GET /yearEnd`, balance sheet, and vouchers for diagnostics
+- **Phase 6: Final verification GETs** — `GET /yearEnd`, full balance sheet (1000–9999), and all vouchers. Log ALL non-zero fields. This diagnostic data is critical for debugging checks 4+5.
 
 ## Known traps
 
@@ -33,6 +33,32 @@ Book depreciation, reverse prepaid expenses, and calculate/book tax expense for 
 - `account: { number: N }` without `id` → 422. Always resolve IDs via `GET /ledger/account` first
 - Do NOT batch-create accounts that already exist — 422 "Finnes fra før"
 - `dateTo` in balance sheet is exclusive — use `YYYY+1-01-01` to include December
+
+## Production evidence (12 runs, 2026-03-21 to 2026-03-22 — ALL scored 6/10)
+
+| Runs | Tax accounts | Module activated | Score | Checks 4+5 |
+|------|-------------|-----------------|-------|-------------|
+| 8 runs (Mar 21–22) | 8700/2920 | NO | 6/10 | FAIL |
+| 2 runs (Mar 22, 8dd9ba2b + 80e639a8) | 8300/2500 | NO | 6/10 | FAIL |
+| 2 runs (Mar 22, 884991bc + 5a4f4fbf) | 8700/2920 | **YES** | 6/10 | FAIL |
+
+**Checks 1–3 and 6 always pass. Checks 4+5 always fail.**
+
+### Disproven hypotheses (do NOT re-test)
+- **Tax accounts**: 8300/2500 does NOT fix checks 4+5 (tested on both profit and loss scenarios)
+- **Module activation**: `YEAR_END_REPORTING_AS` does NOT fix checks 4+5 (tested 2026-03-22, both scored 6/10)
+- **Result disposition**: present/absent does NOT affect checks 4+5
+- **Profit vs loss scenario**: does NOT affect checks 4+5
+
+### Unsolved: root cause of checks 4+5
+
+All obvious variables have been tested. Possible unexplored areas:
+- yearEnd API write operations (e.g., `PUT /yearEnd` or other yearEnd-specific endpoints)
+- Different voucher types or posting structures for tax/disposition
+- A specific field or flag on the yearEnd object that must be set via API
+- Interaction between yearEnd module state and voucher posting order
+
+**Priority: maximize diagnostic logging in Phase 6 to capture any yearEnd state differences.**
 
 ## If the prompt doesn't match
 
