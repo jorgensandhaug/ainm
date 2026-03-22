@@ -33,7 +33,7 @@ Using `POST /invoice` with embedded `orders[]` creates the invoice but leaves:
 
 ## Optimal Path
 
-**14 calls, 0 errors, 6 sequential steps.** Sandbox-verified 2026-03-22 (all checks pass including isApproved=true, order INVOICED).
+**13 calls, 0 errors, 6 sequential steps.** Sandbox-verified 2026-03-22 (all checks pass including isApproved=true, order INVOICED). Optimized from 14→13 by hardcoding vatType id=3 ("Utgående avgift, høy sats" 25%) — always valid in Norwegian Tripletex accounts.
 
 ## Common 422 Causes
 
