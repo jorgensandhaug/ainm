@@ -36,6 +36,23 @@ export interface ResearchQueueEntry {
   operatorNotes?: string[];
 }
 
+export interface ResearchPacketQueueEntry {
+  taskId: string;
+  taskSlug: string;
+  taskName: string;
+  priority: number;
+  band: ResearchBand;
+  queueEligibility: QueueEligibility;
+  researchLane?: string;
+  bestKnownScore?: number;
+  maxScore?: number;
+  baselineCallBudget?: number;
+  proofInputPath?: string;
+  verificationPlanId?: string;
+  notes: string[];
+  operatorNotes?: string[];
+}
+
 export interface ResearchTaskQueue {
   schemaVersion: typeof RESEARCH_QUEUE_SCHEMA_VERSION;
   updatedAt: string;
@@ -79,6 +96,12 @@ export interface ResearchPacketRunEvidence {
   strategyId: string;
   apiCallCount: number;
   failureMode?: string;
+}
+
+export interface ResearchProductionRunSummary {
+  path: string;
+  timestamp: string;
+  score: string;
 }
 
 export interface ResearchPacketStrategySummary {
@@ -261,10 +284,9 @@ export interface ResearchTaskPacket {
   packetId: string;
   createdAt: string;
   taskId: string;
-  txTaskId: string;
   taskSlug: string;
   taskName: string;
-  queueEntry: ResearchQueueEntry;
+  queueEntry: ResearchPacketQueueEntry;
   activeStrategy?: ResearchPacketStrategySummary;
   availableStrategies: ResearchPacketStrategySummary[];
   baselineCallBudget?: number;
@@ -278,6 +300,7 @@ export interface ResearchTaskPacket {
     runCount: number;
     recentArtifacts: ResearchPacketRunEvidence[];
   };
+  productionRuns?: ResearchProductionRunSummary[];
   historicalRuns?: ResearchHistoricalRunSummary[];
   promptExamples?: ResearchPromptExample[];
   legacyEvidence: {

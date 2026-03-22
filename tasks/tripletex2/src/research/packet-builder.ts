@@ -1,4 +1,5 @@
 import path from "node:path";
+import { readdir } from "node:fs/promises";
 
 import {
   loadActiveStrategyResolver,
@@ -39,8 +40,11 @@ import {
   type ResearchPromptExample,
   type ResearchTaskPacket,
   type ResearchContextLocator,
+  type ResearchQueueEntry,
   type ResearchVerificationContractSummary,
   type ResearchVerificationPlan,
+  type ResearchPacketQueueEntry,
+  type ResearchProductionRunSummary,
 } from "./types";
 
 const TASK_FAILURE_MODE_PATTERN =
@@ -250,6 +254,7 @@ export async function buildTaskPacket(
     trustedStandardText,
     playbookText,
     tripletex2Evidence,
+    productionRuns,
     legacyEvidence,
     taskSpecificAdditions,
   ] = await Promise.all([
@@ -257,6 +262,7 @@ export async function buildTaskPacket(
     readTextFileIfExists(trustedStandardPath),
     readTextFileIfExists(taskPlaybookPath),
     gatherTripletex2Evidence(options.taskId),
+    gatherProductionRuns(options.taskId),
     gatherLegacyEvidence(queueEntry.txTaskId),
     gatherTaskSpecificPacketAdditions(options.taskId),
   ]);
@@ -287,9 +293,10 @@ export async function buildTaskPacket(
     `task-${options.taskId}`,
     `${packetId}.json`,
   );
+  const packetQueueEntry = summarizePacketQueueEntry(queueEntry);
   const optimizationObjective = buildOptimizationObjective({
     taskName: canonicalTask.taskName,
-    queueEntry,
+    queueEntry: packetQueueEntry,
     activeStrategy,
     frontier: taskSpecificAdditions.frontier,
     latestCandidateStatus,
@@ -326,10 +333,9 @@ export async function buildTaskPacket(
     packetId,
     createdAt: packetCreatedAt,
     taskId: canonicalTask.taskId,
-    txTaskId: canonicalTask.txTaskId,
     taskSlug: canonicalTask.taskSlug,
     taskName: canonicalTask.taskName,
-    queueEntry,
+    queueEntry: packetQueueEntry,
     ...(activeStrategy ? { activeStrategy } : {}),
     availableStrategies,
     ...(baselineCallBudget !== undefined ? { baselineCallBudget } : {}),
@@ -342,6 +348,7 @@ export async function buildTaskPacket(
       statuses: summarizeCandidateStatuses(candidateStore, options.taskId),
     },
     tripletex2Evidence,
+    ...(productionRuns.length > 0 ? { productionRuns } : {}),
     ...(taskSpecificAdditions.historicalRuns
       ? { historicalRuns: taskSpecificAdditions.historicalRuns }
       : {}),
@@ -386,6 +393,37 @@ export async function buildTaskPacket(
   return {
     packet,
     packetPath,
+  };
+}
+
+function summarizePacketQueueEntry(
+  queueEntry: ResearchQueueEntry,
+): ResearchPacketQueueEntry {
+  return {
+    taskId: queueEntry.taskId,
+    taskSlug: queueEntry.taskSlug,
+    taskName: queueEntry.taskName,
+    priority: queueEntry.priority,
+    band: queueEntry.band,
+    queueEligibility: queueEntry.queueEligibility,
+    ...(queueEntry.researchLane ? { researchLane: queueEntry.researchLane } : {}),
+    ...(queueEntry.bestKnownScore !== undefined
+      ? { bestKnownScore: queueEntry.bestKnownScore }
+      : {}),
+    ...(queueEntry.maxScore !== undefined ? { maxScore: queueEntry.maxScore } : {}),
+    ...(queueEntry.baselineCallBudget !== undefined
+      ? { baselineCallBudget: queueEntry.baselineCallBudget }
+      : {}),
+    ...(queueEntry.proofInputPath
+      ? { proofInputPath: queueEntry.proofInputPath }
+      : {}),
+    ...(queueEntry.verificationPlanId
+      ? { verificationPlanId: queueEntry.verificationPlanId }
+      : {}),
+    notes: [...queueEntry.notes],
+    ...(queueEntry.operatorNotes
+      ? { operatorNotes: [...queueEntry.operatorNotes] }
+      : {}),
   };
 }
 
@@ -463,6 +501,52 @@ async function gatherTripletex2Evidence(
     runCount: matchingArtifacts.length,
     recentArtifacts: matchingArtifacts.slice(0, 5),
   };
+}
+
+async function gatherProductionRuns(
+  taskId: string,
+): Promise<ResearchProductionRunSummary[]> {
+  const canonicalTask =
+    CANONICAL_TASK_REGISTRY.find((entry) => entry.taskId === taskId) ??
+    undefined;
+  const legacyTaskId = canonicalTask?.txTaskId ?? taskId;
+  const runsRoot = path.join(tripletex1Root, "data", "production", "runs");
+  const runEntries = await readdir(runsRoot, { withFileTypes: true });
+  const productionRuns: ResearchProductionRunSummary[] = [];
+
+  for (const entry of runEntries) {
+    if (!entry.isDirectory() || !entry.name.startsWith("prod-")) {
+      continue;
+    }
+
+    const runPath = path.join(runsRoot, entry.name);
+    const taskAttributionPath = path.join(runPath, "task-attribution.json");
+    const attribution = await readOptionalJsonFile<Record<string, unknown>>(
+      taskAttributionPath,
+    );
+    if (!attribution) {
+      continue;
+    }
+
+    if (
+      typeof attribution.tx_task_id !== "string" ||
+      attribution.tx_task_id !== legacyTaskId
+    ) {
+      continue;
+    }
+
+    const submissionScore = await readOptionalJsonFile<Record<string, unknown>>(
+      path.join(runPath, "submission-score.json"),
+    );
+    productionRuns.push({
+      path: runPath,
+      timestamp: resolveProductionRunTimestamp(entry.name, attribution, submissionScore),
+      score: formatProductionRunScore(submissionScore),
+    });
+  }
+
+  productionRuns.sort((left, right) => right.timestamp.localeCompare(left.timestamp));
+  return productionRuns;
 }
 
 async function gatherLegacyEvidence(
@@ -1132,6 +1216,61 @@ function buildSubmissionScoreSummary(
       ? { allChecksPassed: raw.all_checks_passed }
       : {}),
   };
+}
+
+function formatProductionRunScore(
+  raw: Record<string, unknown> | undefined,
+): string {
+  if (!raw) {
+    return "missing";
+  }
+
+  if (
+    typeof raw.score_raw === "number" &&
+    typeof raw.score_max === "number"
+  ) {
+    return `${formatScore(raw.score_raw)}/${formatScore(raw.score_max)}`;
+  }
+
+  if (typeof raw.normalized_score === "number") {
+    return formatScore(raw.normalized_score);
+  }
+
+  if (typeof raw.status === "string" && raw.status.trim().length > 0) {
+    return raw.status.trim();
+  }
+
+  return "unknown";
+}
+
+function resolveProductionRunTimestamp(
+  runId: string,
+  attribution: Record<string, unknown>,
+  submissionScore: Record<string, unknown> | undefined,
+): string {
+  const parsedRunIdTimestamp = parseRunIdTimestamp(runId);
+  if (parsedRunIdTimestamp !== "unknown") {
+    return parsedRunIdTimestamp;
+  }
+
+  const fallbackTimestamp = firstString(
+    attribution.task_complete_timestamp,
+    attribution.generated_at,
+    submissionScore?.task_completed_at,
+    submissionScore?.completed_at,
+    submissionScore?.generated_at,
+  );
+  return fallbackTimestamp ?? "unknown";
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return undefined;
 }
 
 function parseRunIdTimestamp(runId: string): string {

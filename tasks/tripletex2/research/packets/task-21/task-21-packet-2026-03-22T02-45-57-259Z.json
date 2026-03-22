@@ -1,0 +1,231 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-21-packet-2026-03-22T02-45-57-259Z",
+  "createdAt": "2026-03-22T02:45:57.259Z",
+  "taskId": "21",
+  "taskSlug": "onboard-employee-offer-letter",
+  "taskName": "Onboard employee from offer letter",
+  "queueEntry": {
+    "taskId": "21",
+    "taskSlug": "onboard-employee-offer-letter",
+    "taskName": "Onboard employee from offer letter",
+    "priority": 17,
+    "band": "watch",
+    "queueEligibility": "hold",
+    "bestKnownScore": 2.5714,
+    "maxScore": 6,
+    "notes": [
+      "Task identity fixed 2026-03-22: was incorrectly labeled 'Correct ledger errors audit'.",
+      "Strategy 21.onboard-employee-offer-letter.v1 implemented with remunerationType=NOT_CHOSEN fix.",
+      "Expected to fix Check 5 (always fails) and reach 10/10 checks → approaching 6.0/6.",
+      "Needs production run to confirm."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "21.onboard-employee-offer-letter.v1",
+    "strategyPath": "src/tasks/task-21/strategies/onboard-employee-offer-letter.ts",
+    "strategyStatus": "active",
+    "strategyName": "Onboard employee from offer letter (tilbudsbrev)",
+    "summary": "Creates the department and employee from tilbudsbrev data. Forces remunerationType=NOT_CHOSEN because offer letters do not specify Lonnstype.",
+    "hypothesis": "Setting remunerationType to NOT_CHOSEN (instead of MONTHLY_WAGE) will fix Check 5 which fails on every historical run. Combined with hardcoded occupation codes and the 4-call path, this should achieve 10/10 checks and max score.",
+    "expectedCallProfile": {
+      "targetCalls": 4,
+      "maxCalls": 5
+    },
+    "stepOutline": [
+      "API call 1: GET /division?count=1&fields=id to check if the account has a division.",
+      "API call 2: POST /department with the department name from the tilbudsbrev (or GET + POST if needed).",
+      "API call 3: POST /employee with nested employmentDetails including remunerationType=NOT_CHOSEN and the resolved occupationCode.",
+      "API call 4: POST /employee/standardTime with hoursPerDay from the tilbudsbrev (conditional)."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "21.onboard-employee-offer-letter.v1",
+      "strategyPath": "src/tasks/task-21/strategies/onboard-employee-offer-letter.ts",
+      "strategyStatus": "active",
+      "strategyName": "Onboard employee from offer letter (tilbudsbrev)",
+      "summary": "Creates the department and employee from tilbudsbrev data. Forces remunerationType=NOT_CHOSEN because offer letters do not specify Lonnstype.",
+      "hypothesis": "Setting remunerationType to NOT_CHOSEN (instead of MONTHLY_WAGE) will fix Check 5 which fails on every historical run. Combined with hardcoded occupation codes and the 4-call path, this should achieve 10/10 checks and max score.",
+      "expectedCallProfile": {
+        "targetCalls": 4,
+        "maxCalls": 5
+      },
+      "stepOutline": [
+        "API call 1: GET /division?count=1&fields=id to check if the account has a division.",
+        "API call 2: POST /department with the department name from the tilbudsbrev (or GET + POST if needed).",
+        "API call 3: POST /employee with nested employmentDetails including remunerationType=NOT_CHOSEN and the resolved occupationCode.",
+        "API call 4: POST /employee/standardTime with hoursPerDay from the tilbudsbrev (conditional)."
+      ]
+    }
+  ],
+  "baselineCallBudget": 4,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Onboard employee from offer letter. Current best known score is 2.5714/6, leaving a gap of 3.4286. Known call frontier is 4 calls when correctness matches the current best evidence. The active pinned strategy to beat is 21.onboard-employee-offer-letter.v1 with target 4 calls.",
+    "currentBestKnownScore": 2.5714,
+    "maxScore": 6,
+    "scoreGap": 3.4286,
+    "bestKnownCallBudget": 4,
+    "baselineCallBudget": 4,
+    "activeStrategyToBeat": {
+      "strategyId": "21.onboard-employee-offer-letter.v1",
+      "strategyPath": "src/tasks/task-21/strategies/onboard-employee-offer-letter.ts",
+      "strategyStatus": "active",
+      "strategyName": "Onboard employee from offer letter (tilbudsbrev)",
+      "summary": "Creates the department and employee from tilbudsbrev data. Forces remunerationType=NOT_CHOSEN because offer letters do not specify Lonnstype.",
+      "hypothesis": "Setting remunerationType to NOT_CHOSEN (instead of MONTHLY_WAGE) will fix Check 5 which fails on every historical run. Combined with hardcoded occupation codes and the 4-call path, this should achieve 10/10 checks and max score.",
+      "expectedCallProfile": {
+        "targetCalls": 4,
+        "maxCalls": 5
+      },
+      "stepOutline": [
+        "API call 1: GET /division?count=1&fields=id to check if the account has a division.",
+        "API call 2: POST /department with the department name from the tilbudsbrev (or GET + POST if needed).",
+        "API call 3: POST /employee with nested employmentDetails including remunerationType=NOT_CHOSEN and the resolved occupationCode.",
+        "API call 4: POST /employee/standardTime with hoursPerDay from the tilbudsbrev (conditional)."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 2.5714/6, or match the current correctness and score at 4 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 21.onboard-employee-offer-letter.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 2.5714/6.",
+      "If score does not improve, match correctness at 4 API calls or fewer.",
+      "Compare against the active pinned strategy 21.onboard-employee-offer-letter.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21/strategies/onboard-employee-offer-letter.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-21/strategies/onboard-employee-offer-letter.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-21/task-21-packet-2026-03-22T02-45-57-259Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-production-2026-03-21T18-25-10-502Z-3f36fc78.json"
+      ]
+    },
+    "offlineEvidence": {
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 1,
+    "recentArtifacts": [
+      {
+        "runId": "production-2026-03-21T18-25-10-502Z-3f36fc78",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-production-2026-03-21T18-25-10-502Z-3f36fc78.json",
+        "createdAt": "2026-03-21T18:25:10.502Z",
+        "runtimeStatus": "failed",
+        "strategyId": "21.correct-ledger-errors.v1",
+        "apiCallCount": 2
+      }
+    ]
+  },
+  "productionRuns": [
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-200041332Z-659ca714",
+      "timestamp": "2026-03-21T20:00:41.332Z",
+      "score": "12/14"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-182837970Z-aff0bd66",
+      "timestamp": "2026-03-21T18:28:37.970Z",
+      "score": "12/14"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-173946523Z-0523d6a8",
+      "timestamp": "2026-03-21T17:39:46.523Z",
+      "score": "12/14"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-160658035Z-6dc64519",
+      "timestamp": "2026-03-21T16:06:58.035Z",
+      "score": "12/14"
+    }
+  ],
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 2.571428571428571,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 2.571428571428571,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 2.571428571428571,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 2.571428571428571,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 2.571428571428571,
+        "totalAttempts": 10,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 4,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-200041332Z-659ca714",
+      "prod-2026-03-21-182837970Z-aff0bd66",
+      "prod-2026-03-21-173946523Z-0523d6a8",
+      "prod-2026-03-21-160658035Z-6dc64519"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "knownFailureModes": []
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Task identity fixed 2026-03-22: was incorrectly labeled 'Correct ledger errors audit'.",
+    "Strategy 21.onboard-employee-offer-letter.v1 implemented with remunerationType=NOT_CHOSEN fix.",
+    "Expected to fix Check 5 (always fails) and reach 10/10 checks → approaching 6.0/6.",
+    "Needs production run to confirm.",
+    "Task packet built from checked-in repo evidence for task 21.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 21.onboard-employee-offer-letter.v1."
+  ]
+}

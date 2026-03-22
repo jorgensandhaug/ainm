@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const CREATE_CUSTOMER_TASK_ID = "01";
-export const CREATE_CUSTOMER_TX_TASK_ID = "01";
+export const CREATE_CUSTOMER_TX_TASK_ID = "02";
 export const CREATE_CUSTOMER_INPUT_SCHEMA_ID = "01.v1";
 export interface CreateCustomerPostalAddressInput {
   addressLine1: string;

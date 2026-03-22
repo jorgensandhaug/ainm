@@ -1,0 +1,191 @@
+{
+  "schemaVersion": "tripletex2.research-verification-report.v1",
+  "reportId": "verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z",
+  "createdAt": "2026-03-22T02:29:50.998Z",
+  "taskId": "10",
+  "strategyId": "10.issue-full-credit-note.v1",
+  "candidateId": "10.issue-full-credit-note.v1",
+  "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/packets/task-10/task-10-packet-2026-03-22T02-21-54-601Z.json",
+  "stageDirectory": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/verifications/task-10/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z/stage",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/verifications/task-10/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z/artifacts/2026-03-22/run-verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z.json",
+  "sandboxReset": {
+    "command": "sandbox reset skipped",
+    "exitCode": 0,
+    "stdout": "sandbox reset skipped by operator request\n",
+    "stderr": "",
+    "highlights": [
+      "sandbox reset skipped by operator request"
+    ]
+  },
+  "challengeRun": {
+    "runtimeStatus": "completed",
+    "apiCallCount": 2,
+    "baselineCallBudget": 2,
+    "withinBudget": true
+  },
+  "inspection": {
+    "status": "passed",
+    "apiCallCount": 1,
+    "checks": [
+      {
+        "checkId": "credit-note-readback",
+        "description": "Read the created credit note and confirm it links back to the original invoice.",
+        "status": "passed",
+        "requestPath": "/invoice/2147668991",
+        "requestQuery": {
+          "fields": "*,customer(*)"
+        },
+        "assertions": [
+          {
+            "actualPath": "creditedInvoice",
+            "expectedPath": "result.createdEntityIds.originalInvoiceId",
+            "actualValue": 2147648832,
+            "expectedValue": 2147648832,
+            "passed": true
+          },
+          {
+            "actualPath": "invoiceNumber",
+            "expectedPath": "result.verification.creditNoteNumber",
+            "actualValue": 518,
+            "expectedValue": 518,
+            "passed": true
+          }
+        ],
+        "selectedValue": {
+          "id": 2147668991,
+          "version": 2,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/invoice/2147668991",
+          "invoiceNumber": 518,
+          "invoiceDate": "2026-03-22",
+          "customer": {
+            "id": 108451195,
+            "version": 1,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/customer/108451195",
+            "name": "VatTest 6306860 AS",
+            "organizationNumber": "905570862",
+            "globalLocationNumber": 0,
+            "supplierNumber": 0,
+            "customerNumber": 99849,
+            "isSupplier": false,
+            "isCustomer": true,
+            "isInactive": false,
+            "accountManager": null,
+            "department": null,
+            "email": "",
+            "invoiceEmail": "",
+            "overdueNoticeEmail": "",
+            "phoneNumber": "",
+            "phoneNumberMobile": "",
+            "description": "",
+            "language": "NO",
+            "displayName": "VatTest 6306860 AS (99849)",
+            "isPrivateIndividual": false,
+            "singleCustomerInvoice": false,
+            "invoiceSendMethod": "EMAIL",
+            "emailAttachmentType": "ATTACHMENT",
+            "postalAddress": {
+              "id": 405749841,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/address/405749841"
+            },
+            "physicalAddress": {
+              "id": 405749840,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/address/405749840"
+            },
+            "deliveryAddress": null,
+            "category1": null,
+            "category2": null,
+            "category3": null,
+            "invoicesDueIn": 14,
+            "invoicesDueInType": "DAYS",
+            "currency": {
+              "id": 1,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/currency/1"
+            },
+            "bankAccountPresentation": [],
+            "ledgerAccount": {
+              "id": 424190806,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/account/424190806"
+            },
+            "isFactoring": false,
+            "invoiceSendSMSNotification": false,
+            "invoiceSMSNotificationNumber": "",
+            "isAutomaticSoftReminderEnabled": false,
+            "isAutomaticReminderEnabled": false,
+            "isAutomaticNoticeOfDebtCollectionEnabled": false,
+            "discountPercentage": 0,
+            "website": ""
+          },
+          "creditedInvoice": 2147648832,
+          "isCredited": false,
+          "invoiceDueDate": "2026-03-22",
+          "kid": "",
+          "invoiceComment": "",
+          "comment": "",
+          "orders": [
+            {
+              "id": 402044418,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/order/402044418"
+            }
+          ],
+          "orderLines": [
+            {
+              "id": 1607594340,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/order/orderline/1607594340"
+            }
+          ],
+          "travelReports": [],
+          "projectInvoiceDetails": [
+            {
+              "id": 1965812066,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/invoice/details/1965812066"
+            }
+          ],
+          "voucher": {
+            "id": 609280111,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/voucher/609280111"
+          },
+          "deliveryDate": "2026-03-22",
+          "amount": -100000,
+          "amountCurrency": -100000,
+          "amountExcludingVat": -100000,
+          "amountExcludingVatCurrency": -100000,
+          "amountRoundoff": 0,
+          "amountRoundoffCurrency": 0,
+          "amountOutstanding": 0,
+          "amountCurrencyOutstanding": 0,
+          "amountOutstandingTotal": 0,
+          "amountCurrencyOutstandingTotal": 0,
+          "sumRemits": 0,
+          "currency": {
+            "id": 1,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/currency/1"
+          },
+          "isCreditNote": true,
+          "isCharged": true,
+          "isApproved": false,
+          "postings": [
+            {
+              "id": 3845940610,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3845940610"
+            },
+            {
+              "id": 3846146029,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/ledger/posting/3846146029"
+            }
+          ],
+          "reminders": [],
+          "invoiceRemarks": "",
+          "invoiceRemark": null,
+          "isPeriodizationPossible": true,
+          "documentId": 1024333840
+        }
+      }
+    ]
+  },
+  "verdict": {
+    "status": "sandbox-pass",
+    "correctnessPassed": true,
+    "withinBudget": true,
+    "message": "Challenger produced the expected sandbox state within the current baseline call budget."
+  }
+}

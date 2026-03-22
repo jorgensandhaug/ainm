@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z",
+  "sidecarId": "trace-1",
+  "kind": "sanitized-trace",
+  "createdAt": "2026-03-22T09:00:26.235Z",
+  "payload": {
+    "notes": [
+      "Captured 4 Tripletex API calls."
+    ],
+    "trace": [
+      {
+        "durationMs": 509,
+        "index": 1,
+        "method": "GET",
+        "path": "/division",
+        "query": {
+          "count": 1,
+          "fields": "id"
+        },
+        "requestSummary": "lookup division by count, fields",
+        "responseSummary": "division list 1 item",
+        "status": 200
+      },
+      {
+        "durationMs": 532,
+        "entityIds": {
+          "departmentId": 1011716
+        },
+        "index": 2,
+        "method": "POST",
+        "path": "/department",
+        "requestSummary": "create department with name",
+        "responseSummary": "departmentId 1011716",
+        "status": 201
+      },
+      {
+        "durationMs": 214,
+        "entityIds": {
+          "employeeId": 18771787
+        },
+        "index": 3,
+        "method": "POST",
+        "path": "/employee",
+        "requestSummary": "create employee with firstName, lastName, dateOfBirth, userType",
+        "responseSummary": "employeeId 18771787",
+        "status": 201
+      },
+      {
+        "durationMs": 113,
+        "entityIds": {
+          "standardTimeId": 45254
+        },
+        "index": 4,
+        "method": "POST",
+        "path": "/employee/standardTime",
+        "requestSummary": "create standardTime with employee, fromDate, hoursPerDay",
+        "responseSummary": "standardTimeId 45254",
+        "status": 201
+      }
+    ]
+  }
+}

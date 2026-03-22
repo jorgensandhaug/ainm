@@ -121,12 +121,10 @@ test("updateCandidateStoreFromVerification records reset-stage failures for acti
       packetId: "task-06-packet-test",
       createdAt: "2026-03-21T20:24:11.930Z",
       taskId: "06",
-      txTaskId: "06",
       taskSlug: "create-employee",
       taskName: "Create employee",
       queueEntry: {
         taskId: "06",
-        txTaskId: "06",
         taskSlug: "create-employee",
         taskName: "Create employee",
         priority: 1,

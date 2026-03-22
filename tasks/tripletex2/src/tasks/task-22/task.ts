@@ -49,7 +49,7 @@ export const task = {
     lineDescription:
       "Exact receipt line or purchase description that should be booked.",
     grossAmountNok:
-      "Gross NOK amount for the one receipt line that should be booked.",
+      "Receipt line amount in NOK as printed on the receipt. Do not add or remove VAT — the strategy computes the correct VAT-inclusive gross from the expense category's statutory rate.",
     voucherDate:
       "Receipt purchase date normalized to ISO YYYY-MM-DD and used as the voucher date.",
     attachmentFileName:
@@ -62,10 +62,11 @@ export const task = {
       "Whether the prompt explicitly says the target department already exists and runtime should prefer an exact lookup-first branch.",
   },
   extractionNotes: [
-    "Use the attached receipt PDF as first-class evidence to extract the booked line description, gross line amount, receipt date, and exact attachment filename.",
-    "Extract the selected receipt line amount, not the whole receipt total, when the prompt points to one specific line on a multi-line receipt.",
+    "Use the attached receipt PDF as first-class evidence to extract the booked line description, receipt line amount, receipt date, and exact attachment filename.",
+    "Extract the selected receipt line amount exactly as printed on the receipt, not the whole receipt total. Do NOT add VAT or multiply by any rate — pass the receipt line price as-is. The runtime strategy handles VAT conversion.",
     "Normalize the receipt date to ISO YYYY-MM-DD and preserve the department name and booked line text exactly.",
     "Only set expenseAccountNumber or vatRatePercent when the prompt or receipt makes them explicit; otherwise leave account and VAT selection to the deterministic runtime strategy.",
+    "Receipt line prices on Norwegian receipts are NET (before VAT) when the receipt shows 'herav MVA' and total × 0.25 equals the stated MVA. Pass the receipt line price exactly as printed — do not multiply by any VAT factor. The strategy converts to the correct gross using the statutory VAT rate for the expense category.",
     "Only set departmentAlreadyExists when the prompt explicitly says the department already exists or clearly implies a retry against existing state.",
   ] as const,
 } satisfies TaskSpec<
@@ -93,10 +94,13 @@ export async function loadTaskModule(): Promise<RegisterReceiptExpenseVoucherTas
   const { strategy } = await import(
     "./strategies/receipt-expense-booking"
   );
+  const { strategy: strategyV2 } = await import(
+    "./strategies/receipt-expense-booking-v2"
+  );
 
   return {
     task,
-    strategies: [strategy],
+    strategies: [strategy, strategyV2],
   };
 }
 

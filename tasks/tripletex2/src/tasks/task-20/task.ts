@@ -102,13 +102,16 @@ export type RegisterSupplierInvoicePdfTaskUnderstandingResult =
   >;
 
 export async function loadTaskModule(): Promise<RegisterSupplierInvoicePdfTaskModule> {
-  const { strategy } = await import(
+  const { strategy: v1 } = await import(
     "./strategies/register-supplier-invoice-pdf"
+  );
+  const { strategy: v2 } = await import(
+    "./strategies/register-supplier-invoice-pdf-v2"
   );
 
   return {
     task,
-    strategies: [strategy],
+    strategies: [v2, v1],
   };
 }
 

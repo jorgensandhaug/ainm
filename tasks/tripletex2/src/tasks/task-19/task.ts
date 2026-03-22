@@ -121,10 +121,13 @@ export async function loadTaskModule(): Promise<OnboardEmployeeFromContractTaskM
   const { strategy } = await import(
     "./strategies/onboard-employee-from-contract"
   );
+  const { strategy: strategyV3 } = await import(
+    "./strategies/onboard-employee-from-contract-v3"
+  );
 
   return {
     task,
-    strategies: [strategy],
+    strategies: [strategy, strategyV3],
   };
 }
 

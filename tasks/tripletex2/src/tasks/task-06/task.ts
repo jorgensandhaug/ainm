@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const CREATE_EMPLOYEE_TASK_ID = "06";
-export const CREATE_EMPLOYEE_TX_TASK_ID = "06";
+export const CREATE_EMPLOYEE_TX_TASK_ID = "01";
 export const CREATE_EMPLOYEE_INPUT_SCHEMA_ID = "06.v1";
 export interface CreateEmployeeInput {
   employeeName: string;
@@ -65,10 +65,19 @@ export type CreateEmployeeTaskUnderstandingResult = TaskUnderstandingResult<
   typeof CREATE_EMPLOYEE_TASK_ID
 >;
 export async function loadTaskModule(): Promise<CreateEmployeeTaskModule> {
-  const { strategy } = await import("./strategies/create-employee");
+  const [
+    { strategy: createEmployee },
+    { strategy: createEmployeeDirect },
+    { strategy: strategyV2 },
+  ] = await Promise.all([
+    import("./strategies/create-employee"),
+    import("./strategies/create-employee-direct"),
+    import("./strategies/create-employee-v2"),
+  ]);
+
   return {
     task,
-    strategies: [strategy],
+    strategies: [createEmployee, createEmployeeDirect, strategyV2],
   };
 }
 export const taskRegistration = {

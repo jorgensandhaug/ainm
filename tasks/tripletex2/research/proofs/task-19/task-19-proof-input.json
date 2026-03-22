@@ -1,0 +1,12 @@
+{
+  "employeeName": "Beatriz Martins",
+  "birthDate": "1996-09-27",
+  "departmentName": "Innkjøp",
+  "occupationCodeId": 2951,
+  "annualSalaryNok": 910000,
+  "percentageOfFullTimeEquivalent": 80,
+  "startDate": "2026-08-07",
+  "email": "beatriz.martins@example.org",
+  "nationalIdentityNumber": "27099607063",
+  "bankAccountNumber": "27935644327"
+}

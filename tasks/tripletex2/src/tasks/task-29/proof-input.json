@@ -1,0 +1,22 @@
+{
+  "projectName": "Cloud Migration Northwave",
+  "customerName": "Northwave Ltd",
+  "customerOrganizationNumber": "932075482",
+  "projectBudgetNok": 396900,
+  "employees": [
+    {
+      "employeeName": "Samuel Brown",
+      "email": "samuel.brown@example.org",
+      "hours": 74
+    },
+    {
+      "employeeName": "Sarah Lewis",
+      "email": "sarah.lewis@example.org",
+      "hours": 85
+    }
+  ],
+  "supplierName": "Clearwater Ltd",
+  "supplierOrganizationNumber": "889264985",
+  "supplierCostNok": 56750,
+  "projectManagerEmail": "samuel.brown@example.org"
+}

@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const CREATE_PROJECT_TASK_ID = "05";
-export const CREATE_PROJECT_TX_TASK_ID = "05";
+export const CREATE_PROJECT_TX_TASK_ID = "08";
 export const CREATE_PROJECT_INPUT_SCHEMA_ID = "05.v1";
 export interface CreateProjectInput {
   projectName: string;

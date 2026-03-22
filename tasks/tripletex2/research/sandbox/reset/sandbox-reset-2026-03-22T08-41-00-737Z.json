@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "tripletex2.sandbox-reset-report.v1",
+  "reportId": "sandbox-reset-2026-03-22T08-41-00-737Z",
+  "createdAt": "2026-03-22T08:41:00.737Z",
+  "dryRun": false,
+  "scannedFiles": 900,
+  "discoveredRefs": [
+    {
+      "entityType": "employee",
+      "entityId": 18667403,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employee",
+      "entityId": 18667476,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employee",
+      "entityId": 18667507,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employment",
+      "entityId": 2836302,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employment",
+      "entityId": 2836335,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "employment",
+      "entityId": 2836353,
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json",
+      "runId": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v1"
+    },
+    {
+      "entityType": "invoice",
+      "entityId": 2147685127,
+      "source": "verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z:research/verifications/task-11/verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.json",
+      "runId": "verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z",
+      "taskId": "11",
+      "strategyId": "11.order-invoice-combined-payment.v1"
+    }
+  ],
+  "actionResults": [
+    {
+      "actionId": "employee-18667403",
+      "entityType": "employee",
+      "entityId": 18667403,
+      "operation": "neutralize",
+      "status": "failed",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json",
+      "errorMessage": "Validering feilet."
+    },
+    {
+      "actionId": "employee-18667476",
+      "entityType": "employee",
+      "entityId": 18667476,
+      "operation": "neutralize",
+      "status": "failed",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json",
+      "errorMessage": "Validering feilet."
+    },
+    {
+      "actionId": "employee-18667507",
+      "entityType": "employee",
+      "entityId": 18667507,
+      "operation": "neutralize",
+      "status": "failed",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json",
+      "errorMessage": "Validering feilet."
+    },
+    {
+      "actionId": "employment-2836302",
+      "entityType": "employment",
+      "entityId": 2836302,
+      "operation": "neutralize",
+      "status": "completed",
+      "path": "/employee/employment/2836302",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json"
+    },
+    {
+      "actionId": "employment-2836335",
+      "entityType": "employment",
+      "entityId": 2836335,
+      "operation": "neutralize",
+      "status": "completed",
+      "path": "/employee/employment/2836335",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json"
+    },
+    {
+      "actionId": "employment-2836353",
+      "entityType": "employment",
+      "entityId": 2836353,
+      "operation": "neutralize",
+      "status": "completed",
+      "path": "/employee/employment/2836353",
+      "source": "verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json"
+    },
+    {
+      "actionId": "invoice-2147685127",
+      "entityType": "invoice",
+      "entityId": 2147685127,
+      "operation": "credit-note",
+      "status": "completed",
+      "path": "/invoice/2147685127/:createCreditNote",
+      "source": "verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z:research/verifications/task-11/verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.json",
+      "details": "creditNoteId 2147685203"
+    }
+  ],
+  "summary": {
+    "completed": 4,
+    "failed": 3,
+    "skipped": 0,
+    "alreadyClean": 0
+  }
+}

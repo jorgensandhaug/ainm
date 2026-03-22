@@ -296,7 +296,7 @@ The durable manual-launch surface is:
 - `research/AGENTS.md` = instructions
 - `src/tasks/task-XX/RESEARCH.md` = task-local memory
 
-The agent should read the packet first, identify the current frontier to beat, inspect the task-local `RESEARCH.md`, and only then touch code.
+The agent should read the packet first, inspect the packet's `productionRuns` paths and the actual run folders/scripts for that same canonical task id, identify the current frontier to beat, inspect the task-local `RESEARCH.md`, and only then touch code.
 
 The request should still be optimization-shaped.
 
@@ -304,6 +304,7 @@ The packet should already include:
 
 - the task definition,
 - the existing best strategies,
+- task-scoped `productionRuns` paths with timestamps and scores,
 - the relevant run results,
 - the explicit optimization target,
 - the verification command,

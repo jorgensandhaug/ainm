@@ -1,0 +1,14 @@
+{
+  "employeeEmail": "simen.sandhaug@gmail.com",
+  "employeeName": "Simen Sandhaug",
+  "title": "Kundebesøk Stavanger",
+  "purpose": "Kundebesøk Stavanger",
+  "tripDurationDays": 3,
+  "costs": [
+    { "categoryName": "Fly", "amountNokInclVat": 3900, "comment": "Flybillett" },
+    { "categoryName": "Taxi", "amountNokInclVat": 350, "comment": "Taxi" }
+  ],
+  "perDiemCompensations": [
+    { "count": 3, "rateNok": 800, "amountNok": 2400 }
+  ]
+}

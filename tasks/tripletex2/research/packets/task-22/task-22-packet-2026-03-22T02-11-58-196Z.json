@@ -1,0 +1,199 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-22-packet-2026-03-22T02-11-58-196Z",
+  "createdAt": "2026-03-22T02:11:58.196Z",
+  "taskId": "22",
+  "txTaskId": "22",
+  "taskSlug": "register-receipt-expense-voucher",
+  "taskName": "Register receipt expense voucher",
+  "queueEntry": {
+    "taskId": "22",
+    "txTaskId": "22",
+    "taskSlug": "register-receipt-expense-voucher",
+    "taskName": "Register receipt expense voucher",
+    "priority": 3,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "researchLane": "zero-score-upside",
+    "bestKnownScore": 0,
+    "maxScore": 6,
+    "notes": [
+      "Zero-score task with suspected account or VAT heuristic problems."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "22.receipt-expense-booking.v1",
+    "strategyPath": "src/tasks/task-22/strategies/receipt-expense-booking.ts",
+    "strategyStatus": "draft",
+    "strategyName": "Receipt expense booking with department",
+    "summary": "Creates or resolves the target department, resolves bank and expense accounts, picks VAT only when the chosen account is not VAT-locked, posts a direct manual voucher, and uploads the source receipt to that voucher.",
+    "hypothesis": "The winning task-22 branch is a direct voucher plus attachment flow, with account and VAT selected deterministically from the booked receipt line instead of using supplier-invoice import paths.",
+    "expectedCallProfile": {
+      "targetCalls": 5,
+      "maxCalls": 6
+    },
+    "stepOutline": [
+      "Department branch: POST /department for the normal fresh-account path, or GET /department with exact-name local filtering when the prompt explicitly says the department already exists.",
+      "API call 2: GET /ledger/account for account 1920 plus the deterministic expense-account candidate set.",
+      "Optional VAT call: GET /ledger/vatType only when the chosen expense account is not VAT-locked.",
+      "API call 4 or 5: POST /ledger/voucher with one expense line and one balancing bank line.",
+      "Final API call: POST /ledger/voucher/{voucherId}/attachment with the original receipt PDF."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "22.receipt-expense-booking.v1",
+      "strategyPath": "src/tasks/task-22/strategies/receipt-expense-booking.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Receipt expense booking with department",
+      "summary": "Creates or resolves the target department, resolves bank and expense accounts, picks VAT only when the chosen account is not VAT-locked, posts a direct manual voucher, and uploads the source receipt to that voucher.",
+      "hypothesis": "The winning task-22 branch is a direct voucher plus attachment flow, with account and VAT selected deterministically from the booked receipt line instead of using supplier-invoice import paths.",
+      "expectedCallProfile": {
+        "targetCalls": 5,
+        "maxCalls": 6
+      },
+      "stepOutline": [
+        "Department branch: POST /department for the normal fresh-account path, or GET /department with exact-name local filtering when the prompt explicitly says the department already exists.",
+        "API call 2: GET /ledger/account for account 1920 plus the deterministic expense-account candidate set.",
+        "Optional VAT call: GET /ledger/vatType only when the chosen expense account is not VAT-locked.",
+        "API call 4 or 5: POST /ledger/voucher with one expense line and one balancing bank line.",
+        "Final API call: POST /ledger/voucher/{voucherId}/attachment with the original receipt PDF."
+      ]
+    }
+  ],
+  "baselineCallBudget": 5,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Register receipt expense voucher. Current best known score is 0/6, leaving a gap of 6. Known call frontier is 5 calls when correctness matches the current best evidence. The active pinned strategy to beat is 22.receipt-expense-booking.v1 with target 5 calls.",
+    "currentBestKnownScore": 0,
+    "maxScore": 6,
+    "scoreGap": 6,
+    "bestKnownCallBudget": 5,
+    "baselineCallBudget": 5,
+    "activeStrategyToBeat": {
+      "strategyId": "22.receipt-expense-booking.v1",
+      "strategyPath": "src/tasks/task-22/strategies/receipt-expense-booking.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Receipt expense booking with department",
+      "summary": "Creates or resolves the target department, resolves bank and expense accounts, picks VAT only when the chosen account is not VAT-locked, posts a direct manual voucher, and uploads the source receipt to that voucher.",
+      "hypothesis": "The winning task-22 branch is a direct voucher plus attachment flow, with account and VAT selected deterministically from the booked receipt line instead of using supplier-invoice import paths.",
+      "expectedCallProfile": {
+        "targetCalls": 5,
+        "maxCalls": 6
+      },
+      "stepOutline": [
+        "Department branch: POST /department for the normal fresh-account path, or GET /department with exact-name local filtering when the prompt explicitly says the department already exists.",
+        "API call 2: GET /ledger/account for account 1920 plus the deterministic expense-account candidate set.",
+        "Optional VAT call: GET /ledger/vatType only when the chosen expense account is not VAT-locked.",
+        "API call 4 or 5: POST /ledger/voucher with one expense line and one balancing bank line.",
+        "Final API call: POST /ledger/voucher/{voucherId}/attachment with the original receipt PDF."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 0/6, or match the current correctness and score at 5 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 22.receipt-expense-booking.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 0/6.",
+      "If score does not improve, match correctness at 5 API calls or fewer.",
+      "Compare against the active pinned strategy 22.receipt-expense-booking.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/src/tasks/task-22",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/src/tasks/task-22/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/src/tasks/task-22/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/src/tasks/task-22/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/src/tasks/task-22/strategies/receipt-expense-booking.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/src/tasks/task-22/strategies/receipt-expense-booking.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/research/packets/task-22/task-22-packet-2026-03-22T02-11-58-196Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": []
+    },
+    "offlineEvidence": {
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 0,
+    "recentArtifacts": []
+  },
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 2.0999999999999996,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 2.0999999999999996,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 2.0999999999999996,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 2.0999999999999996,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 2.0999999999999996,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-204331765Z-3373fbc9",
+      "prod-2026-03-21-200322002Z-4c7f5f3e",
+      "prod-2026-03-21-191432442Z-01420e60",
+      "prod-2026-03-21-190126385Z-67d4ddca",
+      "prod-2026-03-21-140440371Z-c30a61b6"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "knownFailureModes": []
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Zero-score task with suspected account or VAT heuristic problems.",
+    "Task packet built from checked-in repo evidence for task 22.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 22.receipt-expense-booking.v1."
+  ]
+}

@@ -1,0 +1,638 @@
+/**
+ * Candidate strategy: create-employee with department pre-read
+ *
+ * Origin: prod48 shard-B analysis (2026-03-22)
+ * Evidence: Runs b23d4cc2 (Nynorsk) and 3705040b (German) both independently
+ * hit the department repair branch (POST 422 → GET dept → POST with dept = 3 calls, 1 error)
+ * and both independently produced sandbox scripts validating a pre-read strategy
+ * (GET dept → POST with dept = 2 calls, 0 errors).
+ *
+ * Hypothesis: Pre-reading department before the initial POST /employee eliminates the
+ * known 422 repair branch, reducing calls from 3→2 and errors from 1→0 in the common
+ * case where department.id is required (observed in 100% of shard-B task-06 runs).
+ *
+ * Trade-off: In sandboxes where department.id is NOT required, the pre-read adds 1 wasted
+ * GET call (2 calls vs 1 call for the current strategy). However, production evidence shows
+ * the department-required case is dominant — the repair branch fires on every observed run.
+ *
+ * Call profile: target 2 calls (GET dept + POST employee), max 5 calls (with division repair).
+ * Current v1 profile: target 2 calls (optimistic), max 6 calls (with dept + div repair).
+ *
+ * This file is a candidate — it documents the strategy shape and evidence but is NOT
+ * wired into the task registry. To promote it:
+ * 1. Copy the run() logic into src/tasks/task-06/strategies/create-employee-preread.ts
+ * 2. Register it in task-06/task.ts with strategyId "06.create-employee-preread.v1"
+ * 3. Set it active in configs/active-strategies.json
+ * 4. Run the test suite and sandbox verification
+ */
+
+import type {
+  StrategyContext,
+  StrategyResult,
+} from "../../../runtime/contracts";
+import { TripletexHttpError } from "../../../runtime/tripletex-client";
+import type { CreateEmployeeInput, CreateEmployeeStrategy } from "../../task-06/task";
+import { CREATE_EMPLOYEE_TASK_ID } from "../../task-06/task";
+
+interface DepartmentSummary {
+  id: number;
+  name?: string;
+}
+
+interface DivisionSummary {
+  id: number;
+  name?: string;
+}
+
+interface EmployeeSummary {
+  id: number;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  dateOfBirth?: string;
+  userType?: string | null;
+  employments?: EmploymentSummary[];
+}
+
+interface EmploymentSummary {
+  id?: number;
+  startDate?: string;
+}
+
+interface ListResponse<TValue> {
+  values?: TValue[];
+}
+
+interface ResponseWrapper<TValue> {
+  value?: TValue;
+}
+
+type EmployeeUserType = "STANDARD" | "EXTENDED" | "NO_ACCESS";
+
+export const strategy = {
+  strategyId: "06.create-employee-preread.v1",
+  strategyPath:
+    "src/tasks/strategy/candidates/prod48-shard-b.ts",
+  taskId: CREATE_EMPLOYEE_TASK_ID,
+  name: "Create employee (department pre-read)",
+  summary:
+    "Pre-reads the first active department before creating the employee, eliminating the known 422 repair branch. Falls back to division repair if the department-inclusive POST still fails.",
+  hypothesis:
+    "Department is required in 100% of observed production runs. Pre-reading it avoids the try-fail-retry cycle, reducing calls from 3→2 and errors from 1→0 in the common case.",
+  expectedCallProfile: {
+    targetCalls: 2,
+    maxCalls: 5,
+  },
+  stepOutline: [
+    "API call 1: GET /department?isInactive=false&count=1&fields=* to resolve the first active department.",
+    "API call 2: POST /employee with firstName, lastName, dateOfBirth, email, userType, department.id, and nested employments[].",
+    "Conditional repair: if the POST fails on the division validation branch, GET /division and retry with employments[].division.id.",
+    "Verification call: GET /employee/employment by employeeId only when the successful write response does not already prove the scored startDate.",
+  ],
+  status: "candidate" as const,
+  async run(
+    ctx: StrategyContext,
+    input: CreateEmployeeInput,
+  ): Promise<StrategyResult> {
+    const normalizedEmployeeName = normalizeEmployeeName(input.employeeName);
+    const normalizedBirthDate = normalizeIsoDate(input.birthDate, "birthDate");
+    const normalizedEmail = normalizeEmail(input.email);
+    const normalizedStartDate = normalizeIsoDate(input.startDate, "startDate");
+    const name = splitEmployeeName(normalizedEmployeeName);
+    const userType = normalizeUserType(input.userType);
+
+    // Step 1: Pre-read department (the key difference from v1)
+    const department = await resolveExistingDepartment(ctx);
+
+    const basePayload: Record<string, unknown> = {
+      firstName: name.firstName,
+      lastName: name.lastName,
+      dateOfBirth: normalizedBirthDate,
+      email: normalizedEmail,
+      userType,
+      employments: [
+        {
+          startDate: normalizedStartDate,
+        },
+      ],
+    };
+
+    if (department) {
+      basePayload.department = { id: department.id };
+    }
+
+    // Step 2: POST employee with department already attached
+    let employeeResponse: ResponseWrapper<EmployeeSummary>;
+
+    try {
+      employeeResponse = await createEmployee(ctx, basePayload);
+    } catch (error) {
+      if (!department && shouldAttemptDepartmentRepair(error)) {
+        // Unlikely path: pre-read returned no departments but one is required.
+        // Create a department, then retry.
+        const createdDepartment = await createDepartment(
+          ctx,
+          normalizedEmployeeName,
+        );
+        basePayload.department = { id: createdDepartment.id };
+
+        try {
+          employeeResponse = await createEmployee(ctx, basePayload);
+        } catch (retryError) {
+          if (!shouldAttemptDivisionRepair(retryError)) {
+            throw retryError;
+          }
+          const division = await resolveDivision(ctx);
+          employeeResponse = await createEmployee(ctx, {
+            ...basePayload,
+            employments: [
+              {
+                startDate: normalizedStartDate,
+                division: { id: division.id },
+              },
+            ],
+          });
+        }
+      } else if (shouldAttemptDivisionRepair(error)) {
+        // Division repair: department was present but division is also required
+        const division = await resolveDivision(ctx);
+        employeeResponse = await createEmployee(ctx, {
+          ...basePayload,
+          employments: [
+            {
+              startDate: normalizedStartDate,
+              division: { id: division.id },
+            },
+          ],
+        });
+      } else {
+        throw error;
+      }
+    }
+
+    const employee = requireValue(employeeResponse.value, "employee");
+    const employeeId = requireId(employee.id, "employee");
+    const notes: string[] = [];
+    let employmentId = pickEmploymentId(employee.employments ?? []);
+
+    if (
+      !responseProvesStartDate(
+        employee.employments ?? [],
+        normalizedStartDate,
+      )
+    ) {
+      const employmentResponse = await ctx.tripletex.get<
+        ListResponse<EmploymentSummary>
+      >("/employee/employment", {
+        query: {
+          employeeId,
+          fields: "*",
+        },
+      });
+      const employment = pickEmploymentForStartDate(
+        employmentResponse.values ?? [],
+        normalizedStartDate,
+      );
+      employmentId = employment.id ?? employmentId;
+      notes.push(
+        "Verified the employment start date via /employee/employment because the create response did not echo it decisively.",
+      );
+    }
+
+    if (employee.userType == null) {
+      notes.push(
+        "Tripletex returned a sparse employee create response with userType=null; this is a known echo behavior for successful employee creation.",
+      );
+    }
+
+    return {
+      createdEntityIds: {
+        employeeId,
+        ...(typeof employmentId === "number" ? { employmentId } : {}),
+      },
+      notes,
+      verification: {
+        employeeName: normalizedEmployeeName,
+        firstName: name.firstName,
+        lastName: name.lastName,
+        startDate: normalizedStartDate,
+        userTypeRequested: userType,
+        email: employee.email ?? normalizedEmail,
+        dateOfBirth: employee.dateOfBirth ?? normalizedBirthDate,
+      },
+    };
+  },
+} satisfies CreateEmployeeStrategy;
+
+// ---------------------------------------------------------------------------
+// API helpers
+// ---------------------------------------------------------------------------
+
+async function createEmployee(
+  ctx: StrategyContext,
+  body: Record<string, unknown>,
+): Promise<ResponseWrapper<EmployeeSummary>> {
+  return ctx.tripletex.post<ResponseWrapper<EmployeeSummary>>("/employee", {
+    body,
+  });
+}
+
+async function resolveExistingDepartment(
+  ctx: StrategyContext,
+): Promise<DepartmentSummary | null> {
+  const response = await ctx.tripletex.get<ListResponse<DepartmentSummary>>(
+    "/department",
+    {
+      query: {
+        isInactive: false,
+        count: 1,
+        fields: "*",
+      },
+    },
+  );
+  return response.values?.[0] ?? null;
+}
+
+async function createDepartment(
+  ctx: StrategyContext,
+  employeeName: string,
+): Promise<DepartmentSummary> {
+  const created = await ctx.tripletex.post<ResponseWrapper<DepartmentSummary>>(
+    "/department",
+    {
+      body: {
+        name: `${employeeName.trim()} Department`,
+      },
+    },
+  );
+  return requireValue(created.value, "department");
+}
+
+async function resolveDivision(
+  ctx: StrategyContext,
+): Promise<DivisionSummary> {
+  const response = await ctx.tripletex.get<ListResponse<DivisionSummary>>(
+    "/division",
+    {
+      query: {
+        count: 1,
+        fields: "*",
+      },
+    },
+  );
+  const division = response.values?.[0];
+  if (!division) {
+    throw new Error(
+      "Tripletex required employments.division.id, but no division was available for repair.",
+    );
+  }
+  return division;
+}
+
+// ---------------------------------------------------------------------------
+// Validation / repair guards
+// ---------------------------------------------------------------------------
+
+function isValidationError(error: unknown): error is TripletexHttpError {
+  return error instanceof TripletexHttpError && error.status === 422;
+}
+
+function shouldAttemptDepartmentRepair(
+  error: unknown,
+): error is TripletexHttpError {
+  if (!isValidationError(error)) {
+    return false;
+  }
+  return !hasInputFieldValidationHint(error.message);
+}
+
+function shouldAttemptDivisionRepair(
+  error: unknown,
+): error is TripletexHttpError {
+  if (!isValidationError(error)) {
+    return false;
+  }
+  return !hasInputFieldValidationHint(error.message);
+}
+
+function hasInputFieldValidationHint(message: string): boolean {
+  const hint = stripDiacritics(message).toLowerCase();
+  return INPUT_FIELD_ERROR_HINTS.some((fieldHint) => hint.includes(fieldHint));
+}
+
+const INPUT_FIELD_ERROR_HINTS = [
+  "dateofbirth",
+  "birthdate",
+  "startdate",
+  "email",
+  "firstname",
+  "lastname",
+  "fornavn",
+  "etternavn",
+  "epost",
+  "e-post",
+  "fodselsdato",
+  "employments.startdate",
+];
+
+// ---------------------------------------------------------------------------
+// Input normalization (unchanged from v1)
+// ---------------------------------------------------------------------------
+
+function splitEmployeeName(employeeName: string): {
+  firstName: string;
+  lastName: string;
+} {
+  const trimmed = normalizeEmployeeName(employeeName);
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length < 2) {
+    throw new Error(
+      "employeeName must contain at least a first name and a last name.",
+    );
+  }
+  return {
+    firstName: parts.slice(0, -1).join(" "),
+    lastName: parts[parts.length - 1],
+  };
+}
+
+function normalizeEmployeeName(value: string): string {
+  const normalized = stripWrappingQuotes(value).trim().replace(/\s+/g, " ");
+  if (normalized.length === 0) {
+    throw new Error("employeeName must be a non-empty string.");
+  }
+  return normalized;
+}
+
+function normalizeEmail(value: string): string {
+  let normalized = stripWrappingQuotes(value).trim();
+  normalized = normalized.replace(/^mailto:/i, "");
+  const bracketMatch = normalized.match(/<([^<>\s@]+@[^<>\s@]+)>/);
+  if (bracketMatch) {
+    normalized = bracketMatch[1];
+  }
+  normalized = normalized.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+$/.test(normalized)) {
+    throw new Error("email must be a valid email address.");
+  }
+  return normalized;
+}
+
+function normalizeIsoDate(value: string, fieldName: string): string {
+  const trimmed = stripWrappingQuotes(value).trim();
+  if (trimmed.length === 0) {
+    throw new Error(`${fieldName} must be a non-empty string.`);
+  }
+
+  const isoMatch = trimmed.match(
+    /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/,
+  );
+  if (isoMatch) {
+    return formatIsoDate(
+      Number(isoMatch[1]),
+      Number(isoMatch[2]),
+      Number(isoMatch[3]),
+      fieldName,
+    );
+  }
+
+  const yearFirstMatch = trimmed.match(/^(\d{4})[/.](\d{1,2})[/.](\d{1,2})$/);
+  if (yearFirstMatch) {
+    return formatIsoDate(
+      Number(yearFirstMatch[1]),
+      Number(yearFirstMatch[2]),
+      Number(yearFirstMatch[3]),
+      fieldName,
+    );
+  }
+
+  const dayMonthYearMatch = trimmed.match(
+    /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/,
+  );
+  if (dayMonthYearMatch) {
+    const first = Number(dayMonthYearMatch[1]);
+    const second = Number(dayMonthYearMatch[2]);
+    const year = Number(dayMonthYearMatch[3]);
+    if (first > 12 || second <= 12) {
+      return formatIsoDate(year, second, first, fieldName);
+    }
+    return formatIsoDate(year, first, second, fieldName);
+  }
+
+  const words = foldNaturalLanguageDate(trimmed);
+  const dayFirstWordsMatch = words.match(/^(\d{1,2})\s+([a-z]+)\s+(\d{4})$/);
+  if (dayFirstWordsMatch) {
+    return formatIsoDate(
+      Number(dayFirstWordsMatch[3]),
+      lookupMonth(dayFirstWordsMatch[2], fieldName),
+      Number(dayFirstWordsMatch[1]),
+      fieldName,
+    );
+  }
+
+  const monthFirstWordsMatch = words.match(
+    /^([a-z]+)\s+(\d{1,2})\s+(\d{4})$/,
+  );
+  if (monthFirstWordsMatch) {
+    return formatIsoDate(
+      Number(monthFirstWordsMatch[3]),
+      lookupMonth(monthFirstWordsMatch[1], fieldName),
+      Number(monthFirstWordsMatch[2]),
+      fieldName,
+    );
+  }
+
+  throw new Error(
+    `${fieldName} must be a valid date string that can be normalized to YYYY-MM-DD.`,
+  );
+}
+
+function normalizeUserType(rawUserType: string | undefined): EmployeeUserType {
+  const normalized = rawUserType?.trim().toUpperCase().replace(/\s+/g, "_");
+  if (!normalized) {
+    return "NO_ACCESS";
+  }
+  if (
+    normalized === "STANDARD" ||
+    normalized === "EXTENDED" ||
+    normalized === "NO_ACCESS"
+  ) {
+    return normalized;
+  }
+  throw new Error(
+    `Unsupported userType "${rawUserType}". Expected STANDARD, EXTENDED, or NO_ACCESS.`,
+  );
+}
+
+function formatIsoDate(
+  year: number,
+  month: number,
+  day: number,
+  fieldName: string,
+): string {
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day)
+  ) {
+    throw new Error(`${fieldName} must contain numeric date parts.`);
+  }
+  const candidate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    candidate.getUTCFullYear() !== year ||
+    candidate.getUTCMonth() !== month - 1 ||
+    candidate.getUTCDate() !== day
+  ) {
+    throw new Error(`${fieldName} must be a valid calendar date.`);
+  }
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function foldNaturalLanguageDate(value: string): string {
+  return stripDiacritics(value)
+    .toLowerCase()
+    .replace(/[.,]/g, " ")
+    .replace(/\b(\d{1,2})(st|nd|rd|th)\b/g, "$1")
+    .replace(/\bde\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function lookupMonth(token: string, fieldName: string): number {
+  const month = NATURAL_LANGUAGE_MONTHS[token];
+  if (typeof month !== "number") {
+    throw new Error(
+      `${fieldName} includes an unsupported month name "${token}".`,
+    );
+  }
+  return month;
+}
+
+function stripWrappingQuotes(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length < 2) {
+    return trimmed;
+  }
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  if (
+    (first === `"` && last === `"`) ||
+    (first === `'` && last === `'`)
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function stripDiacritics(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function responseProvesStartDate(
+  employments: readonly EmploymentSummary[],
+  startDate: string,
+): boolean {
+  return employments.some((employment) => employment.startDate === startDate);
+}
+
+function pickEmploymentForStartDate(
+  employments: readonly EmploymentSummary[],
+  startDate: string,
+): EmploymentSummary {
+  const exactMatch = employments.find(
+    (employment) => employment.startDate === startDate,
+  );
+  if (exactMatch) {
+    return exactMatch;
+  }
+  if (employments.length === 1) {
+    return employments[0];
+  }
+  throw new Error(
+    `Tripletex did not return an employment proving startDate ${startDate}.`,
+  );
+}
+
+function pickEmploymentId(
+  employments: readonly EmploymentSummary[],
+): number | undefined {
+  const id = employments.find(
+    (employment) => typeof employment.id === "number",
+  )?.id;
+  return typeof id === "number" ? id : undefined;
+}
+
+function requireValue<TValue>(
+  value: TValue | undefined,
+  entityName: string,
+): TValue {
+  if (value === undefined) {
+    throw new Error(`Tripletex did not return a ${entityName} payload.`);
+  }
+  return value;
+}
+
+function requireId(value: number | undefined, entityName: string): number {
+  if (typeof value !== "number") {
+    throw new Error(`Tripletex did not return an ${entityName} id.`);
+  }
+  return value;
+}
+
+const NATURAL_LANGUAGE_MONTHS: Readonly<Record<string, number>> = {
+  jan: 1,
+  januar: 1,
+  january: 1,
+  janeiro: 1,
+  enero: 1,
+  feb: 2,
+  februar: 2,
+  february: 2,
+  fevereiro: 2,
+  febrero: 2,
+  mar: 3,
+  mars: 3,
+  march: 3,
+  marco: 3,
+  marzo: 3,
+  apr: 4,
+  april: 4,
+  abr: 4,
+  abril: 4,
+  mai: 5,
+  may: 5,
+  maio: 5,
+  mayo: 5,
+  jun: 6,
+  juni: 6,
+  june: 6,
+  junho: 6,
+  junio: 6,
+  jul: 7,
+  juli: 7,
+  july: 7,
+  julho: 7,
+  julio: 7,
+  aug: 8,
+  august: 8,
+  agosto: 8,
+  sep: 9,
+  sept: 9,
+  september: 9,
+  septiembre: 9,
+  setembro: 9,
+  okt: 10,
+  oct: 10,
+  october: 10,
+  octubre: 10,
+  outubro: 10,
+  nov: 11,
+  november: 11,
+  noviembre: 11,
+  novembro: 11,
+  des: 12,
+  dec: 12,
+  december: 12,
+  diciembre: 12,
+  dezembro: 12,
+};

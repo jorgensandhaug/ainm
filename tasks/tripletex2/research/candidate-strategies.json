@@ -1,6 +1,6 @@
 {
   "schemaVersion": "tripletex2.research-candidate-store.v1",
-  "updatedAt": "2026-03-21T21:38:12.930Z",
+  "updatedAt": "2026-03-22T09:00:26.234Z",
   "entries": [
     {
       "candidateId": "06.create-employee.v1",
@@ -28,6 +28,59 @@
       "updatedAt": "2026-03-21T20:53:36.324Z"
     },
     {
+      "candidateId": "06.create-employee.v2",
+      "taskId": "06",
+      "strategyId": "06.create-employee.v2",
+      "status": "needs-review",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/packets/task-06/task-06-packet-2026-03-22T02-12-21-076Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": false,
+        "apiCallCount": 5,
+        "baselineCallBudget": 2,
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z.json"
+      },
+      "notes": [
+        "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 06 --strategy 06.create-employee.v2\nExit code: 1\nDuration: 4233ms\nresearch sandbox reset summary: {\"taskId\":\"06\",\"strategyId\":\"06.create-employee.v2\",\"scannedFiles\":21,\"discoveredRefs\":6,\"completed\":3,\"failed\":3,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-23-40-981Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet.",
+        "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 06 --strategy 06.create-employee.v2\nExit code: 1\nDuration: 4806ms\nresearch sandbox reset summary: {\"taskId\":\"06\",\"strategyId\":\"06.create-employee.v2\",\"scannedFiles\":22,\"discoveredRefs\":6,\"completed\":3,\"failed\":3,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-25-10-324Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet.",
+        "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 06 --strategy 06.create-employee.v2\nExit code: 1\nDuration: 5635ms\nresearch sandbox reset summary: {\"taskId\":\"06\",\"strategyId\":\"06.create-employee.v2\",\"scannedFiles\":23,\"discoveredRefs\":6,\"completed\":3,\"failed\":3,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-29-29-497Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/_archived/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/_archived/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/_archived/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/_archived/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/_archived/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/_archived/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet.",
+        "Challenger produced the expected sandbox state but used 5 calls against a 2-call baseline budget.",
+        "Key finding: POST /employee with fields=employments(*) returns full employment data including startDate, eliminating the employment readback GET. Saves 1 call vs v1 on all paths (fresh: 1 call, sandbox repair: 5 calls).",
+        "fields=* alone does NOT expand nested objects. Only fields=employments(*) or fields=id,...,employments(*) expands nested employment data.",
+        "Manual disposable-sandbox test on 2026-03-22 confirmed: without fields param, employments are sparse {id,url}; with fields=employments(*), employments include startDate.",
+        "Sandbox reset blocker: 3 old v1 employee records (18667403, 18667476, 18667507) cannot be neutralized; verification used a fresh proof input (maria.lindqvist@example.org) to bypass.",
+        "NOT promotion-ready: fields=employments(*) is sandbox-proven only. Production proxy may strip or ignore this parameter. One production proof run is required before promotion.",
+        "Follow-up: repair routing hardened to use structured validationMessages[].field checks (department.id, employments.division.id) instead of v1's negative message heuristics.",
+        "Attribution caveat: the 1.4/2 baseline is from the leaderboard tx_task_id 06 entry, but production employee-creation runs were attributed to tx_task_id 01 (noisy attribution)."
+      ],
+      "createdAt": "2026-03-22T02:23:40.980Z",
+      "updatedAt": "2026-03-22T02:37:00.000Z"
+    },
+    {
+      "candidateId": "10.issue-full-credit-note.v1",
+      "taskId": "10",
+      "strategyId": "10.issue-full-credit-note.v1",
+      "strategyPath": "src/tasks/task-10/strategies/issue-full-credit-note.ts",
+      "strategyName": "Issue exact full credit note",
+      "status": "sandbox-pass",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/packets/task-10/task-10-packet-2026-03-22T02-21-54-601Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/verifications/task-10/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": true,
+        "apiCallCount": 2,
+        "baselineCallBudget": 2,
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/verifications/task-10/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-29-50-998Z.json"
+      },
+      "notes": [
+        "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 10 --strategy 10.issue-full-credit-note.v1\nExit code: 1\nDuration: 6906ms\nresearch sandbox reset summary: {\"taskId\":\"10\",\"strategyId\":\"10.issue-full-credit-note.v1\",\"scannedFiles\":21,\"discoveredRefs\":6,\"completed\":3,\"failed\":3,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-22-23-012Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet.",
+        "Challenger produced the expected sandbox state within the current baseline call budget."
+      ],
+      "createdAt": "2026-03-22T02:22:23.012Z",
+      "updatedAt": "2026-03-22T02:29:50.998Z"
+    },
+    {
       "candidateId": "11.order-invoice-prepaid.v1",
       "taskId": "11",
       "strategyId": "11.order-invoice-prepaid.v1",
@@ -41,6 +94,147 @@
       ],
       "createdAt": "2026-03-21T20:20:44Z",
       "updatedAt": "2026-03-21T20:21:01Z"
+    },
+    {
+      "candidateId": "15.register-hours-direct-invoice.v2",
+      "taskId": "15",
+      "strategyId": "15.register-hours-direct-invoice.v2",
+      "strategyPath": "src/tasks/task-15/strategies/register-hours-direct-invoice.ts",
+      "strategyName": "Register hours then direct invoice",
+      "status": "sandbox-pass",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/packets/task-15/task-15-packet-2026-03-22T02-40-54-692Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": true,
+        "apiCallCount": 7,
+        "baselineCallBudget": 7,
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.json"
+      },
+      "notes": [
+        "Challenger produced the expected sandbox state within the current baseline call budget."
+      ],
+      "createdAt": "2026-03-22T02:30:33.703Z",
+      "updatedAt": "2026-03-22T02:41:29.849Z"
+    },
+    {
+      "candidateId": "15.register-hours-then-project-order-invoice.v1",
+      "taskId": "15",
+      "strategyId": "15.register-hours-then-project-order-invoice.v1",
+      "strategyPath": "src/tasks/task-15/strategies/register-hours-then-project-order-invoice.ts",
+      "strategyName": "Register hours then project order invoice",
+      "status": "sandbox-pass",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/packets/task-15/task-15-packet-2026-03-22T02-22-31-113Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-then-project-order-invoice.v1-2026-03-22T02-23-51-886Z/verify-15-15.register-hours-then-project-order-invoice.v1-2026-03-22T02-23-51-886Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": true,
+        "apiCallCount": 7,
+        "baselineCallBudget": 7,
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-then-project-order-invoice.v1-2026-03-22T02-23-51-886Z/verify-15-15.register-hours-then-project-order-invoice.v1-2026-03-22T02-23-51-886Z.json"
+      },
+      "notes": [
+        "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 15 --strategy 15.register-hours-then-project-order-invoice.v1\nExit code: 1\nDuration: 13861ms\nresearch sandbox reset summary: {\"taskId\":\"15\",\"strategyId\":\"15.register-hours-then-project-order-invoice.v1\",\"scannedFiles\":21,\"discoveredRefs\":6,\"completed\":3,\"failed\":3,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-22-39-577Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet.",
+        "Challenger produced the expected sandbox state within the current baseline call budget."
+      ],
+      "createdAt": "2026-03-22T02:22:39.576Z",
+      "updatedAt": "2026-03-22T02:23:51.886Z"
+    },
+    {
+      "candidateId": "16.import-and-book-voucher.v2",
+      "taskId": "16",
+      "strategyId": "16.import-and-book-voucher.v2",
+      "strategyPath": "src/tasks/task-16/strategies/import-and-book-voucher-v2.ts",
+      "strategyName": "Import XML and book voucher (sendToLedger=true)",
+      "status": "sandbox-pass",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t16-research-wave1/tasks/tripletex2/research/packets/task-16/task-16-packet-2026-03-22T02-42-11-379Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": true,
+        "apiCallCount": 5,
+        "baselineCallBudget": 5,
+        "verificationRunId": "sandbox-16-16.import-and-book-voucher.v2-2026-03-22T02-43-27-722Z"
+      },
+      "notes": [
+        "Follow-up pass: synced onto corrected txTaskId mapping (task 16 → leaderboard 11). Fixed 5-task circular shift in the bridge (tasks 10/11/14/15/16).",
+        "Optimized from 6 calls to 5 by dropping GET /ledger/vatType and hardcoding vatType.id=1 for 25% incoming VAT. Matches the 5-call baseline budget.",
+        "Sandbox run 2026-03-22T02:43 completed: 5 calls, 0 errors. POST /supplier, GET /ledger/account, POST importDocument, PUT sendToLedger=false, PUT sendToLedger=true. Supplier 108507183, voucher 609284399.",
+        "sendToLedger=true hypothesis rests on cross-task evidence from task-20 (dedc4bfe 8/10 vs 53cb0731 7/10). Direct proof on task-11 rubric not yet available. Worst case: matches v1 correctness at same call count.",
+        "vatType.id=1 hardcode covers all observed production supplier-invoice prompts (all 25% VAT). Throws explicitly for unseen rates.",
+        "Mapping mismatch RESOLVED: corrected txTaskId for task 16 from '16' to '11'. Rebuilt packet now targets leaderboard task 11 (bestKnownScore=1/4, scoreGap=3)."
+      ],
+      "createdAt": "2026-03-22T02:12:05.000Z",
+      "updatedAt": "2026-03-22T02:43:30.000Z"
+    },
+    {
+      "candidateId": "17.register-payment.v1",
+      "taskId": "17",
+      "strategyId": "17.register-payment.v1",
+      "strategyPath": "src/tasks/task-17/strategies/register-payment.ts",
+      "strategyName": "Register exact invoice payment",
+      "status": "needs-review",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t17-research-wave1/tasks/tripletex2/research/packets/task-17/task-17-packet-2026-03-22T02-22-16-105Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": true,
+        "apiCallCount": 3,
+        "baselineCallBudget": 3,
+        "manualProof": true,
+        "manualProofDetails": "Direct sandbox verification 2026-03-22: invoice 2147552467 (org 907791616, Prosjektadministrasjon, 7000 NOK) paid in 3 calls. Automated verifier blocked by cross-task sandbox reset failure (task-06 employee leftovers). Bank account 1920 reconciled in sandbox, requiring Kontant type (1900) — sandbox-specific noise, not a production issue."
+      },
+      "notes": [
+        "Automated sandbox verifier blocked: reset fails on task-06 employee leftovers (Validering feilet / RevisionException). This is cross-task sandbox state noise, not a task-17 strategy issue.",
+        "Manual sandbox proof: invoice 2147552467 fully paid in exactly 3 API calls (GET /invoice → GET /invoice/paymentType → PUT /invoice/:payment), remaining outstanding = 0.",
+        "CRITICAL FINDING: txTaskId mapping appears incorrect. Production evidence shows contest tx_task_id 07 = 'register customer invoice payment' but our internal task 17 maps to txTaskId '17'. The packet bestKnownScore 3.5/4 is from contest task 17 (dimension/voucher), not the payment task. Actual payment task (contest task 07) scores 2.0/2.0 (max) in production with 100% correctness.",
+        "Sandbox bank account 1920 has reconciled statements blocking payments on that account. Kontant (1900) works. In production, preferred bank type (1920) always succeeds."
+      ],
+      "createdAt": "2026-03-22T02:22:26.228Z",
+      "updatedAt": "2026-03-22T02:30:00.000Z"
+    },
+    {
+      "candidateId": "21.onboard-employee-offer-letter.v1",
+      "taskId": "21",
+      "strategyId": "21.onboard-employee-offer-letter.v1",
+      "strategyPath": "src/tasks/task-21/strategies/onboard-employee-offer-letter.ts",
+      "strategyName": "Onboard employee from offer letter (tilbudsbrev)",
+      "status": "sandbox-pass",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-21/task-21-packet-2026-03-22T09-00-26-232Z.json",
+      "latestVerificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": true,
+        "apiCallCount": 4,
+        "baselineCallBudget": 4,
+        "verificationReportPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z.json"
+      },
+      "notes": [
+        "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 21 --strategy 21.onboard-employee-offer-letter.v1\nExit code: 1\nDuration: 2534ms\nresearch sandbox reset summary: {\"taskId\":\"21\",\"strategyId\":\"21.onboard-employee-offer-letter.v1\",\"scannedFiles\":900,\"discoveredRefs\":7,\"completed\":3,\"failed\":4,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T08-42-25-255Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nsandbox-action\tfailed\tcredit-note\tinvoice\t2147685127\tverify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z:research/verifications/task-11/verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z/artifacts/2026-03-22/run-verify-11-11.order-invoice-combined-payment.v1-2026-03-22T08-39-48-019Z.json\tValidering feilet.\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet.\nreset warning: invoice 2147685127: Validering feilet.",
+        "Challenger produced the expected sandbox state within the current baseline call budget."
+      ],
+      "createdAt": "2026-03-22T08:42:27.792Z",
+      "updatedAt": "2026-03-22T09:00:26.234Z"
+    },
+    {
+      "candidateId": "22.receipt-expense-booking.v1",
+      "taskId": "22",
+      "strategyId": "22.receipt-expense-booking.v1",
+      "strategyPath": "src/tasks/task-22/strategies/receipt-expense-booking.ts",
+      "strategyName": "Receipt expense booking with department",
+      "status": "needs-review",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t22-research-wave1/tasks/tripletex2/research/packets/task-22/task-22-packet-2026-03-22T02-11-58-196Z.json",
+      "notes": [
+        "NET-to-GROSS conversion added: receipt line prices are NET; strategy now computes actualGross = NET × (1 + vatRate/100) using statutory rate per expense category. For Togbillett: 8750 × 1.12 = 9800, vatType=12.",
+        "VAT rate inference already fixed: looksLikeTravel() checked before receipt text regex, so transport items get 12% regardless of receipt's blended 'MVA 25%' label.",
+        "Added overnatting/hotell to looksLikeTravel pattern.",
+        "Extraction notes updated to instruct LLM to pass receipt line price as-is without VAT multiplication.",
+        "BLOCKER: Sandbox verification cannot run — (1) packet has no proof.verificationPlan for task 22, (2) verifier hardcodes files:[] so requirePdfAttachment throws for attachment-dependent tasks.",
+        "Proof input file created at research/proofs/task-22/task-22-proof-input.json for future verification once the verifier supports file attachments.",
+        "Evidence base: production run 3373fbc9 (7/10, Check 3 failed on amountGross=10937.50/vatType=1 — should be 9800/vatType=12); RESEARCH.md sandbox-verified amountGross=9800 with vatType=12 produces correct NET=8750 and VAT=1050.",
+        "Critique-pass (4d35cdd9): fixed routing — looksLikeRepresentation now guards against looksLikeTravel; removed bedriftskort (payment method) and bare lunsj (ambiguous) from repr regex; added kundemote to meeting regex; fixed normalizeText ø→o, æ→ae.",
+        "Routing verified: 11 inline bun scenarios all pass (Togbillett+Bedriftskort→travel, Kaffemøte→meeting, Kundemøte lunsj→meeting, Forretningslunsj→repr, Overnatting→travel, Fly+lunsj→travel)."
+      ],
+      "createdAt": "2026-03-22T02:12:00.000Z",
+      "updatedAt": "2026-03-22T02:25:00.000Z"
     },
     {
       "candidateId": "23.reconcile-bank-statement.v1",
@@ -65,6 +259,52 @@
       ],
       "createdAt": "2026-03-21T21:38:12.930Z",
       "updatedAt": "2026-03-21T21:38:12.930Z"
+    },
+    {
+      "candidateId": "24.correct-ledger-errors.v3",
+      "taskId": "24",
+      "strategyId": "24.correct-ledger-errors.v3",
+      "strategyPath": "src/tasks/task-24/strategies/correct-ledger-errors-v3.ts",
+      "strategyName": "Dynamic prompt-driven ledger error correction with direct VAT posting",
+      "status": "draft",
+      "packetPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/research/packets/task-24/task-24-packet-2026-03-22T02-12-00-869Z.json",
+      "notes": [
+        "NEVER EXECUTED END-TO-END. Strategy has never completed a single API call against any Tripletex environment. All evidence is offline (prompt parsing, type-checking, production script analysis).",
+        "BLOCKER: Sandbox reset fails due to 3 stale task-06 employee records. Even with --skip-reset, sandbox has 118 vouchers from previous experiments causing pickSingle collisions.",
+        "VERIFICATION REQUIRES --prompt-file: The verifier's synthetic prompt lacks parenthesized error groups. You MUST pass --prompt-file with a real production prompt for the strategy to parse parameters. See research/proof-inputs/task-24/prompt.txt.",
+        "OFFLINE EVIDENCE: Prompt parsing + validation verified against 5 production prompts (EN/DE/PT). Strategy compiles clean. Two root-cause fixes: (1) dynamic prompt extraction replaces hardcoded values, (2) direct 2710 posting replaces broken expense+vatType=1 approach.",
+        "VATTYPE RISK (wrong-amount rows 7-8): vatType is copied from the original posting template, matching the codex agent approach that passes Check 4 in all production runs. If original has unexpected vatType, correction could mis-split. Not observed in evidence but unverified in sandbox.",
+        "NEXT: Sandbox cleanup or fresh provisioning needed before any real execution.",
+        "Sandbox reset failed before challenger verification started.\nCommand: bun scripts/sandbox.ts reset --task 24 --strategy 24.correct-ledger-errors.v3\nExit code: 1\nDuration: 5953ms\nresearch sandbox reset summary: {\"taskId\":\"24\",\"strategyId\":\"24.correct-ledger-errors.v3\",\"scannedFiles\":21,\"discoveredRefs\":6,\"completed\":3,\"failed\":3,\"skipped\":0,\"alreadyClean\":0,\"reportPath\":\"/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/research/sandbox/reset/sandbox-reset-2026-03-22T02-32-22-210Z.json\"}\nsandbox-action\tfailed\tneutralize\temployee\t18667403\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667476\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\tValidering feilet.\nsandbox-action\tfailed\tneutralize\temployee\t18667507\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\tValidering feilet.\nsandbox-action\tcompleted\tneutralize\temployment\t2836302\tverify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-52-55-289Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836335\tverify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-25-811Z.json\t\nsandbox-action\tcompleted\tneutralize\temployment\t2836353\tverify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z:research/verifications/task-06/verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z/artifacts/2026-03-21/run-verify-06-06.create-employee.v1-2026-03-21T20-53-36-324Z.json\t\nreset warning: employee 18667403: Validering feilet.\nreset warning: employee 18667476: Validering feilet.\nreset warning: employee 18667507: Validering feilet."
+      ],
+      "createdAt": "2026-03-22T02:32:22.210Z",
+      "updatedAt": "2026-03-22T02:32:22.210Z"
+    },
+    {
+      "candidateId": "29.full-project-lifecycle.v2",
+      "taskId": "29",
+      "strategyId": "29.full-project-lifecycle.v2",
+      "strategyPath": "src/tasks/task-29/strategies/full-project-lifecycle-v2.ts",
+      "strategyName": "Full project lifecycle v2",
+      "status": "sandbox-pass",
+      "packetPath": "research/packets/task-29/task-29-packet-2026-03-22T02-11-59-946Z.json",
+      "latestSandboxVerdict": {
+        "correctnessPassed": true,
+        "withinBudget": false,
+        "apiCallCount": 17,
+        "baselineCallBudget": 13,
+        "sandboxRunId": "sandbox-29-29.full-project-lifecycle.v2-2026-03-22T02-29-02-752Z"
+      },
+      "notes": [
+        "Sandbox run completed: 17 calls, 0 errors, all scorer-visible fields correct.",
+        "Adds isFixedPrice+fixedprice on project (Check 3a-b), budgetHours on activity (Check 3c), participant registration with adminAccess (Check 6), POST /invoice with inline orders for projectInvoiceDetails (Check 7d), and supplier cost voucher.",
+        "Removes division/employments dependency from employee creation, frontloads all reference reads in parallel.",
+        "Production evidence from 7 runs (f17d4753, 25760653, 0f38a072, 5c16a788, d568ddd5, a81782be, 0945bbd9) confirmed the missing project configuration fields and participant registration as the root cause of Checks 3,4,5,6,7 failures.",
+        "E2E verification pattern: sandbox-investigation/112-task29-e2e-verified.ts.",
+        "Call budget exceeds v1 baseline (17 vs 13) because v2 adds participant registration, voucher, and uses resolve-or-create pattern."
+      ],
+      "createdAt": "2026-03-22T02:29:02.754Z",
+      "updatedAt": "2026-03-22T02:29:08.229Z"
     }
   ]
 }

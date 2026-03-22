@@ -1,0 +1,163 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "verify-11-11.order-invoice-prepaid.v1-2026-03-22T08-39-13-736Z",
+  "createdAt": "2026-03-22T08:39:13.737Z",
+  "mode": "sandbox",
+  "task": {
+    "taskId": "11",
+    "taskName": "Create order, invoice, and register payment",
+    "taskSource": "manual-label"
+  },
+  "strategy": {
+    "strategyId": "11.order-invoice-prepaid.v1",
+    "strategyName": "Order, invoice, and settle in one write",
+    "strategyPath": "src/tasks/task-11/strategies/order-invoice-prepaid.ts",
+    "strategyStatus": "draft"
+  },
+  "selection": {
+    "selectionConfigId": "active-strategies-2026-03-21-tier3-fallback-a.verify.11.11.order-invoice-prepaid.v1",
+    "selectionConfigPath": "inline-override",
+    "requestedTaskId": "11"
+  },
+  "request": {
+    "requestFingerprint": "req:9ef254f65cd3f3fc6dc294d724123af87b1974c396ba8bc7168d5a1f217f4222",
+    "promptText": "Research OS verifier run for task 11 (Create order, invoice, and register payment). Strategy under test: 11.order-invoice-prepaid.v1. Task understanding is pinned manually for this run. This prompt exists only to give the deterministic runtime a stable request fingerprint.",
+    "promptSummary": "Research OS verifier run for task 11 (Create order, invoice, and register payment). Strategy under test: 11.order-invoice-prepaid.v1. Task understanding is p...",
+    "files": [],
+    "credentialSource": "tripletex2.sandbox-env"
+  },
+  "input": {
+    "inputSchemaId": "11.v1",
+    "status": "resolved",
+    "source": "manual",
+    "value": {
+      "customerName": "Waldstein GmbH",
+      "customerOrganizationNumber": "975687821",
+      "invoiceDate": "2026-03-20",
+      "lines": [
+        {
+          "description": "Netzwerkdienst",
+          "productName": "Netzwerkdienst",
+          "productNumber": "4366",
+          "quantity": 1,
+          "unitPriceExcludingVatNok": 32750
+        },
+        {
+          "description": "Beratungsstunden",
+          "productName": "Beratungsstunden",
+          "productNumber": "3402",
+          "quantity": 1,
+          "unitPriceExcludingVatNok": 17450
+        }
+      ]
+    }
+  },
+  "execution": {
+    "startedAt": "2026-03-22T08:39:13.746Z",
+    "completedAt": "2026-03-22T08:39:14.790Z",
+    "durationMs": 1044,
+    "deadlineMs": 300000,
+    "runtimeStatus": "failed",
+    "apiCallCount": 5,
+    "api4xxCount": 1,
+    "api5xxCount": 0,
+    "apiCalls": [
+      {
+        "index": 1,
+        "method": "GET",
+        "path": "/customer",
+        "query": {
+          "count": 10,
+          "fields": "*",
+          "organizationNumber": "975687821"
+        },
+        "requestSummary": "lookup customer by organizationNumber, count, fields",
+        "responseSummary": "customer list 1 item",
+        "status": 200,
+        "durationMs": 297
+      },
+      {
+        "index": 2,
+        "method": "GET",
+        "path": "/product?productNumber=4366&productNumber=3402&fields=*",
+        "requestSummary": "lookup product productNumber 4366 productNumber 3402 fields",
+        "responseSummary": "product productNumber 4366 productNumber 3402 fields list 2 items",
+        "status": 200,
+        "durationMs": 96
+      },
+      {
+        "index": 3,
+        "method": "GET",
+        "path": "/invoice/paymentType",
+        "query": {
+          "count": 1000,
+          "fields": "*,debitAccount(*),creditAccount(*)"
+        },
+        "requestSummary": "lookup paymentType by count, fields",
+        "responseSummary": "paymentType list 2 items",
+        "status": 200,
+        "durationMs": 93
+      },
+      {
+        "index": 4,
+        "method": "POST",
+        "path": "/order",
+        "requestSummary": "create order with customer, orderDate, deliveryDate, orderLines",
+        "responseSummary": "orderId 402069856",
+        "status": 201,
+        "durationMs": 240,
+        "entityIds": {
+          "orderId": 402069856
+        }
+      },
+      {
+        "index": 5,
+        "method": "PUT",
+        "path": "/order/402069856/:invoice",
+        "query": {
+          "invoiceDate": "2026-03-20",
+          "paidAmount": 0.01,
+          "paymentTypeId": 32813748,
+          "paymentTypeIdRestAmount": 32813748,
+          "sendToCustomer": false
+        },
+        "requestSummary": "update invoice by invoiceDate, sendToCustomer, paymentTypeId, paidAmount, paymentTypeIdRestAmount",
+        "responseSummary": "error 18000: Validering feilet.",
+        "status": 422,
+        "durationMs": 307,
+        "errorCode": "18000"
+      }
+    ],
+    "error": {
+      "code": "18000",
+      "message": "Validering feilet.",
+      "retryable": false
+    }
+  },
+  "attribution": {
+    "status": "not-needed"
+  },
+  "evaluation": {
+    "status": "not-available",
+    "rawNotes": [
+      "Sandbox and dry-run executions do not have live competition scoring in this wave."
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "trace-1",
+      "kind": "sanitized-trace",
+      "path": "run-verify-11-11.order-invoice-prepaid.v1-2026-03-22T08-39-13-736Z.trace.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-22T08:39:13.737Z",
+      "sha256": "sha256:9577c8c07cfddf281329dd8d182f0ebffa0e0b24462165c9a77657a9840fbee3",
+      "summary": "Sanitized trace for 11.order-invoice-prepaid.v1."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Research OS verifier ran one explicit challenger strategy (11.order-invoice-prepaid.v1) in a reset sandbox.",
+      "Deterministic runtime started only after the task-understanding handoff."
+    ]
+  }
+}

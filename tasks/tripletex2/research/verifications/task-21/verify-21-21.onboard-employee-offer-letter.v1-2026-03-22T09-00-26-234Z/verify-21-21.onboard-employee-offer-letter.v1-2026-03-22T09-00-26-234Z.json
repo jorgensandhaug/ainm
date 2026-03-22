@@ -1,0 +1,256 @@
+{
+  "schemaVersion": "tripletex2.research-verification-report.v1",
+  "reportId": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z",
+  "createdAt": "2026-03-22T09:00:26.234Z",
+  "taskId": "21",
+  "strategyId": "21.onboard-employee-offer-letter.v1",
+  "candidateId": "21.onboard-employee-offer-letter.v1",
+  "packetPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-21/task-21-packet-2026-03-22T09-00-26-232Z.json",
+  "stageDirectory": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z/stage",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T09-00-26-234Z.json",
+  "sandboxReset": {
+    "command": "sandbox reset skipped",
+    "exitCode": 0,
+    "stdout": "sandbox reset skipped by operator request\n",
+    "stderr": "",
+    "highlights": [
+      "sandbox reset skipped by operator request"
+    ]
+  },
+  "challengeRun": {
+    "runtimeStatus": "completed",
+    "apiCallCount": 4,
+    "baselineCallBudget": 4,
+    "withinBudget": true
+  },
+  "inspection": {
+    "status": "passed",
+    "apiCallCount": 3,
+    "checks": [
+      {
+        "checkId": "employee-readback",
+        "description": "Read the created employee and confirm identity, date of birth, and department.",
+        "status": "passed",
+        "requestPath": "/employee/18771787",
+        "requestQuery": {
+          "fields": "*,department(*)"
+        },
+        "assertions": [
+          {
+            "actualPath": "dateOfBirth",
+            "expectedPath": "result.verification.birthDate",
+            "actualValue": "1992-05-11",
+            "expectedValue": "1992-05-11",
+            "passed": true
+          }
+        ],
+        "selectedValue": {
+          "id": 18771787,
+          "version": 1,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/employee/18771787",
+          "firstName": "Randi",
+          "lastName": "Stølsvik",
+          "displayName": "Randi Stølsvik",
+          "employeeNumber": "",
+          "dateOfBirth": "1992-05-11",
+          "email": "",
+          "phoneNumberMobileCountry": {
+            "id": 161,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/country/161"
+          },
+          "phoneNumberMobile": "",
+          "phoneNumberHome": "",
+          "phoneNumberWork": "",
+          "nationalIdentityNumber": "",
+          "dnumber": "",
+          "internationalId": {
+            "intAmeldingType": null,
+            "country": null,
+            "number": ""
+          },
+          "bankAccountNumber": "",
+          "iban": "",
+          "bic": "",
+          "creditorBankCountryId": 0,
+          "usesAbroadPayment": false,
+          "userType": null,
+          "allowInformationRegistration": true,
+          "isContact": false,
+          "isProxy": false,
+          "comments": "",
+          "address": null,
+          "department": {
+            "id": 1011716,
+            "version": 0,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/department/1011716",
+            "name": "HR",
+            "departmentNumber": "",
+            "departmentManager": null,
+            "displayName": "HR",
+            "isInactive": false,
+            "businessActivityTypeId": 0
+          },
+          "employments": [
+            {
+              "id": 2885576,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/employee/employment/2885576"
+            }
+          ],
+          "holidayAllowanceEarned": {
+            "year": 0,
+            "amount": 0,
+            "basis": 0,
+            "amountExtraHolidayWeek": 0
+          },
+          "employeeCategory": null,
+          "isAuthProjectOverviewURL": true,
+          "pictureId": 0,
+          "companyId": 108114337,
+          "vismaConnect2FAactive": false
+        }
+      },
+      {
+        "checkId": "employment-details-readback",
+        "description": "Read employments for the created employee and confirm remunerationType, employmentForm, salary, percentage, and occupation code.",
+        "status": "passed",
+        "requestPath": "/employee/employment",
+        "requestQuery": {
+          "employeeId": "18771787",
+          "fields": "*,employmentDetails(*,occupationCode(*))"
+        },
+        "assertions": [
+          {
+            "actualPath": "startDate",
+            "expectedPath": "result.verification.startDate",
+            "actualValue": "2026-10-21",
+            "expectedValue": "2026-10-21",
+            "passed": true
+          },
+          {
+            "actualPath": "employmentDetails.0.remunerationType",
+            "expectedPath": "result.verification.remunerationType",
+            "actualValue": "NOT_CHOSEN",
+            "expectedValue": "NOT_CHOSEN",
+            "passed": true
+          },
+          {
+            "actualPath": "employmentDetails.0.employmentForm",
+            "expectedPath": "result.verification.employmentForm",
+            "actualValue": "PERMANENT",
+            "expectedValue": "PERMANENT",
+            "passed": true
+          },
+          {
+            "actualPath": "employmentDetails.0.annualSalary",
+            "expectedPath": "result.verification.annualSalaryNok",
+            "actualValue": 650000,
+            "expectedValue": 650000,
+            "passed": true
+          },
+          {
+            "actualPath": "employmentDetails.0.percentageOfFullTimeEquivalent",
+            "expectedPath": "result.verification.percentageOfFullTimeEquivalent",
+            "actualValue": 100,
+            "expectedValue": 100,
+            "passed": true
+          },
+          {
+            "actualPath": "employmentDetails.0.occupationCode.id",
+            "expectedPath": "result.verification.occupationCodeId",
+            "actualValue": 4169,
+            "expectedValue": 4169,
+            "passed": true
+          }
+        ],
+        "selectedValue": {
+          "id": 2885576,
+          "version": 0,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/employee/employment/2885576",
+          "employee": {
+            "id": 18771787,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/employee/18771787"
+          },
+          "employmentId": "",
+          "startDate": "2026-10-21",
+          "endDate": null,
+          "employmentEndReason": null,
+          "division": {
+            "id": 108244566,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/division/108244566"
+          },
+          "lastSalaryChangeDate": null,
+          "noEmploymentRelationship": false,
+          "isMainEmployer": true,
+          "taxDeductionCode": "loennFraHovedarbeidsgiver",
+          "employmentDetails": [
+            {
+              "id": 3782991,
+              "version": 0,
+              "url": "kkpqfuj-amager.tripletex.dev/v2/employee/employment/details/3782991",
+              "employment": {
+                "id": 2885576,
+                "url": "kkpqfuj-amager.tripletex.dev/v2/employee/employment/2885576"
+              },
+              "date": "2026-10-21",
+              "employmentType": "ORDINARY",
+              "employmentForm": "PERMANENT",
+              "remunerationType": "NOT_CHOSEN",
+              "workingHoursScheme": "NOT_SHIFT",
+              "shiftDurationHours": 0,
+              "occupationCode": {
+                "id": 4169,
+                "version": 0,
+                "url": "kkpqfuj-amager.tripletex.dev/v2/employee/employment/occupationCode/4169",
+                "nameNO": "PERSONALRÅDGIVER",
+                "code": "2512149"
+              },
+              "percentageOfFullTimeEquivalent": 100,
+              "annualSalary": 650000,
+              "hourlyWage": 333,
+              "payrollTaxMunicipalityId": null,
+              "monthlySalary": 54166.67
+            }
+          ],
+          "isRemoveAccessAtEmploymentEnded": false,
+          "latestSalary": null
+        }
+      },
+      {
+        "checkId": "standard-time-readback",
+        "description": "Read the standard worktime for the employee and confirm hours per day.",
+        "status": "passed",
+        "requestPath": "/employee/standardTime",
+        "requestQuery": {
+          "employeeId": "18771787",
+          "fields": "*"
+        },
+        "assertions": [
+          {
+            "actualPath": "hoursPerDay",
+            "expectedPath": "result.verification.standardHoursPerDay",
+            "actualValue": 7.5,
+            "expectedValue": 7.5,
+            "passed": true
+          }
+        ],
+        "selectedValue": {
+          "id": 45254,
+          "version": 0,
+          "url": "kkpqfuj-amager.tripletex.dev/v2/employee/standardTime/45254",
+          "employee": {
+            "id": 18771787,
+            "url": "kkpqfuj-amager.tripletex.dev/v2/employee/18771787"
+          },
+          "fromDate": "2026-10-21",
+          "hoursPerDay": 7.5
+        }
+      }
+    ]
+  },
+  "verdict": {
+    "status": "sandbox-pass",
+    "correctnessPassed": true,
+    "withinBudget": true,
+    "message": "Challenger produced the expected sandbox state within the current baseline call budget."
+  }
+}

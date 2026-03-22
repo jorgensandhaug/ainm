@@ -1,0 +1,12 @@
+{
+  "year": "2025",
+  "assets": [
+    { "name": "Kontormaskiner", "costNok": 329750, "usefulLifeYears": 4 },
+    { "name": "Inventar", "costNok": 217500, "usefulLifeYears": 6 },
+    { "name": "Programvare", "costNok": 108950, "usefulLifeYears": 9 }
+  ],
+  "depreciationCostAccountNumber": 6010,
+  "accumulatedDepreciationAccountNumber": 1209,
+  "prepaidExpenseAmount": 45900,
+  "prepaidExpenseAccountNumber": 1700
+}

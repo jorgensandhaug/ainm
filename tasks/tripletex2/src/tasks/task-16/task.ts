@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const REGISTER_SUPPLIER_INVOICE_TASK_ID = "16";
-export const REGISTER_SUPPLIER_INVOICE_TX_TASK_ID = "16";
+export const REGISTER_SUPPLIER_INVOICE_TX_TASK_ID = "11";
 export const REGISTER_SUPPLIER_INVOICE_INPUT_SCHEMA_ID = "16.v1";
 export interface RegisterSupplierInvoiceInput {
   supplierName: string;
@@ -86,9 +86,10 @@ export type RegisterSupplierInvoiceTaskUnderstandingResult = TaskUnderstandingRe
 >;
 export async function loadTaskModule(): Promise<RegisterSupplierInvoiceTaskModule> {
   const { strategy } = await import("./strategies/import-then-book-voucher");
+  const { strategy: strategyV2 } = await import("./strategies/import-and-book-voucher-v2");
   return {
     task,
-    strategies: [strategy],
+    strategies: [strategy, strategyV2],
   };
 }
 export const taskRegistration = {

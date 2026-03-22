@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-result.v1",
+  "completedAt": "2026-03-22T08:42:40.302Z",
+  "createdAt": "2026-03-22T08:42:39.636Z",
+  "runId": "verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z",
+  "taskId": "21",
+  "runtimeStatus": "completed",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z.json",
+  "sidecarPaths": [
+    "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/verifications/task-21/verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z/artifacts/2026-03-22/run-verify-21-21.onboard-employee-offer-letter.v1-2026-03-22T08-42-39-635Z.trace.json"
+  ]
+}

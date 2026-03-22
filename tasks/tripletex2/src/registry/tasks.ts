@@ -30,9 +30,9 @@ import { taskRegistration as registerProjectHoursAndCreateProjectInvoiceTask } f
 import { taskRegistration as registerSupplierInvoiceTask } from "../tasks/task-16/task";
 import { taskRegistration as registerCustomerInvoicePaymentTask } from "../tasks/task-17/task";
 import { taskRegistration as reverseCustomerInvoicePaymentTask } from "../tasks/task-18/task";
-import { taskRegistration as unknownTask19 } from "../tasks/task-19/task";
+import { taskRegistration as onboardEmployeeFromContractTask } from "../tasks/task-19/task";
 import { taskRegistration as unknownTask20 } from "../tasks/task-20/task";
-import { taskRegistration as unknownTask21 } from "../tasks/task-21/task";
+import { taskRegistration as onboardEmployeeOfferLetterTask } from "../tasks/task-21/task";
 import { taskRegistration as unknownTask22 } from "../tasks/task-22/task";
 import { taskRegistration as unknownTask23 } from "../tasks/task-23/task";
 import { taskRegistration as correctLedgerErrorsTask } from "../tasks/task-24/task";
@@ -62,9 +62,9 @@ const registeredTaskRegistrations = [
   registerSupplierInvoiceTask,
   registerCustomerInvoicePaymentTask,
   reverseCustomerInvoicePaymentTask,
-  unknownTask19,
+  onboardEmployeeFromContractTask,
   unknownTask20,
-  unknownTask21,
+  onboardEmployeeOfferLetterTask,
   unknownTask22,
   unknownTask23,
   correctLedgerErrorsTask,

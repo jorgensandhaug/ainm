@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const CREATE_ACCOUNTING_DIMENSION_AND_POST_VOUCHER_TASK_ID = "07";
-export const CREATE_ACCOUNTING_DIMENSION_AND_POST_VOUCHER_TX_TASK_ID = "07";
+export const CREATE_ACCOUNTING_DIMENSION_AND_POST_VOUCHER_TX_TASK_ID = "17";
 export const CREATE_ACCOUNTING_DIMENSION_AND_POST_VOUCHER_INPUT_SCHEMA_ID = "07.v1";
 export interface CreateAccountingDimensionAndPostVoucherInput {
   dimensionName: string;

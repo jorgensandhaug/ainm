@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const CREATE_SUPPLIER_TASK_ID = "02";
-export const CREATE_SUPPLIER_TX_TASK_ID = "02";
+export const CREATE_SUPPLIER_TX_TASK_ID = "04";
 export const CREATE_SUPPLIER_INPUT_SCHEMA_ID = "02.v1";
 export interface CreateSupplierInput {
   supplierName: string;

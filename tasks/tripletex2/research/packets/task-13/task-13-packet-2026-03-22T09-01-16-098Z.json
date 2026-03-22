@@ -1,0 +1,369 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-13-packet-2026-03-22T09-01-16-098Z",
+  "createdAt": "2026-03-22T09:01:16.098Z",
+  "taskId": "13",
+  "taskSlug": "register-travel-expense",
+  "taskName": "Register travel expense",
+  "queueEntry": {
+    "taskId": "13",
+    "taskSlug": "register-travel-expense",
+    "taskName": "Register travel expense",
+    "priority": 11,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "researchLane": "hard-research",
+    "bestKnownScore": 1.125,
+    "maxScore": 4,
+    "notes": [
+      "Hard research lane task involving file or expense-flow nuance."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "13.create-and-deliver-travel-expense.v2",
+    "strategyPath": "src/tasks/task-13/strategies/create-and-deliver-travel-expense-v2.ts",
+    "strategyStatus": "active",
+    "strategyName": "Create and deliver travel expense v2 — duration-based dates",
+    "summary": "Like v1 but computes dates from tripDurationDays when explicit dates are absent (returnDate=today, departureDate=today-N+1). Uses category-default vatType.",
+    "hypothesis": "The 3 consistently failing checks (2,3,6) across 20 production runs are caused by incorrect dates. Production prompts use past-tense duration only. Computing dates relative to today matches evaluator expectations and unblocks those checks.",
+    "expectedCallProfile": {
+      "targetCalls": 6,
+      "maxCalls": 9
+    },
+    "stepOutline": [
+      "Compute dates from tripDurationDays if explicit dates absent.",
+      "GET /employee, conditional GET /company, parallel GET costCategory+paymentType+rate.",
+      "POST /travelExpense with embedded costs and perDiemCompensations.",
+      "PUT /travelExpense/:deliver, :approve, :createVouchers (best-effort)."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "13.create-and-deliver-travel-expense.v2",
+      "strategyPath": "src/tasks/task-13/strategies/create-and-deliver-travel-expense-v2.ts",
+      "strategyStatus": "active",
+      "strategyName": "Create and deliver travel expense v2 — duration-based dates",
+      "summary": "Like v1 but computes dates from tripDurationDays when explicit dates are absent (returnDate=today, departureDate=today-N+1). Uses category-default vatType.",
+      "hypothesis": "The 3 consistently failing checks (2,3,6) across 20 production runs are caused by incorrect dates. Production prompts use past-tense duration only. Computing dates relative to today matches evaluator expectations and unblocks those checks.",
+      "expectedCallProfile": {
+        "targetCalls": 6,
+        "maxCalls": 9
+      },
+      "stepOutline": [
+        "Compute dates from tripDurationDays if explicit dates absent.",
+        "GET /employee, conditional GET /company, parallel GET costCategory+paymentType+rate.",
+        "POST /travelExpense with embedded costs and perDiemCompensations.",
+        "PUT /travelExpense/:deliver, :approve, :createVouchers (best-effort)."
+      ]
+    },
+    {
+      "strategyId": "13.create-and-deliver-travel-expense.v1",
+      "strategyPath": "src/tasks/task-13/strategies/create-and-deliver-travel-expense.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Create and deliver travel expense",
+      "summary": "Resolves the employee, travel categories, payment type, and compatible per-diem rates, then creates and delivers the travel expense in the winning embedded-write flow.",
+      "hypothesis": "The best proven path is a single embedded POST /travelExpense followed by PUT :deliver, PUT :approve, and PUT :createVouchers.",
+      "expectedCallProfile": {
+        "targetCalls": 8,
+        "maxCalls": 9
+      },
+      "stepOutline": [
+        "API call 1: GET /employee by exact email to resolve the owning employee.",
+        "Conditional API call 2: GET /company/{companyId}?fields=*,address(*) only when the prompt omits departureFrom and the employee read has no concrete address.",
+        "API call 3: GET /travelExpense/costCategory and filter locally to travel-expense-visible categories.",
+        "API call 4: GET /travelExpense/paymentType and resolve one active travel reimbursement type.",
+        "API call 5: GET /travelExpense/rate for PER_DIEM rows when the request includes per-diem compensation.",
+        "API call 6: POST /travelExpense with embedded costs and perDiemCompensations.",
+        "API call 7: PUT /travelExpense/:deliver and verify the returned parent row is DELIVERED.",
+        "API call 8: PUT /travelExpense/:approve and verify state=APPROVED.",
+        "API call 9: PUT /travelExpense/:createVouchers?id=<id>&date=<returnDate> to create accounting voucher."
+      ]
+    }
+  ],
+  "baselineCallBudget": 6,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Register travel expense. Current best known score is 1.125/4, leaving a gap of 2.875. Known call frontier is 6 calls when correctness matches the current best evidence. The active pinned strategy to beat is 13.create-and-deliver-travel-expense.v2 with target 6 calls.",
+    "currentBestKnownScore": 1.125,
+    "maxScore": 4,
+    "scoreGap": 2.875,
+    "bestKnownCallBudget": 6,
+    "baselineCallBudget": 6,
+    "activeStrategyToBeat": {
+      "strategyId": "13.create-and-deliver-travel-expense.v2",
+      "strategyPath": "src/tasks/task-13/strategies/create-and-deliver-travel-expense-v2.ts",
+      "strategyStatus": "active",
+      "strategyName": "Create and deliver travel expense v2 — duration-based dates",
+      "summary": "Like v1 but computes dates from tripDurationDays when explicit dates are absent (returnDate=today, departureDate=today-N+1). Uses category-default vatType.",
+      "hypothesis": "The 3 consistently failing checks (2,3,6) across 20 production runs are caused by incorrect dates. Production prompts use past-tense duration only. Computing dates relative to today matches evaluator expectations and unblocks those checks.",
+      "expectedCallProfile": {
+        "targetCalls": 6,
+        "maxCalls": 9
+      },
+      "stepOutline": [
+        "Compute dates from tripDurationDays if explicit dates absent.",
+        "GET /employee, conditional GET /company, parallel GET costCategory+paymentType+rate.",
+        "POST /travelExpense with embedded costs and perDiemCompensations.",
+        "PUT /travelExpense/:deliver, :approve, :createVouchers (best-effort)."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 1.125/4, or match the current correctness and score at 6 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 13.create-and-deliver-travel-expense.v2 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 1.125/4.",
+      "If score does not improve, match correctness at 6 API calls or fewer.",
+      "Compare against the active pinned strategy 13.create-and-deliver-travel-expense.v2 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-13",
+      "taskReadmePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-13/README.md",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-13/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-13/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-13/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-13/strategies/create-and-deliver-travel-expense-v2.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-13/strategies/create-and-deliver-travel-expense-v2.ts",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-13/strategies/create-and-deliver-travel-expense.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-13/task-13-packet-2026-03-22T09-01-16-098Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-191254583Z-7880f90c.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-production-2026-03-21T18-55-20-294Z-42896e94.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-183954363Z-e20f4354.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-180134598Z-b9c1a27d.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-215039830Z-73489ae7.json"
+      ]
+    },
+    "offlineEvidence": {
+      "trustedStandardPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/legacy/trusted-standards/register-travel-expense.md",
+      "taskPlaybookPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/legacy/task-playbooks/register-travel-expense.md",
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 10,
+    "recentArtifacts": [
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-191254583Z-7880f90c",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-191254583Z-7880f90c.json",
+        "createdAt": "2026-03-21T19:12:54.584Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-script-run",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      },
+      {
+        "runId": "production-2026-03-21T18-55-20-294Z-42896e94",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-production-2026-03-21T18-55-20-294Z-42896e94.json",
+        "createdAt": "2026-03-21T18:55:20.294Z",
+        "runtimeStatus": "not-run",
+        "strategyId": "13.create-and-deliver-travel-expense.v1",
+        "apiCallCount": 0,
+        "failureMode": "missing-required-field"
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-183954363Z-e20f4354",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-183954363Z-e20f4354.json",
+        "createdAt": "2026-03-21T18:39:54.363Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-script-register-travel-expense",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-180134598Z-b9c1a27d",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-180134598Z-b9c1a27d.json",
+        "createdAt": "2026-03-21T18:01:34.599Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-script-01-register-travel-expense",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-20-215039830Z-73489ae7",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-20/run-legacy-tripletex1-prod-2026-03-20-215039830Z-73489ae7.json",
+        "createdAt": "2026-03-20T21:50:39.831Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-multi-script-run",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      }
+    ]
+  },
+  "productionRuns": [
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-041342038Z-b57900d3",
+      "timestamp": "2026-03-22T04:13:42.038Z",
+      "score": "4.5/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-22-022922296Z-b1317762",
+      "timestamp": "2026-03-22T02:29:22.296Z",
+      "score": "4.5/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-234149727Z-32d11eeb",
+      "timestamp": "2026-03-21T23:41:49.727Z",
+      "score": "4.5/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-230908038Z-3aed3b42",
+      "timestamp": "2026-03-21T23:09:08.038Z",
+      "score": "4.5/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-230509652Z-e103a5b5",
+      "timestamp": "2026-03-21T23:05:09.652Z",
+      "score": "4.5/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-191254583Z-7880f90c",
+      "timestamp": "2026-03-21T19:12:54.583Z",
+      "score": "4.5/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-183954363Z-e20f4354",
+      "timestamp": "2026-03-21T18:39:54.363Z",
+      "score": "4.5/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-180134598Z-b9c1a27d",
+      "timestamp": "2026-03-21T18:01:34.598Z",
+      "score": "4.5/8"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-215039830Z-73489ae7",
+      "timestamp": "2026-03-20T21:50:39.830Z",
+      "score": "skipped"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-171053373Z-9afcb1d0",
+      "timestamp": "2026-03-20T17:10:53.373Z",
+      "score": "missing"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-165556973Z-643ba711",
+      "timestamp": "2026-03-20T16:55:56.973Z",
+      "score": "missing"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-160807923Z-351c3392",
+      "timestamp": "2026-03-20T16:08:07.923Z",
+      "score": "missing"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-155931143Z-6a1ac6b0",
+      "timestamp": "2026-03-20T15:59:31.143Z",
+      "score": "missing"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-20-154935427Z-95749a07",
+      "timestamp": "2026-03-20T15:49:35.427Z",
+      "score": "missing"
+    }
+  ],
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T05:06:25.190Z",
+        "bestScore": 1.125,
+        "totalAttempts": 22,
+        "runId": "prod-2026-03-22-050054205Z-4c255d98"
+      },
+      {
+        "capturedAt": "2026-03-22T05:00:54.261Z",
+        "bestScore": 1.125,
+        "totalAttempts": 22,
+        "runId": "prod-2026-03-22-050054205Z-4c255d98"
+      },
+      {
+        "capturedAt": "2026-03-22T04:57:48.958Z",
+        "bestScore": 1.125,
+        "totalAttempts": 22,
+        "runId": "prod-2026-03-22-045400782Z-d49da665"
+      },
+      {
+        "capturedAt": "2026-03-22T04:54:01.371Z",
+        "bestScore": 1.125,
+        "totalAttempts": 22,
+        "runId": "prod-2026-03-22-045400782Z-d49da665"
+      },
+      {
+        "capturedAt": "2026-03-22T04:51:19.739Z",
+        "bestScore": 1.125,
+        "totalAttempts": 22,
+        "runId": "prod-2026-03-22-045005387Z-021440b8"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-22-041342038Z-b57900d3",
+      "prod-2026-03-22-022922296Z-b1317762",
+      "prod-2026-03-21-234149727Z-32d11eeb",
+      "prod-2026-03-21-230908038Z-3aed3b42",
+      "prod-2026-03-21-230509652Z-e103a5b5"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "readmeText": "# Register travel expense\n\nTyped task surface and draft runtime stub for `register-travel-expense`.\n\nThe intended deterministic solve path should follow `codex-environment/trusted-standards/register-travel-expense.md` when this task gets a real strategy implementation.\n",
+    "trustedStandardText": "# Register Travel Expense\n\n## Trust Level\n- Trusted standard\n- Use directly only when the prompt gives enough travel-detail data to reach a deliverable final state\n- Skip `./openapi.json` re-checking for exact matches\n\n## Exact Match\n- register one new travel expense for one existing employee identified by email\n- prompt provides the travel title/purpose, cost lines, and one or more per-diem allowances\n- prompt provides explicit `travelDetails.departureDate` and `travelDetails.returnDate`\n- prompt also gives `travelDetails.departureFrom`, or the mandatory employee read is expected to expose one concrete non-generic location field, or one conditional company read via `employee.companyId` is expected to expose one concrete non-generic company-address field that can be reused as `departureFrom`\n- if per diem spans overnight, the prompt also gives enough information to choose one overnight-accommodation branch, or a pre-approved deterministic inference exists\n- no attachment, approval, mileage, accommodation allowance, project linking, update, or delete flow\n\n## Do Not Use This Standard If\n- task needs mileage allowance, accommodation allowance, or attachments\n- prompt gives only trip duration and not explicit travel dates\n- prompt omits `travelDetails.departureFrom` and neither the employee read nor one conditional company read via `employee.companyId` is likely to provide a concrete location\n- prompt needs overnight per diem but does not give enough information to choose an accommodation branch safely\n- employee identity is ambiguous or the employee must be created first\n- prompt is not a create-only travel-expense registration task\n\n## Standard Flow\n1. `GET /employee?email=...&count=10&fields=*`\n2. If the prompt omits `departureFrom` and the employee read has no concrete address field but does expose `companyId`, `GET /company/{companyId}?fields=*,address(*)`\n3. `GET /travelExpense/costCategory?count=1000&fields=*`\n4. `GET /travelExpense/paymentType?count=1000&fields=*`\n5. `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` when the prompt includes domestic per diem\n6. `POST /travelExpense` with embedded `costs[]` and `perDiemCompensations[]`\n7. `PUT /travelExpense/:deliver?id=...`\n8. verify the delivered parent fields and child id counts from the deliver response\n9. stop\n\n## Payload Rules\n- resolve one exact employee by exact email match; prefer `allowInformationRegistration=true` when multiple exact-email matches exist\n- filter cost categories locally on `showOnTravelExpenses=true`\n- prefer exact category-description matches for prompt costs such as `Fly` and `Taxi`\n- resolve one active travel payment type from `showOnTravelExpenses=true`; in sandbox the ordinary reimbursement type was `Privat utlegg`\n- do not send `department` on a normal existing-employee travel expense unless the prompt explicitly scores a different department or live validation requires it\n- include `travelDetails.departureFrom`; leaving it empty can still let `POST /travelExpense` succeed but later block `PUT /travelExpense/:deliver`\n- if the prompt omits `departureFrom`, first infer it from one concrete employee address field already returned by `GET /employee`, preferring `address.city`, then `address.addressLine1`, then `address.displayName`\n- if those employee address fields are absent but the same employee object exposes `companyId`, do one conditional `GET /company/{companyId}?fields=*,address(*)` and infer `departureFrom` from `company.address.city`, then `company.address.addressLine1`, then `company.address.displayName`, then `company.address.addressAsString`\n- `GET /company/{companyId}?fields=*` alone is not sufficient for this branch; in sandbox it left `company.address` as a link object\n- if both employee and company address fields are absent, treat the run as blocked instead of inventing generic placeholders such as `Hjemsted`\n- when any per diem compensation is present, set `travelDetails.isCompensationFromRates=true`\n- for multi-day or overnight per diem, resolve one compatible `perDiemCompensations[].rateType` from `/travelExpense/rate`; do not leave `rateType`/`rateCategory` null\n- the filtered `/travelExpense/rate?...fields=*` response can still return `rateCategory` only as `id`/`url`; do not locally require `rateCategory.isValidDomestic` or `isRequiresOvernightAccommodation` after the query already filtered the set\n- prefer a returned `rateType` whose numeric `rate` matches the prompt day rate when such a row exists; otherwise reuse any returned `rateType.id` and preserve the prompt-scored manual `count`/`rate`/`amount`\n- for overnight per diem, set `perDiemCompensations[].overnightAccommodation`; in sandbox the generic deliverable branch accepted `HOTEL`\n- embed `perDiemCompensations[]` directly on the `POST /travelExpense` payload\n- embed `costs[]` directly on the same `POST /travelExpense` payload\n- for each embedded cost in NOK, send both `amountCurrencyIncVat` and `amountNOKInclVAT`\n- do not rely on the category default VAT when the expense must be deliverable; in sandbox, explicit `costs[].vatType={ \"id\": 0 }` avoided later non-VAT-company delivery failure\n- preserve prompt text exactly in `title`, `travelDetails.purpose`, `travelDetails.detailedJourneyDescription`, and `costs[].comments`\n- do not encode a trusted default date inference for duration-only prompts; sandbox accepted several different delivered date ranges for the same Bergen probe, so omitted dates are not an exact-match trusted-standard case\n- if a scored run still forces action on a duration-only prompt, keep that branch outside the trusted standard: choose one deterministic local date range and continue with the normal employee/company/rate/create/deliver flow rather than spending extra Tripletex reads, because the API does not reveal a unique scorer-correct range\n\n## Reuse From Write Response\n- `travelExpense.id`\n- top-level `title`\n- linked `employee.id`\n- `travelDetails` fields\n- returned `department.id` if Tripletex inherits it from the employee\n- embedded child ids and child counts, but expect them to be sparse\n\n## Verification\n- do not treat the `POST /travelExpense` response alone as proof of full correctness for multi-day per-diem tasks; it can return an `OPEN` expense whose per-diem row is not deliverable\n- verify the final top-level travel-expense fields from `PUT /travelExpense/:deliver`; the operation returns `ListResponseTravelExpense`, so read the delivered object from `values[]`\n- for exact scored runs, do not add `/travelExpense/cost` or `/travelExpense/perDiemCompensation` follow-up reads just to reassure yourself unless the deliver response contradicts the intended child counts\n- do not rely on `GET /travelExpense/{id}?fields=*` for expanded child details; `costs[]` and `perDiemCompensations[]` can still be link-only `id`/`url`\n- do not use top-level `amount` or `paymentAmount` as proof of per-diem correctness; in sandbox those totals still reflected only embedded cost reimbursement even after successful delivery\n- only use `GET /travelExpense/cost?travelExpenseId=...&fields=*` and `GET /travelExpense/perDiemCompensation?travelExpenseId=...&fields=*` as a conditional investigation branch when:\n  - the prompt materially differs from the embedded-create standard\n  - a later step truly needs expanded child fields\n  - the live write response contradicts the intended child counts\n\n## Known Recovery Branches\n- if `POST /travelExpense` fails on `costs.amountCurrencyIncVat`, add `amountCurrencyIncVat` on every embedded cost row\n- if `POST /travelExpense` fails with `Kun kostnader kan registreres uten kompensasjon etter satser.`, set `travelDetails.isCompensationFromRates=true`\n- if `PUT /travelExpense/:deliver` fails on `travelDetails.departureFrom`, the create-only path was incomplete; do not keep treating the `OPEN` expense as final\n- if `PUT /travelExpense/:deliver` fails on `perDiemCompensations.rateType.id`, resolve a compatible live `rateType` from `/travelExpense/rate` and recreate with that field populated\n- if `PUT /travelExpense/:deliver` fails on `costs.vatType.id` because the company is not VAT registered, recreate with explicit zero-VAT cost rows rather than trusting the category default VAT\n\n## OpenAPI / Sandbox Status\n- `/travelExpense`, `/travelExpense/:deliver`, `/travelExpense/cost`, `/travelExpense/perDiemCompensation`, `/travelExpense/costCategory`, `/travelExpense/paymentType`, and `/travelExpense/rate` verified in `./openapi.json`\n- persistent sandbox re-verified on 2026-03-20:\n  - `GET /company/{companyId}?fields=*,address(*)` expanded the company postal address, while `fields=*` alone left `company.address` as a link-only object\n  - a no-address employee (`id=18478235`, `address=null`, `companyId=108114337`) plus that one company read produced concrete `departureFrom=\"Oslo\"` from `company.address.city`\n  - the 7-call branch `GET /employee` -> `GET /company/{companyId}?fields=*,address(*)` -> `GET /travelExpense/costCategory` -> `GET /travelExpense/paymentType` -> `GET /travelExpense/rate` -> `POST /travelExpense` -> `PUT /travelExpense/:deliver` delivered sandbox travel expense `11145429` with `state=DELIVERED`, `costs.length=2`, and `perDiemCompensations.length=1`\n  - `PUT /travelExpense/:deliver` returned `ListResponseTravelExpense` with the delivered parent row under `values[]`, not `ResponseWrapperTravelExpense`\n  - `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` returned five usable `rateType` rows, but each `rateCategory` came back only as sparse `id`/`url`\n  - using one of those returned sparse `rateType.id` values still allowed a delivered manual per-diem row to persist the prompt-scored `count`, `rate`, and `amount`\n  - one `POST /travelExpense` with only manual per-diem `count`/`rate`/`amount` created the parent expense plus embedded rows, but left the expense in `state=OPEN`\n  - that create-only branch also persisted `perDiemCompensations[].rateType=null`, `rateCategory=null`, and `overnightAccommodation=NONE`\n  - `PUT /travelExpense/:deliver` then failed until `travelDetails.departureFrom`, a compatible per-diem `rateType`, and delivery-safe cost `vatType` values were present\n  - recreating with explicit `departureFrom`, `perDiemCompensations[].rateType`, `perDiemCompensations[].overnightAccommodation`, and zero-VAT cost rows allowed `PUT /travelExpense/:deliver` to succeed and move the expense to `state=DELIVERED`\n  - ambiguity probe script `sandbox_travel_expense_ambiguity_probe.ts` then created three delivered Bergen expenses with the same employee, cost rows, and per-diem row but different inferred values:\n    - `11145899`: `departureDate=2026-03-17`, `returnDate=2026-03-20`, `departureFrom=Oslo`\n    - `11145900`: `departureDate=2026-03-16`, `returnDate=2026-03-19`, `departureFrom=Oslo`\n    - `11145901`: `departureDate=2026-03-17`, `returnDate=2026-03-20`, `departureFrom=Drammen`\n  - Tripletex accepted all three as `state=DELIVERED`, so the API does not supply a trusted unique inference for duration-only + omitted-`departureFrom` prompts\n  - same-day Bodø re-proof `sandbox_verify_duration_only_travel_expense.ts` used the known no-address employee `18478235` plus company-city fallback `Oslo` and still delivered two otherwise-identical `3 x 800` / `6200 + 400` expenses with different date ranges:\n    - `11146082`: `departureDate=2026-03-18`, `returnDate=2026-03-20`, `departureFrom=Oslo`\n    - `11146083`: `departureDate=2026-03-17`, `returnDate=2026-03-19`, `departureFrom=Oslo`\n  - that 3-day Bodø re-proof confirms the ambiguity is not limited to the older 4-day Bergen probe; even after company fallback is fixed, the API still accepts multiple delivered date ranges for the same prompt family\n  - the 2026-03-20 production run for Torbjorn Brekke likely lost correctness by inventing `departureFrom=\\\"Hjemsted\\\"` after the prompt omitted departureFrom and the employee read did not provide a concrete location; generic placeholders are not a trusted correctness path\n  - the 2026-03-20 production run for `Miguel Pérez` / `miguel.perez@example.org` wasted two extra employee reads before switching to the proven company-address branch; the lower-call replacement for that exact prompt shape is to add the company read immediately after the first employee read returns `address=null`\n  - `PUT /travelExpense/:approve` returned `403` for the sandbox token; approval is not a trusted default follow-up step\n",
+    "playbookText": "# Register Travel Expense\n\n## Scope\n\nUse for tasks like:\n- register one new travel expense for an existing employee identified by email\n- create travel costs such as flight, taxi, ferry, hotel, or similar reimbursement lines\n- include per-diem compensation in the same travel expense\n- prompt gives explicit travel dates, or some other non-Tripletex source already fixes those dates exactly\n- finish in one parent write plus only the verification reads that are actually needed\n\nDo not use for:\n- mileage allowance\n- accommodation allowance\n- attachments\n- standalone approval or delivery of an existing travel expense\n- project-linked or reinvoiced travel expenses\n- duration-only prompts that omit explicit travel dates; treat those as ambiguous investigation cases, not as an exact playbook match\n\n## Key Findings\n\nVerified in persistent sandbox on 2026-03-20:\n- `GET /travelExpense/costCategory?count=1000&fields=*` returned travel categories with `showOnTravelExpenses=true`, including `Fly` and `Taxi`\n- `GET /travelExpense/paymentType?count=1000&fields=*` returned one active travel-expense payment type, `Privat utlegg`\n- `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=...&dateTo=...&count=1000&fields=*` returned the live per-diem `rateType` options needed for a deliverable overnight trip\n- `GET /company/{companyId}?fields=*,address(*)` expanded the company address in one read, while `fields=*` alone left `company.address` as a link-only object\n- one no-address employee (`id=18478235`, `address=null`, `companyId=108114337`) plus that company read yielded concrete `departureFrom=\"Oslo\"` from `company.address.city`\n- the exact 7-call branch `GET /employee` -> conditional `GET /company/{companyId}?fields=*,address(*)` -> `GET /travelExpense/costCategory` -> `GET /travelExpense/paymentType` -> `GET /travelExpense/rate` -> `POST /travelExpense` -> `PUT /travelExpense/:deliver` delivered sandbox travel expense `11145429` with `2` costs and `1` per-diem row\n- `PUT /travelExpense/:deliver` returned `ListResponseTravelExpense` with the delivered object inside `values[]`\n- that same filtered rate response returned `rateCategory` only as sparse `id`/`url`, not expanded booleans such as `isValidDomestic`\n- one returned sparse `rateType.id` still allowed a delivered manual per-diem row to persist `count=4`, `rate=800`, and `amount=3200`\n- `POST /travelExpense` can create the parent expense, embedded cost rows, and embedded per-diem rows in one write\n- `POST /travelExpense` did not need an explicit `department` field when the linked employee already had a department; the created expense inherited that department automatically\n- embedded `costs[]` failed with `422` until each row included `amountCurrencyIncVat`\n- embedded `perDiemCompensations[]` failed with `422` while `travelDetails.isCompensationFromRates=false`\n- changing `travelDetails.isCompensationFromRates` to `true` allowed the same embedded per-diem row to persist with manual `count`, `rate`, and `amount`\n- the old create-only branch persisted manual per-diem rows with `rateType=null`, `rateCategory=null`, and `overnightAccommodation=NONE`\n- `PUT /travelExpense/:deliver` then failed on missing `travelDetails.departureFrom`, missing `perDiemCompensations[].rateType`, and VAT-bearing `costs[].vatType` on a non-VAT-registered sandbox company\n- recreating with `travelDetails.departureFrom`, explicit `costs[].vatType={ \"id\": 0 }`, and per-diem `rateType` plus `overnightAccommodation` allowed `PUT /travelExpense/:deliver` to succeed and move the expense to `state=DELIVERED`\n- the `POST /travelExpense` response already proved the parent fields and returned child ids/counts, but `costs[]` and `perDiemCompensations[]` came back only as `id`/`url`\n- `GET /travelExpense/{id}?fields=*` still kept those child arrays sparse\n- `GET /travelExpense/cost?travelExpenseId=...&count=20&fields=*` returned full cost objects with comments, amounts, category ids, and payment-type ids\n- `GET /travelExpense/perDiemCompensation?travelExpenseId=...&count=20&fields=*` returned full per-diem objects with `location`, `count`, `rate`, and `amount`\n- `PUT /travelExpense/:approve` returned `403` for the sandbox token even with `overrideApprovalFlow=true`; approval is not a trusted default follow-up step\n- top-level travel-expense `amount`/`paymentAmount` still reflected only reimbursable cost lines even after successful `:deliver`; those totals are not proof of per-diem correctness\n- the 2026-03-20 production run for Torbjorn Brekke likely lost correctness by inventing `departureFrom=\\\"Hjemsted\\\"`; when the prompt omits departureFrom, generic placeholders are correctness-risky and should not be upgraded into a trusted inference\n- the 2026-03-20 production run for `Miguel Pérez` / `miguel.perez@example.org` wasted two extra `GET /employee` calls by stopping at `address=null` and only later adding the company fallback; future agents should switch to the company branch immediately after the first employee read reveals no address\n- ambiguity probe script `sandbox_travel_expense_ambiguity_probe.ts` then delivered three otherwise-identical Bergen expenses with different inferred values:\n  - `11145899`: `2026-03-17..2026-03-20`, `departureFrom=Oslo`\n  - `11145900`: `2026-03-16..2026-03-19`, `departureFrom=Oslo`\n  - `11145901`: `2026-03-17..2026-03-20`, `departureFrom=Drammen`\n- Tripletex accepted all three as `DELIVERED`, so the API does not tell you which date/departure inference is scorer-correct when the prompt omits those fields\n- same-day sandbox re-proof `sandbox_verify_duration_only_travel_expense.ts` used the known no-address employee `18478235` with company fallback `Oslo` and delivered two otherwise-identical Bodø expenses for the exact `3 days` / `800 per day` / `6200 flight` / `400 taxi` family:\n  - `11146082`: `2026-03-18..2026-03-20`, `departureFrom=Oslo`\n  - `11146083`: `2026-03-17..2026-03-19`, `departureFrom=Oslo`\n- that Bodø re-proof shows the ambiguity survives even after the company-city fallback is fixed; extra Tripletex reads will not reveal a unique scorer-correct date range\n\n## Lowest-Call Scored Flow\n\nThis is the canonical flow only when the travel dates are explicit or otherwise fixed from outside Tripletex.\n\n1. Confirm these operations in `./openapi.json`\n   - `GET /employee`\n   - `GET /company/{id}`\n   - `GET /travelExpense/costCategory`\n   - `GET /travelExpense/paymentType`\n   - `GET /travelExpense/rate`\n   - `POST /travelExpense`\n   - `PUT /travelExpense/:deliver`\n2. Locate the employee with one decisive read\n   - usually `GET /employee?email=<prompt-email>&count=10&fields=*`\n   - filter locally to one exact-email employee\n   - prefer `allowInformationRegistration=true` when several exact-email hits exist\n3. If the prompt omits `departureFrom` and the employee read lacks a concrete address but exposes `companyId`, do one conditional company read\n   - `GET /company/{companyId}?fields=*,address(*)`\n   - prefer `company.address.city`, then `company.address.addressLine1`, then `company.address.displayName`, then `company.address.addressAsString`\n   - if both employee and company location fields are absent, treat the run as blocked instead of inventing a placeholder\n4. Resolve one travel payment type, the required cost categories, and a compatible per-diem rate type\n   - `GET /travelExpense/costCategory?count=1000&fields=*`\n   - `GET /travelExpense/paymentType?count=1000&fields=*`\n   - `GET /travelExpense/rate?type=PER_DIEM&isValidDomestic=true&dateFrom=<departureDate>&dateTo=<returnDate>&count=1000&fields=*`\n   - filter locally on `showOnTravelExpenses=true`\n   - do not locally require `rateCategory.isValidDomestic` or `rateCategory.isRequiresOvernightAccommodation` after that filtered rate call; the response can be sparse link-only data\n   - prefer a returned `rate` equal to the prompt day rate when such a row exists; otherwise reuse any returned `rateType.id`\n5. Create the travel expense in one write\n   - `POST /travelExpense`\n   - embed top-level `travelDetails`\n   - embed `perDiemCompensations[]`\n   - embed `costs[]`\n   - include `travelDetails.departureFrom`\n   - include explicit `costs[].vatType`\n   - include `perDiemCompensations[].rateType`\n   - include `perDiemCompensations[].overnightAccommodation` when the trip spans overnight\n   - omit `department` unless the prompt explicitly scores a different department or validation demands it\n6. Deliver the expense\n   - `PUT /travelExpense/:deliver?id=<travelExpenseId>`\n7. Reuse the deliver response and stop\n   - `title`\n   - `employee.id`\n   - `travelDetails.departureDate`\n   - `travelDetails.returnDate`\n   - `travelDetails.destination`\n   - `state=DELIVERED`\n   - `costs.length`\n   - `perDiemCompensations.length`\n8. Stop\n\n## Conditional Investigation Branch\n\nUse the dedicated child reads only when the prompt materially differs from the standard embedded-create shape, a later step truly needs expanded child fields, or the live write/deliver response contradicts the intended child counts.\n\n1. `GET /travelExpense/cost?travelExpenseId=<id>&count=20&fields=*`\n2. `GET /travelExpense/perDiemCompensation?travelExpenseId=<id>&count=20&fields=*`\n3. Stop\n\n## Winning Payload Shape\n\nFor the travel-expense create, the sandbox-proven shape was:\n\n```json\n{\n  \"employee\": { \"id\": 18478235 },\n  \"title\": \"Visita cliente Bergen\",\n  \"travelDetails\": {\n    \"isForeignTravel\": false,\n    \"isDayTrip\": false,\n    \"isCompensationFromRates\": true,\n    \"departureDate\": \"2026-03-19\",\n    \"returnDate\": \"2026-03-20\",\n    \"departureTime\": \"08:00\",\n    \"returnTime\": \"18:00\",\n    \"destination\": \"Bergen\",\n    \"detailedJourneyDescription\": \"Visita cliente Bergen\",\n    \"purpose\": \"Visita cliente Bergen\"\n  },\n  \"perDiemCompensations\": [\n    {\n      \"location\": \"Bergen\",\n      \"count\": 2,\n      \"rate\": 800,\n      \"amount\": 1600\n    }\n  ],\n  \"costs\": [\n    {\n      \"costCategory\": { \"id\": 32813722 },\n      \"paymentType\": { \"id\": 32813706 },\n      \"comments\": \"bilhete de avião\",\n      \"amountCurrencyIncVat\": 5200,\n      \"amountNOKInclVAT\": 5200,\n      \"date\": \"2026-03-19\"\n    },\n    {\n      \"costCategory\": { \"id\": 32813737 },\n      \"paymentType\": { \"id\": 32813706 },\n      \"comments\": \"táxi\",\n      \"amountCurrencyIncVat\": 350,\n      \"amountNOKInclVAT\": 350,\n      \"date\": \"2026-03-20\"\n    }\n  ]\n}\n```\n\n## Validation Traps\n\n- do not omit `amountCurrencyIncVat` on embedded travel costs just because the prompt amount is already in NOK\n- do not set `travelDetails.isCompensationFromRates=false` when the same write also includes `perDiemCompensations[]`\n- do not waste effort resolving or echoing `department` for a normal existing-employee expense; Tripletex can inherit it from the employee\n- do not rerun `GET /employee` after the first read already proved the employee identity and `address=null`; switch directly to the conditional company-address branch\n- do not use `GET /company/{companyId}?fields=*` for the fallback; it leaves `company.address` as a link-only object in sandbox, so use `fields=*,address(*)`\n- do not trust a successful `POST /travelExpense` with manual per-diem `count`/`rate`/`amount` as a fully correct final state; that row can still persist with `rateType=null`\n- do not rely on the category default VAT if the expense may need `:deliver`; explicit zero-VAT cost rows were required in sandbox for a non-VAT-registered company\n- do not assume approval is available after delivery; sandbox `PUT /travelExpense/:approve` returned `403`\n- do not assume `GET /travelExpense/{id}?fields=*` expands child rows; it can stay link-only for both costs and per-diems\n\n## Category And Payment-Type Resolution\n\n- `GET /travelExpense/costCategory` does not expose a query parameter equivalent to `showOnTravelExpenses=true`, so fetch the set once and filter locally\n- prefer exact category-description matches before fallback heuristics:\n  - `Fly` for airfare\n  - `Taxi` for taxi\n- for the payment type, prefer one active travel-expense reimbursement type from the lookup; persistent sandbox exposed `Privat utlegg`\n\n## Per-Diem Resolution\n\n- for multi-day domestic per-diem tasks, resolve one compatible live `rateType` from `GET /travelExpense/rate?...fields=*`; do not leave `perDiemCompensations[].rateType` empty\n- the filtered rate search can already be authoritative even when `rateCategory` stays sparse; do not spend `GET /travelExpense/rateCategory/{id}` just to expand booleans\n- preserve the prompt's scored `count`, `rate`, and `amount`, but still include a compatible `rateType` so the row is deliverable\n- if the trip spans overnight, set `overnightAccommodation`; sandbox accepted the generic branch `HOTEL`\n- if the prompt omits `departureFrom`, only infer it from one concrete employee address field already returned by `GET /employee`, preferring `address.city`, then `address.addressLine1`, then `address.displayName`\n- if those employee address fields are absent but the employee exposes `companyId`, use one conditional `GET /company/{companyId}?fields=*,address(*)` and infer from `company.address.city`, then `company.address.addressLine1`, then `company.address.displayName`, then `company.address.addressAsString`\n- do not invent generic placeholders such as `Hjemsted`; if both employee and company reads lack a concrete location, this prompt shape is blocked\n- if the prompt omits `departureFrom` or gives too little information to choose an overnight-accommodation branch safely, the old 4-call OPEN create is not a trusted full-correctness path for that prompt shape\n- if the prompt omits explicit travel dates as well, this is not an exact playbook match; sandbox proved several delivered date/departure combinations are possible, so do not pretend one default inference is trusted\n\n## Forced-Action Branch For Ambiguous Prompts\n\n- If the agent must still act autonomously on a duration-only prompt, keep the flow minimal instead of trying to \"solve\" the ambiguity with extra reads.\n- Use one decisive `GET /employee?email=...&count=10&fields=*`.\n- If `employee.address` is null but `companyId` exists, do one `GET /company/{companyId}?fields=*,address(*)` and reuse that concrete location for `departureFrom`.\n- Then go straight to the normal deliverable tail: `GET /travelExpense/costCategory`, `GET /travelExpense/paymentType`, `GET /travelExpense/rate`, `POST /travelExpense`, `PUT /travelExpense/:deliver`.\n- Choose one deterministic local date range inside the script, but document that it is only a best-effort fallback; sandbox proved multiple ranges are accepted, so there is no extra-read path that recovers a uniquely correct answer from Tripletex itself.\n\n## Date Ambiguity For Underspecified Prompts\n\n- do not encode a trusted default fallback for prompts that give only a duration\n- sandbox accepted both `2026-03-17..2026-03-20` and `2026-03-16..2026-03-19` for the same 4-day Bergen probe, and it also accepted different `departureFrom` values\n- because Tripletex accepts several delivered variants, omitted dates and omitted `departureFrom` are scorer ambiguities, not API-shape ambiguities\n- for that prompt family, the correct post-run learning action is to narrow the trusted standard, not to hardcode another guessed fallback date range\n\n## Verification Shape\n\n- `POST /travelExpense` verified the parent expense and returned:\n  - the parent `id`\n  - the linked `employee.id`\n  - the requested `travelDetails`\n  - `costs[].id/url` plus count\n  - `perDiemCompensations[].id/url` plus count\n- `PUT /travelExpense/:deliver` verified the corrected final parent state and returned `state=DELIVERED`\n- the parent `amount`/`paymentAmount` remained cost-only in sandbox, so they are not decisive proof of per-diem correctness\n- `GET /travelExpense/cost?...` and `GET /travelExpense/perDiemCompensation?...` remain the decisive investigation branch when expanded child verification is genuinely needed\n\n## When Not To Add Extra Reads\n\n- do not add a pre-read of `/travelExpense` for a pure create task\n- do not repeat `GET /employee`; for omitted-`departureFrom` tasks the full resolver branch is one employee read plus, if needed, one company read\n- do not add `GET /travelExpense/cost` or `GET /travelExpense/perDiemCompensation` in the standard scored flow just to double-check child persistence\n- do not add `GET /travelExpense/{id}`; it still leaves child arrays sparse and is not part of either the canonical scoring path or the conditional investigation branch\n- do not split the create into separate `POST /travelExpense/cost` and `POST /travelExpense/perDiemCompensation` calls unless the prompt materially differs from the embedded-create shape\n- do not add exploratory `GET /travelExpense`, repeated `GET /employee`, or alternate company/address probes just because the prompt omitted dates; those calls still do not tell you which inferred range is scorer-correct\n",
+    "knownFailureModes": [
+      "## Do Not Use This Standard If",
+      "do not send `department` on a normal existing-employee travel expense unless the prompt explicitly scores a different department or live validation requires it",
+      "if both employee and company address fields are absent, treat the run as blocked instead of inventing generic placeholders such as `Hjemsted`",
+      "for multi-day or overnight per diem, resolve one compatible `perDiemCompensations[].rateType` from `/travelExpense/rate`; do not leave `rateType`/`rateCategory` null",
+      "the filtered `/travelExpense/rate?...fields=*` response can still return `rateCategory` only as `id`/`url`; do not locally require `rateCategory.isValidDomestic` or `isRequiresOvernightAccommodation` after the query already filtered the set",
+      "do not rely on the category default VAT when the expense must be deliverable; in sandbox, explicit `costs[].vatType={ \"id\": 0 }` avoided later non-VAT-company delivery failure",
+      "do not encode a trusted default date inference for duration-only prompts; sandbox accepted several different delivered date ranges for the same Bergen probe, so omitted dates are not an exact-match trusted-standard case",
+      "returned `department.id` if Tripletex inherits it from the employee",
+      "do not treat the `POST /travelExpense` response alone as proof of full correctness for multi-day per-diem tasks; it can return an `OPEN` expense whose per-diem row is not deliverable",
+      "for exact scored runs, do not add `/travelExpense/cost` or `/travelExpense/perDiemCompensation` follow-up reads just to reassure yourself unless the deliver response contradicts the intended child counts",
+      "do not rely on `GET /travelExpense/{id}?fields=*` for expanded child details; `costs[]` and `perDiemCompensations[]` can still be link-only `id`/`url`",
+      "do not use top-level `amount` or `paymentAmount` as proof of per-diem correctness; in sandbox those totals still reflected only embedded cost reimbursement even after successful delivery",
+      "if `PUT /travelExpense/:deliver` fails on `travelDetails.departureFrom`, the create-only path was incomplete; do not keep treating the `OPEN` expense as final",
+      "`PUT /travelExpense/:deliver` then failed until `travelDetails.departureFrom`, a compatible per-diem `rateType`, and delivery-safe cost `vatType` values were present",
+      "Do not use for:",
+      "duration-only prompts that omit explicit travel dates; treat those as ambiguous investigation cases, not as an exact playbook match",
+      "`POST /travelExpense` did not need an explicit `department` field when the linked employee already had a department; the created expense inherited that department automatically",
+      "embedded `costs[]` failed with `422` until each row included `amountCurrencyIncVat`",
+      "embedded `perDiemCompensations[]` failed with `422` while `travelDetails.isCompensationFromRates=false`",
+      "`PUT /travelExpense/:deliver` then failed on missing `travelDetails.departureFrom`, missing `perDiemCompensations[].rateType`, and VAT-bearing `costs[].vatType` on a non-VAT-registered sandbox company"
+    ]
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Hard research lane task involving file or expense-flow nuance.",
+    "Task packet built from checked-in repo evidence for task 13.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 13.create-and-deliver-travel-expense.v2."
+  ]
+}

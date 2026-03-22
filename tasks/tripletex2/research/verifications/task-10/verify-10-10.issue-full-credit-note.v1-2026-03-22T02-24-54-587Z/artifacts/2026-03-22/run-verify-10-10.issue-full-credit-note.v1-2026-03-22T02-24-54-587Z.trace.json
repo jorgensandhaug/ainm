@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "tripletex2.run-sidecar.v1",
+  "runId": "verify-10-10.issue-full-credit-note.v1-2026-03-22T02-24-54-587Z",
+  "sidecarId": "trace-1",
+  "kind": "sanitized-trace",
+  "createdAt": "2026-03-22T02:24:54.589Z",
+  "payload": {
+    "notes": [
+      "Captured 1 Tripletex API calls."
+    ],
+    "trace": [
+      {
+        "durationMs": 782,
+        "index": 1,
+        "method": "GET",
+        "path": "/invoice",
+        "query": {
+          "count": 1000,
+          "fields": "*,customer(*),orderLines(*),orders(*,orderLines(*))",
+          "invoiceDateFrom": "2000-01-01",
+          "invoiceDateTo": "2026-03-23",
+          "sorting": "-invoiceDate"
+        },
+        "requestSummary": "lookup invoice by invoiceDateFrom, invoiceDateTo, count, sorting, fields",
+        "responseSummary": "invoice list 465 items",
+        "status": 200
+      }
+    ]
+  }
+}

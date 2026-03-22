@@ -1,0 +1,316 @@
+{
+  "schemaVersion": "tripletex2.prod48-shard.v1",
+  "shard": "D",
+  "analyzedAt": "2026-03-22T00:00:00Z",
+  "runCount": 8,
+  "timeRange": {
+    "first": "2026-03-21T23:11:30.833Z",
+    "last": "2026-03-21T23:20:06.679Z"
+  },
+  "runs": [
+    {
+      "runId": "prod-2026-03-21-231130833Z-92c4dcf1",
+      "requestId": "2349dccf",
+      "txTaskId": "03",
+      "inferenceStatus": "unique_attempt_delta",
+      "promptLanguage": "nn",
+      "promptSummary": "Create product 'Avis', number 2061, 4150 NOK, 0% VAT for newspapers",
+      "apiCalls": [
+        "GET /ledger/vatType?typeOfVat=OUTGOING",
+        "POST /product"
+      ],
+      "apiCallCount": 2,
+      "scriptFiles": ["create-product.ts", "sandbox-verify-0pct-vat.ts"],
+      "leaderboard": {
+        "attemptsBefore": 21,
+        "attemptsAfter": 22,
+        "bestScoreBefore": 2,
+        "bestScoreAfter": 2,
+        "improved": false
+      },
+      "semanticOperation": "create-product",
+      "correctCanonicalTaskId": "04",
+      "currentCanonicalTaskId": "03",
+      "mappingCorrect": false
+    },
+    {
+      "runId": "prod-2026-03-21-231238290Z-dde40565",
+      "requestId": "47fa6450",
+      "txTaskId": "08",
+      "inferenceStatus": "unique_attempt_delta",
+      "promptLanguage": "nn",
+      "promptSummary": "Create project 'Implementering Strandvik', customer Strandvik AS (935092957), PM Hakon Berge",
+      "apiCalls": [
+        "GET /customer?organizationNumber=935092957",
+        "GET /employee?email=hakon.berge@example.org&assignableProjectManagers=true",
+        "POST /project"
+      ],
+      "apiCallCount": 3,
+      "scriptFiles": ["create-project.ts", "sandbox-verify-shortcuts.ts"],
+      "leaderboard": {
+        "attemptsBefore": 21,
+        "attemptsAfter": 22,
+        "bestScoreBefore": 2,
+        "bestScoreAfter": 2,
+        "improved": false
+      },
+      "semanticOperation": "create-project",
+      "correctCanonicalTaskId": "05",
+      "currentCanonicalTaskId": "08",
+      "mappingCorrect": false
+    },
+    {
+      "runId": "prod-2026-03-21-231356274Z-db84be61",
+      "requestId": "bbe92a66",
+      "txTaskId": "17",
+      "inferenceStatus": "unique_attempt_delta",
+      "promptLanguage": "pt",
+      "promptSummary": "Create dimension 'Region' with values 'Vestlandet'/'Midt-Norge', post voucher on 6860 for 47500 NOK linked to 'Midt-Norge'",
+      "apiCalls": [
+        "POST /ledger/accountingDimensionName",
+        "POST /ledger/accountingDimensionValue (Vestlandet)",
+        "POST /ledger/accountingDimensionValue (Midt-Norge)",
+        "GET /ledger/account?number=6860,1920",
+        "POST /ledger/voucher"
+      ],
+      "apiCallCount": 5,
+      "scriptFiles": ["run.ts"],
+      "leaderboard": {
+        "attemptsBefore": 21,
+        "attemptsAfter": 22,
+        "bestScoreBefore": 3.5,
+        "bestScoreAfter": 3.5,
+        "improved": false
+      },
+      "semanticOperation": "create-accounting-dimension-and-post-voucher",
+      "correctCanonicalTaskId": "07",
+      "currentCanonicalTaskId": "17",
+      "mappingCorrect": false
+    },
+    {
+      "runId": "prod-2026-03-21-231454326Z-3d670cac",
+      "requestId": "f4296e4b",
+      "txTaskId": "08",
+      "inferenceStatus": "unique_attempt_delta",
+      "promptLanguage": "nn",
+      "promptSummary": "Create project 'Migrasjon Elvdal', customer Elvdal AS (962211348), PM Geir Aasen",
+      "apiCalls": [
+        "GET /customer?organizationNumber=962211348",
+        "GET /employee?email=geir.aasen@example.org&assignableProjectManagers=true",
+        "POST /project"
+      ],
+      "apiCallCount": 3,
+      "scriptFiles": ["create-project.ts", "sandbox-verify-2call.ts"],
+      "leaderboard": {
+        "attemptsBefore": 22,
+        "attemptsAfter": 23,
+        "bestScoreBefore": 2,
+        "bestScoreAfter": 2,
+        "improved": false
+      },
+      "semanticOperation": "create-project",
+      "correctCanonicalTaskId": "05",
+      "currentCanonicalTaskId": "08",
+      "mappingCorrect": false
+    },
+    {
+      "runId": "prod-2026-03-21-231548877Z-08a38984",
+      "requestId": "24ef3b38",
+      "txTaskId": "12",
+      "inferenceStatus": "unique_attempt_delta",
+      "promptLanguage": "fr",
+      "promptSummary": "Run payroll for Sarah Moreau, base 56900 NOK, bonus 15800 NOK",
+      "apiCalls": [
+        "GET /employee?email=...",
+        "GET /salary/type?count=1000",
+        "GET /ledger/account?number=5000,1920",
+        "POST /division (conditional)",
+        "PUT /employee/{id} (conditional)",
+        "POST /employee/employment (conditional)",
+        "POST /salary/transaction?generateTaxDeduction=true",
+        "POST /ledger/voucher?sendToLedger=true"
+      ],
+      "apiCallCount": "3-8 (conditional repair branch)",
+      "scriptFiles": [
+        "run-payroll.ts",
+        "sandbox-test-account-by-name-number.ts",
+        "sandbox-test-salarytype-by-name.ts",
+        "sandbox-test-salarytype-by-name2.ts",
+        "sandbox-test-salarytype-number.ts"
+      ],
+      "leaderboard": {
+        "attemptsBefore": 23,
+        "attemptsAfter": 24,
+        "bestScoreBefore": 2.333,
+        "bestScoreAfter": 2.4,
+        "improved": true
+      },
+      "semanticOperation": "run-payroll-with-bonus",
+      "correctCanonicalTaskId": "12",
+      "currentCanonicalTaskId": "12",
+      "mappingCorrect": true
+    },
+    {
+      "runId": "prod-2026-03-21-231713485Z-eb378aba",
+      "requestId": "f2729cc9",
+      "txTaskId": "08",
+      "inferenceStatus": "unique_attempt_delta",
+      "promptLanguage": "nn",
+      "promptSummary": "Create project 'Analyse Sjobris', customer Sjobris AS (883693329), PM Steinar Berge",
+      "apiCalls": [
+        "GET /customer?organizationNumber=883693329",
+        "GET /employee?email=steinar.berge@example.org&assignableProjectManagers=true",
+        "POST /project"
+      ],
+      "apiCallCount": 3,
+      "scriptFiles": ["create-project.ts"],
+      "leaderboard": {
+        "attemptsBefore": 23,
+        "attemptsAfter": 24,
+        "bestScoreBefore": 2,
+        "bestScoreAfter": 2,
+        "improved": false
+      },
+      "semanticOperation": "create-project",
+      "correctCanonicalTaskId": "05",
+      "currentCanonicalTaskId": "08",
+      "mappingCorrect": false
+    },
+    {
+      "runId": "prod-2026-03-21-231803951Z-1a623504",
+      "requestId": "8c607134",
+      "txTaskId": "11",
+      "inferenceStatus": "unique_attempt_delta",
+      "promptLanguage": "es",
+      "promptSummary": "Register supplier invoice INV-2026-1443 from Montana SL (831519975), 50050 NOK gross, account 6300, 25% VAT",
+      "apiCalls": [
+        "POST /supplier",
+        "GET /ledger/account?number=6300&isApplicableForSupplierInvoice=true",
+        "POST /ledger/voucher/importDocument",
+        "PUT /ledger/voucher/{id}?sendToLedger=false",
+        "PUT /ledger/voucher/{id}?sendToLedger=true"
+      ],
+      "apiCallCount": 5,
+      "scriptFiles": ["register-supplier-invoice.ts", "sandbox-investigate-import-response.ts"],
+      "leaderboard": {
+        "attemptsBefore": 19,
+        "attemptsAfter": 20,
+        "bestScoreBefore": 1,
+        "bestScoreAfter": 1,
+        "improved": false
+      },
+      "semanticOperation": "register-supplier-invoice",
+      "correctCanonicalTaskId": "16",
+      "currentCanonicalTaskId": "11",
+      "mappingCorrect": false
+    },
+    {
+      "runId": "prod-2026-03-21-232006679Z-77175e8c",
+      "requestId": "b6582055",
+      "txTaskId": null,
+      "inferenceStatus": "no_change_detected",
+      "inferenceNote": "leaderboard after-capture timed out; no diff available",
+      "promptLanguage": "nn",
+      "promptSummary": "Create product 'Dataradgjeving', number 4993, 16250 NOK, 25% standard VAT",
+      "apiCalls": [
+        "POST /product"
+      ],
+      "apiCallCount": 1,
+      "scriptFiles": ["create-product.ts", "sandbox-verify.ts"],
+      "leaderboard": {
+        "attemptsBefore": null,
+        "attemptsAfter": null,
+        "bestScoreBefore": null,
+        "bestScoreAfter": null,
+        "improved": null,
+        "note": "leaderboard.after timed out; no diff captured"
+      },
+      "semanticOperation": "create-product",
+      "correctCanonicalTaskId": "04",
+      "currentCanonicalTaskId": null,
+      "mappingCorrect": null
+    }
+  ],
+  "mappingCorrections": [
+    {
+      "txTaskId": "03",
+      "currentCanonicalTaskId": "03",
+      "currentCanonicalName": "Create Department",
+      "correctCanonicalTaskId": "04",
+      "correctCanonicalName": "Create Product",
+      "confidence": "high",
+      "evidenceRunCount": 1,
+      "evidenceRunIds": ["prod-2026-03-21-231130833Z-92c4dcf1"]
+    },
+    {
+      "txTaskId": "08",
+      "currentCanonicalTaskId": "08",
+      "currentCanonicalName": "Create and Send Invoice",
+      "correctCanonicalTaskId": "05",
+      "correctCanonicalName": "Create Project",
+      "confidence": "very-high",
+      "evidenceRunCount": 3,
+      "evidenceRunIds": [
+        "prod-2026-03-21-231238290Z-dde40565",
+        "prod-2026-03-21-231454326Z-3d670cac",
+        "prod-2026-03-21-231713485Z-eb378aba"
+      ]
+    },
+    {
+      "txTaskId": "11",
+      "currentCanonicalTaskId": "11",
+      "currentCanonicalName": "Create Order, Invoice, and Register Payment",
+      "correctCanonicalTaskId": "16",
+      "correctCanonicalName": "Register Supplier Invoice",
+      "confidence": "high",
+      "evidenceRunCount": 1,
+      "evidenceRunIds": ["prod-2026-03-21-231803951Z-1a623504"]
+    },
+    {
+      "txTaskId": "17",
+      "currentCanonicalTaskId": "17",
+      "currentCanonicalName": "Register Customer Invoice Payment",
+      "correctCanonicalTaskId": "07",
+      "correctCanonicalName": "Create Accounting Dimension and Post Voucher",
+      "confidence": "high",
+      "evidenceRunCount": 1,
+      "evidenceRunIds": ["prod-2026-03-21-231356274Z-db84be61"]
+    }
+  ],
+  "confirmedCorrectMappings": [
+    {
+      "txTaskId": "12",
+      "canonicalTaskId": "12",
+      "canonicalName": "Run Payroll with Bonus",
+      "confidence": "high",
+      "evidenceRunCount": 1,
+      "evidenceRunIds": ["prod-2026-03-21-231548877Z-08a38984"]
+    }
+  ],
+  "scoreImprovements": [
+    {
+      "txTaskId": "12",
+      "canonicalTaskId": "12",
+      "scoreBefore": 2.333,
+      "scoreAfter": 2.4,
+      "delta": 0.067,
+      "strategyUsed": "repair-aware-payroll",
+      "runId": "prod-2026-03-21-231548877Z-08a38984"
+    }
+  ],
+  "strategyCandidate": {
+    "produced": false,
+    "reason": "No novel strategy pattern emerged. The repair-aware payroll pattern (the only score-improving run) is already captured in active strategy 12.repair-aware-payroll.v1. The 1-call product creation shortcut (skipping VAT lookup for 25% default) is environment-dependent and already explored in the existing direct-create-product strategy. The project creation 3-call pattern matches the existing create-project strategy. No new candidate artifact warranted."
+  },
+  "clusterInsights": {
+    "identityBridgeBroken": true,
+    "wrongMappingCount": 4,
+    "correctMappingCount": 1,
+    "unknownMappingCount": 1,
+    "totalDistinctTxTaskIds": 5,
+    "promptLanguages": ["nn", "fr", "pt", "es"],
+    "scoreImprovementCount": 1,
+    "scorePlateauCount": 6,
+    "leaderboardTimeoutCount": 1
+  }
+}

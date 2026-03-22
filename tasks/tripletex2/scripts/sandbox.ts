@@ -111,12 +111,14 @@ async function main(): Promise<void> {
     const taskId = requireFlag(args, "--task");
     const strategyId = requireFlag(args, "--strategy");
     const inputPath = requireFlag(args, "--input-file");
-    const payload = await readJsonFile<Record<string, unknown>>(resolveFilePath(inputPath));
+    const rawInput = await readJsonFile<Record<string, unknown>>(resolveFilePath(inputPath));
+    const { prompt: inputPrompt, ...payload } = rawInput;
     const result = await runSandboxTask({
       taskId,
       strategyId,
       payload,
       credentials,
+      ...(typeof inputPrompt === "string" ? { prompt: inputPrompt } : {}),
     });
     printJson({
       artifactPath: result.artifactPath,
@@ -136,7 +138,8 @@ async function main(): Promise<void> {
     const inputPath = requireFlag(args, "--input-file");
     const packetPath = optionalFlag(args, "--packet");
     const setupPlanPath = optionalFlag(args, "--setup-plan");
-    const input = await readJsonFile<Record<string, unknown>>(resolveFilePath(inputPath));
+    const rawVerifyInput = await readJsonFile<Record<string, unknown>>(resolveFilePath(inputPath));
+    const { prompt: verifyPrompt, ...input } = rawVerifyInput;
     const packetResult = packetPath
       ? {
           packetPath: resolveFilePath(packetPath),
@@ -166,6 +169,7 @@ async function main(): Promise<void> {
       packetPath: packetResult.packetPath,
       strategyId,
       input,
+      ...(typeof verifyPrompt === "string" ? { prompt: verifyPrompt } : {}),
       candidateId: optionalFlag(args, "--candidate-id") ?? strategyId,
       sandboxResetOverride,
     });

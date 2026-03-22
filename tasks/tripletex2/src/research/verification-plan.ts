@@ -65,6 +65,125 @@ export function buildTaskVerificationPlan(
     };
   }
 
+  if (taskId === "10") {
+    return {
+      schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
+      planId: "task-10.issue-full-credit-note.v1",
+      taskId: "10",
+      checks: [
+        {
+          type: "object",
+          checkId: "credit-note-readback",
+          description:
+            "Read the created credit note and confirm it links back to the original invoice.",
+          pathTemplate: "/invoice/{{result.createdEntityIds.creditNoteId}}",
+          query: {
+            fields: "*,customer(*)",
+          },
+          responsePath: "value",
+          assertions: [
+            {
+              actualPath: "creditedInvoice",
+              equalsFromPath: "result.createdEntityIds.originalInvoiceId",
+            },
+            {
+              actualPath: "invoiceNumber",
+              equalsFromPath: "result.verification.creditNoteNumber",
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  if (taskId === "21") {
+    return {
+      schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
+      planId: "task-21.onboard-employee-offer-letter.v1",
+      taskId: "21",
+      checks: [
+        {
+          type: "object",
+          checkId: "employee-readback",
+          description:
+            "Read the created employee and confirm identity, date of birth, and department.",
+          pathTemplate: "/employee/{{result.createdEntityIds.employeeId}}",
+          query: {
+            fields: "*,department(*)",
+          },
+          responsePath: "value",
+          assertions: [
+            {
+              actualPath: "dateOfBirth",
+              equalsFromPath: "result.verification.birthDate",
+            },
+          ],
+        },
+        {
+          type: "collection",
+          checkId: "employment-details-readback",
+          description:
+            "Read employments for the created employee and confirm remunerationType, employmentForm, salary, percentage, and occupation code.",
+          pathTemplate: "/employee/employment",
+          query: {
+            employeeId: "{{result.createdEntityIds.employeeId}}",
+            fields: "*,employmentDetails(*,occupationCode(*))",
+          },
+          collectionPath: "values",
+          matchPath: "id",
+          matchFromPath: "result.createdEntityIds.employmentId",
+          assertions: [
+            {
+              actualPath: "startDate",
+              equalsFromPath: "result.verification.startDate",
+            },
+            {
+              actualPath: "employmentDetails.0.remunerationType",
+              equalsFromPath: "result.verification.remunerationType",
+            },
+            {
+              actualPath: "employmentDetails.0.employmentForm",
+              equalsFromPath: "result.verification.employmentForm",
+            },
+            {
+              actualPath: "employmentDetails.0.annualSalary",
+              equalsFromPath: "result.verification.annualSalaryNok",
+            },
+            {
+              actualPath: "employmentDetails.0.percentageOfFullTimeEquivalent",
+              equalsFromPath:
+                "result.verification.percentageOfFullTimeEquivalent",
+            },
+            {
+              actualPath: "employmentDetails.0.occupationCode.id",
+              equalsFromPath: "result.verification.occupationCodeId",
+            },
+          ],
+        },
+        {
+          type: "collection",
+          checkId: "standard-time-readback",
+          description:
+            "Read the standard worktime for the employee and confirm hours per day.",
+          pathTemplate: "/employee/standardTime",
+          query: {
+            employeeId: "{{result.createdEntityIds.employeeId}}",
+            fields: "*",
+          },
+          collectionPath: "values",
+          matchPath: "id",
+          matchFromPath: "result.createdEntityIds.standardTimeId",
+          assertions: [
+            {
+              actualPath: "hoursPerDay",
+              equalsFromPath: "result.verification.standardHoursPerDay",
+            },
+          ],
+        },
+      ],
+    };
+  }
+
   if (taskId === "11") {
     return {
       schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
@@ -112,6 +231,93 @@ export function buildTaskVerificationPlan(
       ],
     };
   }
+  if (taskId === "15") {
+    return {
+      schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
+      planId: "task-15.register-hours-project-invoice.v1",
+      taskId: "15",
+      checks: [
+        {
+          type: "object",
+          checkId: "timesheet-entry-readback",
+          description:
+            "Read the first created timesheet entry and confirm hours, project, and activity.",
+          pathTemplate: "/timesheet/entry/{{result.verification.timesheetEntryIds.0}}",
+          query: {
+            fields: "*",
+          },
+          responsePath: "value",
+          assertions: [
+            {
+              actualPath: "project.id",
+              equalsFromPath: "result.verification.projectId",
+            },
+            {
+              actualPath: "activity.id",
+              equalsFromPath: "result.verification.activityId",
+            },
+            {
+              actualPath: "hours",
+              equalsFromPath: "result.verification.registeredHours.0",
+            },
+          ],
+        },
+        {
+          type: "object",
+          checkId: "invoice-readback",
+          description:
+            "Read the created invoice and confirm customer, amount, and order linkage.",
+          pathTemplate: "/invoice/{{result.createdEntityIds.invoiceId}}",
+          query: {
+            fields: "*,customer(*),orders(*)",
+          },
+          responsePath: "value",
+          assertions: [
+            {
+              actualPath: "customer.id",
+              equalsFromPath: "result.verification.customerId",
+            },
+            {
+              actualPath: "amountExcludingVatCurrency",
+              equalsFromPath: "result.verification.amountExcludingVatCurrency",
+            },
+            {
+              actualPath: "invoiceNumber",
+              equalsFromPath: "result.verification.invoiceNumber",
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  if (taskId === "17") {
+    return {
+      schemaVersion: RESEARCH_VERIFICATION_PLAN_SCHEMA_VERSION,
+      planId: "task-17.register-payment.v1",
+      taskId: "17",
+      checks: [
+        {
+          type: "object",
+          checkId: "invoice-payment-readback",
+          description:
+            "Read the paid invoice and confirm the outstanding amount is zero.",
+          pathTemplate: "/invoice/{{result.verification.invoiceId}}",
+          query: {
+            fields: "*,customer(*),currency(*)",
+          },
+          responsePath: "value",
+          assertions: [
+            {
+              actualPath: "amountCurrencyOutstanding",
+              equalsFromPath: "result.verification.remainingOutstanding",
+            },
+          ],
+        },
+      ],
+    };
+  }
+
 
   return undefined;
 }

@@ -1,0 +1,220 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-24-packet-2026-03-22T02-12-00-869Z",
+  "createdAt": "2026-03-22T02:12:00.869Z",
+  "taskId": "24",
+  "txTaskId": "24",
+  "taskSlug": "correct-ledger-errors",
+  "taskName": "Correct ledger errors",
+  "queueEntry": {
+    "taskId": "24",
+    "txTaskId": "24",
+    "taskSlug": "correct-ledger-errors",
+    "taskName": "Correct ledger errors",
+    "priority": 2,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "researchLane": "classifier-bugfix",
+    "bestKnownScore": 2.25,
+    "maxScore": 6,
+    "notes": [
+      "Known classifier mismatch looks fixable and high leverage.",
+      "Good score-per-fix target in Tier 3."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "24.correct-ledger-errors.v1",
+    "strategyPath": "src/tasks/task-24/strategies/correct-ledger-errors.ts",
+    "strategyStatus": "active",
+    "strategyName": "Correct four known Jan-Feb 2026 ledger errors",
+    "summary": "Loads the relevant ledger accounts, scans Jan-Feb 2026 vouchers for the four known anomalies, then posts one balanced correction voucher with id-based postings.",
+    "hypothesis": "This task family is deterministic because the prompt fixes one date window and four exact error signatures, so a single scan plus one correction voucher is enough.",
+    "expectedCallProfile": {
+      "targetCalls": 3,
+      "maxCalls": 3
+    },
+    "stepOutline": [
+      "API call 1: GET /ledger/account for accounts 7300, 7000, 6860, 6500, and 2710.",
+      "API call 2: GET /ledger/voucher for the Jan-Feb 2026 window with posting expansion, then identify the wrong-account, duplicate, missing-VAT, and wrong-amount vouchers.",
+      "API call 3: POST /ledger/voucher?sendToLedger=true with one corrective voucher dated 2026-02-28."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "24.correct-ledger-errors.v1",
+      "strategyPath": "src/tasks/task-24/strategies/correct-ledger-errors.ts",
+      "strategyStatus": "active",
+      "strategyName": "Correct four known Jan-Feb 2026 ledger errors",
+      "summary": "Loads the relevant ledger accounts, scans Jan-Feb 2026 vouchers for the four known anomalies, then posts one balanced correction voucher with id-based postings.",
+      "hypothesis": "This task family is deterministic because the prompt fixes one date window and four exact error signatures, so a single scan plus one correction voucher is enough.",
+      "expectedCallProfile": {
+        "targetCalls": 3,
+        "maxCalls": 3
+      },
+      "stepOutline": [
+        "API call 1: GET /ledger/account for accounts 7300, 7000, 6860, 6500, and 2710.",
+        "API call 2: GET /ledger/voucher for the Jan-Feb 2026 window with posting expansion, then identify the wrong-account, duplicate, missing-VAT, and wrong-amount vouchers.",
+        "API call 3: POST /ledger/voucher?sendToLedger=true with one corrective voucher dated 2026-02-28."
+      ]
+    }
+  ],
+  "baselineCallBudget": 3,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Correct ledger errors. Current best known score is 2.25/6, leaving a gap of 3.75. Known call frontier is 3 calls when correctness matches the current best evidence. The active pinned strategy to beat is 24.correct-ledger-errors.v1 with target 3 calls.",
+    "currentBestKnownScore": 2.25,
+    "maxScore": 6,
+    "scoreGap": 3.75,
+    "bestKnownCallBudget": 3,
+    "baselineCallBudget": 3,
+    "activeStrategyToBeat": {
+      "strategyId": "24.correct-ledger-errors.v1",
+      "strategyPath": "src/tasks/task-24/strategies/correct-ledger-errors.ts",
+      "strategyStatus": "active",
+      "strategyName": "Correct four known Jan-Feb 2026 ledger errors",
+      "summary": "Loads the relevant ledger accounts, scans Jan-Feb 2026 vouchers for the four known anomalies, then posts one balanced correction voucher with id-based postings.",
+      "hypothesis": "This task family is deterministic because the prompt fixes one date window and four exact error signatures, so a single scan plus one correction voucher is enough.",
+      "expectedCallProfile": {
+        "targetCalls": 3,
+        "maxCalls": 3
+      },
+      "stepOutline": [
+        "API call 1: GET /ledger/account for accounts 7300, 7000, 6860, 6500, and 2710.",
+        "API call 2: GET /ledger/voucher for the Jan-Feb 2026 window with posting expansion, then identify the wrong-account, duplicate, missing-VAT, and wrong-amount vouchers.",
+        "API call 3: POST /ledger/voucher?sendToLedger=true with one corrective voucher dated 2026-02-28."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 2.25/6, or match the current correctness and score at 3 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 24.correct-ledger-errors.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 2.25/6.",
+      "If score does not improve, match correctness at 3 API calls or fewer.",
+      "Compare against the active pinned strategy 24.correct-ledger-errors.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/src/tasks/task-24",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/src/tasks/task-24/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/src/tasks/task-24/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/src/tasks/task-24/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/src/tasks/task-24/strategies/correct-ledger-errors.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/src/tasks/task-24/strategies/correct-ledger-errors.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/research/packets/task-24/task-24-packet-2026-03-22T02-12-00-869Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": []
+    },
+    "offlineEvidence": {
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t24-research-wave1/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 0,
+    "recentArtifacts": []
+  },
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 2.25,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 2.25,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 2.25,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 2.25,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 2.25,
+        "totalAttempts": 12,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-204843788Z-3d464771",
+      "prod-2026-03-21-204558586Z-ee909d4d",
+      "prod-2026-03-21-191608814Z-db732541",
+      "prod-2026-03-21-182142534Z-7fed6a02",
+      "prod-2026-03-21-175751200Z-397faff2"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "knownFailureModes": []
+  },
+  "proof": {
+    "inputPath": "research/proof-inputs/task-24/input.json",
+    "verificationPlan": {
+      "schemaVersion": "tripletex2.research-verification-plan.v1",
+      "planId": "task-24.correct-ledger-errors.v3",
+      "taskId": "24",
+      "checks": [
+        {
+          "type": "object",
+          "checkId": "correction-voucher-readback",
+          "description": "Read the correction voucher and verify the date and posting count.",
+          "pathTemplate": "/ledger/voucher/{{result.createdEntityIds.voucherId}}",
+          "query": {
+            "fields": "id,date,description,postings(id,account(id,number),amountGross)"
+          },
+          "responsePath": "value",
+          "assertions": [
+            {
+              "actualPath": "date",
+              "equalsFromPath": "result.verification.correctionDate"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "operatorNotes": [
+    "Known classifier mismatch looks fixable and high leverage.",
+    "Good score-per-fix target in Tier 3.",
+    "Task packet built from checked-in repo evidence for task 24.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 24.correct-ledger-errors.v1."
+  ]
+}

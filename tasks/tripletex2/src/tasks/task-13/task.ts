@@ -25,10 +25,11 @@ export interface RegisterTravelExpenseInput {
   employeeEmail: string;
   title: string;
   purpose: string;
-  departureDate: string;
-  returnDate: string;
+  tripDurationDays: number;
   costs: RegisterTravelExpenseCostInput[];
   perDiemCompensations: RegisterTravelExpensePerDiemInput[];
+  departureDate?: string;
+  returnDate?: string;
   departureFrom?: string;
   employeeName?: string;
   detailedJourneyDescription?: string;
@@ -39,7 +40,7 @@ export const task = {
   taskName: "Register travel expense",
   implementationStatus: "implemented",
   signature:
-    "registerTravelExpense(employeeEmail, title, purpose, departureDate, returnDate, costs, perDiemCompensations, departureFrom?, employeeName?, detailedJourneyDescription?)",
+    "registerTravelExpense(employeeEmail, title, purpose, tripDurationDays, costs, perDiemCompensations, departureDate?, returnDate?, departureFrom?, employeeName?, detailedJourneyDescription?)",
   summary:
     "Register a travel expense claim with per diem and named out-of-pocket expenses.",
   inputSchemaId: REGISTER_TRAVEL_EXPENSE_INPUT_SCHEMA_ID,
@@ -47,12 +48,13 @@ export const task = {
     "employeeEmail",
     "title",
     "purpose",
-    "departureDate",
-    "returnDate",
+    "tripDurationDays",
     "costs",
     "perDiemCompensations",
   ] as const,
   optionalFields: [
+    "departureDate",
+    "returnDate",
     "departureFrom",
     "employeeName",
     "detailedJourneyDescription",
@@ -64,10 +66,12 @@ export const task = {
       "Travel expense title.",
     purpose:
       "Travel purpose text copied into travelDetails.",
+    tripDurationDays:
+      "Number of travel days extracted from the prompt (e.g. '5 dagar' → 5, '2 days' → 2). Always extractable even when concrete dates are not given.",
     departureDate:
-      "Trip departure date normalized to ISO YYYY-MM-DD.",
+      "Optional trip departure date in ISO YYYY-MM-DD. Only set when the prompt provides an explicit calendar date.",
     returnDate:
-      "Trip return date normalized to ISO YYYY-MM-DD.",
+      "Optional trip return date in ISO YYYY-MM-DD. Only set when the prompt provides an explicit calendar date.",
     costs:
       "Named travel-expense cost rows with category names and gross NOK amounts.",
     perDiemCompensations:
@@ -81,8 +85,9 @@ export const task = {
   },
   extractionNotes: [
     "Do not invent a generic departureFrom placeholder; leave it unset when the prompt does not provide a concrete location.",
-    "Normalize travel dates to ISO YYYY-MM-DD and preserve the title, purpose, and comments exactly.",
-    "Only use this task surface when the prompt supplies enough explicit dates and per-diem detail to reach a deliverable travel expense.",
+    "tripDurationDays is ALWAYS extractable: '5 dagar' → 5, '2 days' → 2, '4 dager med diett' → 4. Extract the integer day count.",
+    "departureDate and returnDate are OPTIONAL. Only set them when the prompt gives explicit calendar dates (e.g. '15. mars'). Most prompts give only duration.",
+    "Preserve the title, purpose, and comments exactly as stated in the prompt.",
   ] as const,
 } satisfies TaskSpec<RegisterTravelExpenseInput, typeof REGISTER_TRAVEL_EXPENSE_TASK_ID>;
 export type RegisterTravelExpenseStrategy = TaskStrategy<
@@ -98,10 +103,13 @@ export type RegisterTravelExpenseTaskUnderstandingResult = TaskUnderstandingResu
   typeof REGISTER_TRAVEL_EXPENSE_TASK_ID
 >;
 export async function loadTaskModule(): Promise<RegisterTravelExpenseTaskModule> {
-  const { strategy } = await import("./strategies/create-and-deliver-travel-expense");
+  const [{ strategy: v1 }, { strategy: v3 }] = await Promise.all([
+    import("./strategies/create-and-deliver-travel-expense"),
+    import("./strategies/create-and-deliver-travel-expense-v3"),
+  ]);
   return {
     task,
-    strategies: [strategy],
+    strategies: [v3, v1],
   };
 }
 export const taskRegistration = {

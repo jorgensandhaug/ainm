@@ -6,7 +6,7 @@ import type {
   TaskUnderstandingResult,
 } from "../../runtime/contracts";
 export const REGISTER_PROJECT_HOURS_AND_CREATE_PROJECT_INVOICE_TASK_ID = "15";
-export const REGISTER_PROJECT_HOURS_AND_CREATE_PROJECT_INVOICE_TX_TASK_ID = "15";
+export const REGISTER_PROJECT_HOURS_AND_CREATE_PROJECT_INVOICE_TX_TASK_ID = "16";
 export const REGISTER_PROJECT_HOURS_AND_CREATE_PROJECT_INVOICE_INPUT_SCHEMA_ID = "15.v1";
 export interface RegisterProjectHoursAndCreateProjectInvoiceInput {
   employeeEmail: string;
@@ -88,9 +88,12 @@ export async function loadTaskModule(): Promise<RegisterProjectHoursAndCreatePro
   const { strategy } = await import(
     "./strategies/register-hours-then-project-order-invoice"
   );
+  const { strategy: directInvoiceStrategy } = await import(
+    "./strategies/register-hours-direct-invoice"
+  );
   return {
     task,
-    strategies: [strategy],
+    strategies: [strategy, directInvoiceStrategy],
   };
 }
 export const taskRegistration = {

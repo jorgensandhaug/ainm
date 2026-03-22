@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-result.v1",
+  "completedAt": "2026-03-22T02:23:30.554Z",
+  "createdAt": "2026-03-22T02:23:28.187Z",
+  "runId": "verify-10-10.issue-full-credit-note.v1-2026-03-22T02-23-28-177Z",
+  "taskId": "10",
+  "runtimeStatus": "failed",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/verifications/task-10/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-23-28-177Z/artifacts/2026-03-22/run-verify-10-10.issue-full-credit-note.v1-2026-03-22T02-23-28-177Z.json",
+  "sidecarPaths": [
+    "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t10-research-wave1/tasks/tripletex2/research/verifications/task-10/verify-10-10.issue-full-credit-note.v1-2026-03-22T02-23-28-177Z/artifacts/2026-03-22/run-verify-10-10.issue-full-credit-note.v1-2026-03-22T02-23-28-177Z.trace.json"
+  ]
+}

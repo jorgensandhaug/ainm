@@ -9,35 +9,35 @@ import {
   type NotImplementedTaskInput,
 } from "../shared/not-implemented";
 
-export const UNKNOWN_TASK_26_TASK_ID = "26";
-export const UNKNOWN_TASK_26_TX_TASK_ID = "26";
-export const UNKNOWN_TASK_26_INPUT_SCHEMA_ID = "26.v1";
+export const MONTHLY_CLOSING_TASK_ID = "26";
+export const MONTHLY_CLOSING_TX_TASK_ID = "26";
+export const MONTHLY_CLOSING_INPUT_SCHEMA_ID = "26.v1";
 
 export const task = createNotImplementedTaskSpec({
-  taskId: UNKNOWN_TASK_26_TASK_ID,
-  txTaskId: UNKNOWN_TASK_26_TX_TASK_ID,
-  taskName: "Unknown task 26",
+  taskId: MONTHLY_CLOSING_TASK_ID,
+  txTaskId: MONTHLY_CLOSING_TX_TASK_ID,
+  taskName: "Monthly closing (March 2026)",
   summary:
-    "Tier 3 placeholder for tx_task_id 26 with no checked-in prompt examples yet.",
-  signature: "unknownTask26()",
+    "Perform the monthly closing for March 2026: post accrued prepaid expense from account 1700, book monthly depreciation, and close relevant balance sheet items.",
+  signature: "monthlyClosing()",
 });
 
-export type UnknownTask26Strategy = TaskStrategy<
+export type MonthlyClosingStrategy = TaskStrategy<
   NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_26_TASK_ID
+  typeof MONTHLY_CLOSING_TASK_ID
 >;
 
-export type UnknownTask26TaskModule = TaskModule<
+export type MonthlyClosingTaskModule = TaskModule<
   NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_26_TASK_ID
+  typeof MONTHLY_CLOSING_TASK_ID
 >;
 
-export type UnknownTask26TaskUnderstandingResult = TaskUnderstandingResult<
+export type MonthlyClosingTaskUnderstandingResult = TaskUnderstandingResult<
   NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_26_TASK_ID
+  typeof MONTHLY_CLOSING_TASK_ID
 >;
 
-export async function loadTaskModule(): Promise<UnknownTask26TaskModule> {
+export async function loadTaskModule(): Promise<MonthlyClosingTaskModule> {
   const { strategy } = await import("./strategies/not-implemented");
 
   return {
@@ -51,5 +51,5 @@ export const taskRegistration = {
   loadTaskModule,
 } satisfies TaskRegistration<
   NotImplementedTaskInput,
-  typeof UNKNOWN_TASK_26_TASK_ID
+  typeof MONTHLY_CLOSING_TASK_ID
 >;

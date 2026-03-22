@@ -1,0 +1,282 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-15-packet-2026-03-22T01-55-13-094Z",
+  "createdAt": "2026-03-22T01:55:13.094Z",
+  "taskId": "15",
+  "txTaskId": "15",
+  "taskSlug": "register-project-hours-and-create-project-invoice",
+  "taskName": "Register project hours and create project invoice",
+  "queueEntry": {
+    "taskId": "15",
+    "txTaskId": "15",
+    "taskSlug": "register-project-hours-and-create-project-invoice",
+    "taskName": "Register project hours and create project invoice",
+    "priority": 6,
+    "band": "focus",
+    "queueEligibility": "ready",
+    "researchLane": "execution-lane",
+    "bestKnownScore": 3.3333,
+    "maxScore": 4,
+    "notes": [
+      "Near-max Tier 2 cleanup target."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "15.register-hours-then-project-order-invoice.v1",
+    "strategyPath": "src/tasks/task-15/strategies/register-hours-then-project-order-invoice.ts",
+    "strategyStatus": "draft",
+    "strategyName": "Register hours then project order invoice",
+    "summary": "Resolves the employee, project, and project activity, writes the required project hours, then creates an unsent project-linked invoice from a manual order line.",
+    "hypothesis": "The trusted public path is to register the requested hours first, configure a project-specific rate only when the activity is chargeable, and always create the invoice through a real project-linked order line.",
+    "expectedCallProfile": {
+      "targetCalls": 7,
+      "maxCalls": 12
+    },
+    "stepOutline": [
+      "API call 1: GET /employee to resolve the exact employee by email.",
+      "API call 2: GET /project with expanded customer data to resolve the exact project and linked customer.",
+      "API call 3: GET /activity/>forTimeSheet to resolve the exact project activity and its chargeability branch.",
+      "Optional chargeable branch: GET/POST/PUT /project/hourlyRates plus POST/PUT /project/hourlyRates/projectSpecificRates to ensure the employee+activity rate exists.",
+      "POST /timesheet/entry once per planned date chunk, keeping projectChargeableHours at or below 24.",
+      "GET /ledger/vatType to resolve a safe outgoing VAT type for the invoice date.",
+      "POST /order with one real project-linked order line derived from the prompt hours and rate, then PUT /order/{id}/:invoice with sendToCustomer=false."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "15.register-hours-then-project-order-invoice.v1",
+      "strategyPath": "src/tasks/task-15/strategies/register-hours-then-project-order-invoice.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Register hours then project order invoice",
+      "summary": "Resolves the employee, project, and project activity, writes the required project hours, then creates an unsent project-linked invoice from a manual order line.",
+      "hypothesis": "The trusted public path is to register the requested hours first, configure a project-specific rate only when the activity is chargeable, and always create the invoice through a real project-linked order line.",
+      "expectedCallProfile": {
+        "targetCalls": 7,
+        "maxCalls": 12
+      },
+      "stepOutline": [
+        "API call 1: GET /employee to resolve the exact employee by email.",
+        "API call 2: GET /project with expanded customer data to resolve the exact project and linked customer.",
+        "API call 3: GET /activity/>forTimeSheet to resolve the exact project activity and its chargeability branch.",
+        "Optional chargeable branch: GET/POST/PUT /project/hourlyRates plus POST/PUT /project/hourlyRates/projectSpecificRates to ensure the employee+activity rate exists.",
+        "POST /timesheet/entry once per planned date chunk, keeping projectChargeableHours at or below 24.",
+        "GET /ledger/vatType to resolve a safe outgoing VAT type for the invoice date.",
+        "POST /order with one real project-linked order line derived from the prompt hours and rate, then PUT /order/{id}/:invoice with sendToCustomer=false."
+      ]
+    }
+  ],
+  "baselineCallBudget": 7,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Register project hours and create project invoice. Current best known score is 3.3333/4, leaving a gap of 0.6667. Known call frontier is 7 calls when correctness matches the current best evidence. The active pinned strategy to beat is 15.register-hours-then-project-order-invoice.v1 with target 7 calls.",
+    "currentBestKnownScore": 3.3333,
+    "maxScore": 4,
+    "scoreGap": 0.6667,
+    "bestKnownCallBudget": 7,
+    "baselineCallBudget": 7,
+    "activeStrategyToBeat": {
+      "strategyId": "15.register-hours-then-project-order-invoice.v1",
+      "strategyPath": "src/tasks/task-15/strategies/register-hours-then-project-order-invoice.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Register hours then project order invoice",
+      "summary": "Resolves the employee, project, and project activity, writes the required project hours, then creates an unsent project-linked invoice from a manual order line.",
+      "hypothesis": "The trusted public path is to register the requested hours first, configure a project-specific rate only when the activity is chargeable, and always create the invoice through a real project-linked order line.",
+      "expectedCallProfile": {
+        "targetCalls": 7,
+        "maxCalls": 12
+      },
+      "stepOutline": [
+        "API call 1: GET /employee to resolve the exact employee by email.",
+        "API call 2: GET /project with expanded customer data to resolve the exact project and linked customer.",
+        "API call 3: GET /activity/>forTimeSheet to resolve the exact project activity and its chargeability branch.",
+        "Optional chargeable branch: GET/POST/PUT /project/hourlyRates plus POST/PUT /project/hourlyRates/projectSpecificRates to ensure the employee+activity rate exists.",
+        "POST /timesheet/entry once per planned date chunk, keeping projectChargeableHours at or below 24.",
+        "GET /ledger/vatType to resolve a safe outgoing VAT type for the invoice date.",
+        "POST /order with one real project-linked order line derived from the prompt hours and rate, then PUT /order/{id}/:invoice with sendToCustomer=false."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 3.3333/4, or match the current correctness and score at 7 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 15.register-hours-then-project-order-invoice.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 3.3333/4.",
+      "If score does not improve, match correctness at 7 API calls or fewer.",
+      "Compare against the active pinned strategy 15.register-hours-then-project-order-invoice.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-15",
+      "taskReadmePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-15/README.md",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-15/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-15/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-15/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-15/strategies/register-hours-then-project-order-invoice.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-15/strategies/register-hours-then-project-order-invoice.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-15/task-15-packet-2026-03-22T01-55-13-094Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-190544892Z-d64d5813.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-production-2026-03-21T18-49-18-949Z-290f1c91.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-183449812Z-49332405.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-171706513Z-d961e89d.json",
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-165237770Z-a63caffa.json"
+      ]
+    },
+    "offlineEvidence": {
+      "trustedStandardPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/legacy/trusted-standards/register-project-hours-and-create-project-invoice.md",
+      "taskPlaybookPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/legacy/task-playbooks/register-project-hours-and-create-project-invoice.md",
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 11,
+    "recentArtifacts": [
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-190544892Z-d64d5813",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-190544892Z-d64d5813.json",
+        "createdAt": "2026-03-21T19:05:44.894Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-script-run",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      },
+      {
+        "runId": "production-2026-03-21T18-49-18-949Z-290f1c91",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-production-2026-03-21T18-49-18-949Z-290f1c91.json",
+        "createdAt": "2026-03-21T18:49:18.949Z",
+        "runtimeStatus": "failed",
+        "strategyId": "15.register-hours-then-project-order-invoice.v1",
+        "apiCallCount": 0
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-183449812Z-49332405",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-183449812Z-49332405.json",
+        "createdAt": "2026-03-21T18:34:49.813Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-script-correct-ledger-errors",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-171706513Z-d961e89d",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-171706513Z-d961e89d.json",
+        "createdAt": "2026-03-21T17:17:06.513Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-script-run",
+        "apiCallCount": 0
+      },
+      {
+        "runId": "legacy-tripletex1-prod-2026-03-21-165237770Z-a63caffa",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-21/run-legacy-tripletex1-prod-2026-03-21-165237770Z-a63caffa.json",
+        "createdAt": "2026-03-21T16:52:37.772Z",
+        "runtimeStatus": "completed",
+        "strategyId": "legacy-tripletex1-multi-script-run",
+        "apiCallCount": 0,
+        "failureMode": "Legacy run-level score could not be recovered from leaderboard snapshots."
+      }
+    ]
+  },
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 3.3333,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 3.3333,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 3.3333,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 3.3333,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 3.3333,
+        "totalAttempts": 21,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 5,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-214315010Z-edea42c4",
+      "prod-2026-03-21-190544892Z-d64d5813",
+      "prod-2026-03-21-183449812Z-49332405",
+      "prod-2026-03-21-171706513Z-d961e89d",
+      "prod-2026-03-21-165237770Z-a63caffa"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "readmeText": "# Register project hours and create project invoice\n\nTyped task surface and draft runtime stub for `register-project-hours-and-create-project-invoice`.\n\nThe intended deterministic solve path should follow `codex-environment/trusted-standards/register-project-hours-and-create-project-invoice.md` when this task gets a real strategy implementation.\n",
+    "trustedStandardText": "# Register Project Hours and Create Project Invoice\n\n## Trust Level\n- Trusted standard\n- Use directly for exact matches\n- Skip `./openapi.json` re-checking for exact matches\n\n## Exact Match\n- register hours on an existing employee, project, and activity\n- prompt gives the hour count and hourly rate directly\n- create an unsent project invoice to the linked customer\n- project, customer, employee, and activity already exist\n\n## Do Not Use This Standard If\n- the prompt explicitly scores true public-API hour-consumption semantics such as the time entry becoming invoiced or the project hour reserve being consumed by the created invoice\n- the prompt explicitly scores internal timesheet billability semantics on the registered hours, such as `chargeable=true` or `hourlyRate=<prompt rate>` on the timesheet entry itself\n- the task also requires creating the employee, customer, or project first\n\n## Standard Flow\n1. `GET /employee?email=...&count=10&fields=*`\n2. `GET /project?name=...&count=50&fields=*,customer(*)`\n   - exact-match the project locally by `project.name`\n   - use the expanded `project.customer.organizationNumber` and/or `project.customer.name` to satisfy the customer-identification part of the prompt\n   - do not add a separate `GET /customer` when the project read already leaves one exact match\n3. `GET /activity/>forTimeSheet?projectId=...&employeeId=...&date=...&query=...&filterExistingHours=false&count=50&fields=*`\n4. if the resolved activity has `isChargeable=true`:\n   - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))`\n   - if no holder exists for that project yet, `POST /project/hourlyRates` once with:\n     - `project`\n     - `startDate`\n     - `hourlyRateModel: \"TYPE_PROJECT_SPECIFIC_HOURLY_RATES\"`\n   - if needed, `PUT /project/hourlyRates/{id}` with:\n     - `project`\n     - `startDate`\n     - `hourlyRateModel: \"TYPE_PROJECT_SPECIFIC_HOURLY_RATES\"`\n   - if the holder already exposes one exact employee+activity `projectSpecificRate` with the prompt hourly rate, reuse it and skip an extra rate write\n   - if the holder already exposes one exact employee+activity `projectSpecificRate` with a different hourly rate, `PUT /project/hourlyRates/projectSpecificRates/{id}` once\n   - otherwise `POST /project/hourlyRates/projectSpecificRates` for the exact employee + activity + hourly rate\n5. `POST /timesheet/entry`\n   - if the prompt hour total is `<= 24`, one write is enough\n   - if the prompt hour total is `> 24`, split it into one entry per date, each with `projectChargeableHours <= 24`\n6. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`\n7. `POST /order` with:\n   - `customer`\n   - `project`\n   - `orderDate`\n   - `deliveryDate`\n   - one real embedded `orderLines[]` entry using the prompt hours and prompt rate\n8. `PUT /order/{id}/:invoice?invoiceDate=...&sendToCustomer=false`\n\n## Payload Rules\n- use `projectChargeableHours` on the timesheet write when the project hours are meant to be billable\n- `projectChargeableHours` cannot exceed `24` on one entry\n- Tripletex accepts only one entry per `employee + project + activity + date`; do not plan two same-day writes for the same tuple\n- `/activity/>forTimeSheet` exposes activity chargeability as `isChargeable`, not `chargeable`\n- do not try to send `projectSpecificRates[]` embedded inside the `PUT /project/hourlyRates/{id}` payload as the only rate write; the model switch and the project-specific-rate create are separate writes\n- when `activity.isChargeable=true`, spend `GET /project/hourlyRates` before the timesheet write; a chargeable timesheet can still succeed with `hourlyRate=0` if the exact employee+activity rate is missing\n- when you already spend `GET /project/hourlyRates`, prefer the expanded fields pattern `*,projectSpecificRates(*,employee(*),activity(*))` so the same read can prove whether an exact employee+activity rate already exists\n- if the resolved activity has `isChargeable=false`, skip the project-hourly-rate reads and writes and still send the normal timesheet payload; the write can persist the requested hours on the target activity while returning `chargeable=false` and `hourlyRate=0`\n- if the prompt hour total is `> 24`, pre-plan a multi-day split before the first write instead of discovering the `422`/`409` branch live\n- the real invoice line should usually use:\n  - `description` from the prompt activity or prompt billing text\n  - `count` equal to the prompt hours\n  - `unitPriceExcludingVatCurrency` equal to the prompt rate\n  - `vatType` from the filtered outgoing VAT lookup\n- do not drop `GET /ledger/vatType` from the scored default just because a `0%`-only sandbox accepts an omitted line `vatType`; that shortcut can silently create the wrong VAT result on taxable accounts\n- do not insert a default `PUT /timesheet/week/:approve`; it can return `403` even for the token owner and is not part of the proven public fast path\n\n## Reuse From Write Response\n- from `PUT /project/hourlyRates/{id}`:\n  - the switched project-hourly-rate holder id\n- from `POST /project/hourlyRates`:\n  - the created project-hourly-rate holder id\n- from `POST /project/hourlyRates/projectSpecificRates`:\n  - the created project-specific-rate id\n- from `PUT /project/hourlyRates/projectSpecificRates/{id}`:\n  - the updated project-specific-rate id\n- from `POST /timesheet/entry`:\n  - the created entry id\n  - `hourlyRate`\n  - `chargeable`\n- from `POST /order`:\n  - the created order id\n- from `PUT /order/{id}/:invoice`:\n  - invoice id\n  - invoice number\n  - totals and outstanding amount\n\n## Verification\n- trust the timesheet write response to verify:\n  - `hours`\n  - `projectChargeableHours`\n  - `activity.id`\n  - `project.id`\n- when the resolved activity is chargeable, also verify:\n  - `hourlyRate`\n  - `chargeable`\n- when the resolved activity is non-chargeable and the prompt only asks for the hours side effect plus the invoice side effect, do not treat `chargeable=false` and `hourlyRate=0` as an automatic stop condition\n- trust the invoice write response to verify:\n  - `customer.id`\n  - `orders[0].id`\n  - `amountExcludingVatCurrency`\n  - `amountCurrencyOutstanding`\n- add a follow-up `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` only if the invoice write response is too sparse for the scored fields\n\n## Known Recovery Branches\n- if the activity returned by `/activity/>forTimeSheet` is non-chargeable:\n  - `POST /project/hourlyRates/projectSpecificRates` on that activity is expected to fail with `422 activity.id: Ikke fakturerbar.`\n  - skip the project-specific-rate write on that branch\n  - a time entry on that activity can still be created, but it will keep `chargeable=false` and `hourlyRate=0`\n  - for prompt shapes that only ask to register the hours and create the customer-facing project invoice, continue with the manual project-linked order/invoice fallback instead of stopping\n  - only treat the task as blocked when the prompt explicitly scores the internal billability fields on the timesheet entry or true project-hour reserve consumption\n- if the prompt hour total is `> 24`:\n  - do not send one oversized `POST /timesheet/entry`; Tripletex returns `422 projectChargeableHours: Kan ikke være over 24`\n  - do not try to finish the same total with a second same-day entry for the same employee + project + activity; Tripletex returns `409 Det er allerede registrert timer ...`\n  - split the total across distinct dates, with at most `24` hours per date\n  - if one day chunk already succeeded before the duplicate branch surfaced, do one decisive `GET /timesheet/entry?employeeId=...&projectId=...&activityId=...&dateFrom=...&dateTo=...&fields=*` and write only the missing dates\n- if `PUT /order/{id}/:invoice` fails only with `Faktura kan ikke opprettes før selskapet har registrert et bankkontonummer.`:\n  - `GET /ledger/account?isBankAccount=true&fields=*`\n  - update the existing invoice bank account with `PUT /ledger/account/{id}` and a valid unique `bankAccountNumber`\n  - retry the same `PUT /order/{id}/:invoice?...` once\n- if `POST /order` echoes `orderLines=[]`, do not assume the embedded line failed; rely on the later invoice response first\n\n## OpenAPI / Sandbox Status\n- `/activity/>forTimeSheet`, `/project/hourlyRates`, `/project/hourlyRates/projectSpecificRates`, `/timesheet/entry`, `/ledger/vatType`, `/order`, and `/order/{id}/:invoice` re-verified on 2026-03-20\n- persistent sandbox proved:\n  - `GET /activity/>forTimeSheet?...&fields=*` exposes the branch flag as `isChargeable`; do not key this task off a nonexistent `activity.chargeable`\n  - `GET /project?name=...&count=50&fields=*,customer(*)` can return enough expanded customer data to replace a separate `GET /customer` in this exact task shape\n  - `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))` can already expose the exact nested employee, activity, and hourly-rate data for an existing project-specific rate, so repeat/sandbox runs can skip a duplicate create write\n  - when a newly created analog project had no hourly-rate holder yet, one `POST /project/hourlyRates` with `hourlyRateModel: \"TYPE_PROJECT_SPECIFIC_HOURLY_RATES\"` created the holder and the next `POST /project/hourlyRates/projectSpecificRates` plus `POST /timesheet/entry` succeeded normally\n  - `PUT /project/hourlyRates/{id}` can switch the holder to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES`\n  - `POST /project/hourlyRates/projectSpecificRates` succeeds for a chargeable activity and then `POST /timesheet/entry` returns `hourlyRate=<prompt rate>`\n  - for the exact sandbox analog `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Fakturerbart arbeid` + rate `1550`, the 8-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `GET /project/hourlyRates` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded and the timesheet write returned `chargeable=true`, `hourlyRate=1550`\n  - on that same analog project, `POST /timesheet/entry` for chargeable activity `Fakturerbart arbeid` and employee `18565207` still succeeded with `chargeable=true` but `hourlyRate=0` when the exact employee+activity rate was missing, so skipping `GET /project/hourlyRates` on a chargeable branch is not safe\n  - `POST /project/hourlyRates/projectSpecificRates` fails with `422 activity.id: Ikke fakturerbar.` on a non-chargeable activity\n  - even on that non-chargeable branch, `POST /timesheet/entry` can still persist the requested hours on the requested activity while returning `chargeable=false` and `hourlyRate=0`\n  - for the exact sandbox analog `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + rate `1750`, the 7-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded, with `activity.isChargeable=false`, `timesheet.chargeable=false`, and `timesheet.hourlyRate=0`\n  - a same-session persistent-sandbox re-proof on 2026-03-20 with current-task arithmetic `23` hours at rate `1050` on that same non-chargeable analog again finished in `7` calls on fresh date `2026-06-17`, returned `amountExcludingVatCurrency=24150`, and exposed no lower-call public replacement path\n  - a same-session persistent-sandbox re-proof on 2026-03-20 with current-task arithmetic `5` hours at rate `1400` on that same non-chargeable analog showed that omitting the manual project-order-line `vatType` can collapse the branch to `6` calls and still return `amountExcludingVatCurrency=7000` / `amountCurrencyOutstanding=7000` when the account exposes only outgoing VAT row `id=6` (`0%`)\n  - that shortcut is still not the trusted scored-run default for taxable accounts; same-day direct-line invoice/order proofs elsewhere in the corpus still showed that omitted `vatType` can silently create a wrong no-VAT result on `0%`-only accounts\n  - a same-day persistent-sandbox re-proof with that same analog employee/project/activity and prompt-like `18` hours at rate `950` re-confirmed the same `7`-call non-chargeable floor, returning `amountExcludingVatCurrency=17100` with no `/project/hourlyRates` read\n  - a later same-day persistent-sandbox re-proof with that same analog employee/project/activity and prompt-like `14` hours at rate `1150` again finished in `7` calls on fresh date `2026-06-21`, returned `amountExcludingVatCurrency=16100` plus `amountCurrencyOutstanding=16100`, and found no lower-call public replacement path\n  - for that same sandbox analog with rate `1450` and total hours `39`, `POST /timesheet/entry` with `projectChargeableHours=39` failed with `422 ... Kan ikke være over 24`, a second same-day write after one successful `24`-hour chunk failed with `409 Det er allerede registrert timer ...`, and the corrected 8-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` (`24`) -> `POST /timesheet/entry` (`15` on a different date) -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded with `amountExcludingVatCurrency=56550`\n  - a same-session persistent-sandbox re-proof on 2026-03-20 repeated that exact `39`-hour non-chargeable branch on fresh dates `2026-05-11` / `2026-05-12`, again finished in `8` calls, and found no lower-call public replacement path\n  - the 2026-03-20 production German run `Windkraft GmbH` / `882984826` / `Sicherheitsaudit` / `sophia.schmidt@example.org` / `Design` / `18` hours / `950` matched that same branch: `/activity/>forTimeSheet` returned `isChargeable=false`, the write path stayed at `7` calls, and the invoice returned `amountExcludingVatCurrency=17100` plus `amountCurrencyOutstanding=21375`\n  - the 2026-03-20 production Norwegian run `Bergvik AS` / `989231898` / `Plattformintegrasjon` / `ingrid.nilsen@example.org` / `Analyse` / `5` hours / `1400` matched that same non-chargeable branch, returned `amountExcludingVatCurrency=7000` plus `amountCurrencyOutstanding=8750`, and did not expose a lower-call taxable-safe replacement path\n  - a later 2026-03-20 production German run `Waldstein GmbH` / `948366207` / `Sicherheitsaudit` / `anna.wagner@example.org` / `Analyse` / `14` hours / `1150` matched that same non-chargeable branch, returned `amountExcludingVatCurrency=16100` plus `amountCurrencyOutstanding=20125`, and again showed that any added `/project/hourlyRates` call would be wasted\n  - `POST /order` or `POST /invoice` with a project but no real order lines does not produce a chargeable project-hours invoice through the public API\n  - the proven public fallback for the invoice side effect is one real project-linked order line derived from prompt hours and prompt rate, followed by normal order invoicing\n  - scored production feedback on 2026-03-20 showed that stopping early on the non-chargeable branch can score `0/8`; for side-effect-scored prompts, the non-chargeable hours write plus manual order/invoice fallback is the safer default\n  - the same persistent sandbox already had a valid invoice bank account number on the invoice account, so an unconditional `/ledger/account` preflight would have been an extra call there; keep the bank-account branch conditional unless you intentionally take the fresh-account hedge\n",
+    "playbookText": "# Register Project Hours and Create Project Invoice\n\n## Scope\n\nUse for tasks like:\n- register hours on an existing employee in an existing project\n- use a specific existing project activity\n- apply a prompt-given hourly rate\n- create an unsent project invoice to the linked customer\n\nDo not use for:\n- fixed-price or on-account project billing\n- travel-expense or re-invoicing-heavy project tasks\n- cases where the employee, project, or customer must also be created from scratch\n\n## Verified Findings\n\nPersistent-sandbox verification on 2026-03-20 showed:\n- `GET /activity/>forTimeSheet?...&fields=*` exposes the branch flag as `isChargeable`, not `chargeable`\n- `GET /project?name=...&count=50&fields=*,customer(*)` returned enough expanded customer data to identify the linked customer without a separate `GET /customer`\n- `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))` returned enough nested data to identify an already-existing exact employee+activity rate and its `hourlyRate` without a second rate-search call\n- on a newly created analog project with no hourly-rate holder yet, `POST /project/hourlyRates` with `project`, `startDate`, and `hourlyRateModel: \"TYPE_PROJECT_SPECIFIC_HOURLY_RATES\"` created the missing holder, after which `POST /project/hourlyRates/projectSpecificRates` and `POST /timesheet/entry` succeeded normally\n- `PUT /project/hourlyRates/{id}` can switch an existing project hourly-rate holder from `TYPE_FIXED_HOURLY_RATE` to `TYPE_PROJECT_SPECIFIC_HOURLY_RATES`\n- after that model switch, `POST /project/hourlyRates/projectSpecificRates` with:\n  - `projectHourlyRate`\n  - `employee`\n  - `activity`\n  - `hourlyRate`\n  succeeded for a chargeable activity and the next `POST /timesheet/entry` returned:\n  - `chargeable=true`\n  - `hourlyRate=<prompt rate>`\n- the same `POST /project/hourlyRates/projectSpecificRates` failed on a non-chargeable activity with:\n  - `422 activity.id: Ikke fakturerbar.`\n- `POST /timesheet/entry` on a non-chargeable project activity still succeeded even with `projectChargeableHours`, but the write response kept:\n  - `chargeable=false`\n  - `hourlyRate=0`\n- for the exact sandbox analog `codex.verify.1773957815637@example.org` + `Sandbox Hour Invoice Project 1774020541520` + `Prosjektadministrasjon` + rate `1750`, the 7-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded, with `activity.isChargeable=false`, `timesheet.chargeable=false`, and `timesheet.hourlyRate=0`\n- a same-session persistent-sandbox re-proof on 2026-03-20 with current-task arithmetic `23` hours at `1050` on that same non-chargeable analog again finished in `7` calls on fresh date `2026-06-17` and returned `amountExcludingVatCurrency=24150`\n- a same-session persistent-sandbox re-proof on 2026-03-20 with current-task arithmetic `5` hours at `1400` on that same non-chargeable analog showed that omitting the manual project-order-line `vatType` can collapse the branch to `6` calls and still return `amountExcludingVatCurrency=7000` / `amountCurrencyOutstanding=7000` when the account exposes only outgoing VAT row `id=6` (`0%`)\n- that shortcut is still not the trusted scored-run default for taxable accounts; same-day direct-line invoice/order proofs elsewhere in the corpus still showed that omitted `vatType` can silently create a wrong no-VAT result on `0%`-only accounts\n- a same-day persistent-sandbox re-proof with that same analog employee/project/activity and prompt-like `18` hours at `950` re-confirmed the same `7`-call non-chargeable floor and returned `amountExcludingVatCurrency=17100`\n- a later same-day persistent-sandbox re-proof with that same analog employee/project/activity and prompt-like `14` hours at `1150` again finished in `7` calls on fresh date `2026-06-21`, returned `amountExcludingVatCurrency=16100` plus `amountCurrencyOutstanding=16100`, and found no lower-call public replacement path\n- for that same sandbox analog with rate `1450` and total hours `39`, `POST /timesheet/entry` with `projectChargeableHours=39` failed with `422 ... Kan ikke være over 24`\n- after one successful `24`-hour chunk on `2026-03-26`, a second same-day write for `15` more hours on the same employee + project + activity failed with `409 Det er allerede registrert timer ...`\n- the corrected 8-call non-chargeable branch for that `39`-hour analog succeeded with two dates: `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` (`24`) -> `POST /timesheet/entry` (`15` on another date) -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice`, and the invoice returned `amountExcludingVatCurrency=56550`\n- a same-session persistent-sandbox re-proof on 2026-03-20 repeated that exact `39`-hour branch on fresh dates `2026-05-11` / `2026-05-12`, again finished in `8` calls, and did not expose any lower-call public shortcut\n- for the same analog project with `Fakturerbart arbeid` and existing exact rate `1550`, the 8-call branch that added `GET /project/hourlyRates` succeeded and the timesheet write returned `chargeable=true`, `hourlyRate=1550`\n- on that same chargeable analog, `POST /timesheet/entry` can still succeed with `chargeable=true`, `hourlyRate=0` when the exact employee+activity rate is missing, so skipping `GET /project/hourlyRates` on a chargeable branch is not safe\n- after that non-chargeable time write, `POST /order` with one real project-linked manual line and `PUT /order/{id}/:invoice?...sendToCustomer=false` still succeeded and produced the expected customer-facing invoice amount\n- the 2026-03-20 production German run `Windkraft GmbH` / `882984826` / `Sicherheitsaudit` / `sophia.schmidt@example.org` / `Design` / `18` hours / `950` matched that same non-chargeable branch, finished in `7` calls, and would only have become worse by adding `/project/hourlyRates`\n- the 2026-03-20 production Norwegian run `Bergvik AS` / `989231898` / `Plattformintegrasjon` / `ingrid.nilsen@example.org` / `Analyse` / `5` hours / `1400` matched that same non-chargeable branch, returned `amountExcludingVatCurrency=7000` plus `amountCurrencyOutstanding=8750`, and did not expose a lower-call taxable-safe replacement path\n- a later 2026-03-20 production German run `Waldstein GmbH` / `948366207` / `Sicherheitsaudit` / `anna.wagner@example.org` / `Analyse` / `14` hours / `1150` matched that same non-chargeable branch, returned `amountExcludingVatCurrency=16100` plus `amountCurrencyOutstanding=20125`, and again showed that adding `/project/hourlyRates` would only waste calls\n- `PUT /timesheet/week/:approve` returned `403` even for the token owner; do not make week approval a default step in this task shape\n- `GET /project/{id}/period/hourlistReport?...` can show those hours under `nonApprovedHours`\n- `GET /project/{id}/period/invoicingReserve?...` can still show a positive fee reserve, but that does not mean the public API can actually charge those hours directly\n- `POST /order` with only:\n  - `customer`\n  - `project`\n  - `orderDate`\n  - `deliveryDate`\n  created a project-linked order and preliminary invoice, but:\n  - `GET /invoice/details/{id}?fields=*` still showed `includeHours=false`\n  - `PUT /order/{id}/:invoice?...` failed with `422 Fakturaen inneholder ingen ordrelinjer.`\n- `POST /invoice?sendToCustomer=false` with an embedded project order and no real order lines also failed with:\n  - `422 Order contains no OrderLines.`\n- `POST /order` or `PUT /order/{id}` with nested `preliminaryInvoice.projectInvoiceDetails[].includeHours=true` was accepted/validated, but the resulting preliminary invoice still had:\n  - `includeHours=false`\n  - `feeAmount=0`\n- `PUT /invoice/{id}` and `PUT /invoice/details/{id}` both returned method-not-allowed responses (`405` surfaced as `400 HTTP 405 Method Not Allowed`)\n- the only public-API path re-proven to create the invoice side effect was:\n  - register the hours separately\n  - create a real project-linked order line whose amount is derived from the prompt hours and rate\n  - invoice that order normally\n- in the same sandbox account, `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=2026-03-20&fields=*` returned only VAT code `6` (`0%`)\n- `POST /order` with one embedded project-linked line for `count=5`, `unitPriceExcludingVatCurrency=1750`, `vatType.id=6` then `PUT /order/{id}/:invoice?invoiceDate=2026-03-20&sendToCustomer=false` succeeded with:\n  - `amountExcludingVatCurrency=8750`\n  - `orders[0].id=<orderId>`\n  - `projectInvoiceDetails[0].amountOrderLinesAndReinvoicingCurrency=8750`\n  - `projectInvoiceDetails[0].includeHours=false`\n- the same persistent sandbox already had `1920` / `isInvoiceAccount=true` with `bankAccountNumber=12345678903`, so a default `/ledger/account` preflight would have been an unnecessary extra call in that exact rerun state\n\n## Minimal Safe Flow\n\n1. Confirm these operations in `./openapi.json`\n   - `GET /employee`\n   - `GET /project`\n   - `GET /activity/>forTimeSheet`\n   - `GET /project/hourlyRates`\n   - `PUT /project/hourlyRates/{id}`\n   - `POST /project/hourlyRates/projectSpecificRates`\n   - `POST /timesheet/entry`\n   - `GET /ledger/vatType`\n   - `POST /order`\n   - `PUT /order/{id}/:invoice`\n2. Resolve the employee\n   - `GET /employee?email=<email>&count=10&fields=*`\n   - exact-match locally because the email filter is containing\n3. Resolve the project and linked customer in one read\n   - `GET /project?name=<project-name>&count=50&fields=*,customer(*)`\n   - exact-match the project name locally\n   - exact-match the nested `customer.organizationNumber` and/or `customer.name` locally when the prompt gives them\n   - only fall back to a separate `GET /customer` if the project read is ambiguous or unexpectedly sparse\n5. Resolve the applicable activity through the project-timesheet endpoint\n   - `GET /activity/>forTimeSheet?projectId=<project-id>&employeeId=<employee-id>&date=<date>&query=<activity-name>&filterExistingHours=false&count=50&fields=*`\n   - branch on `activity.isChargeable`, not `activity.chargeable`\n6. If `activity.isChargeable===true`, continue with the rate path\n   - if `activity.isChargeable===false`, skip directly to the timesheet write and keep the exact branch at 7 calls\n7. Resolve the project hourly-rate holder\n   - `GET /project/hourlyRates?projectId=<project-id>&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))`\n8. If no holder exists yet, create it once\n   - `POST /project/hourlyRates`\n   - send:\n     - `project`\n     - `startDate`\n     - `hourlyRateModel: \"TYPE_PROJECT_SPECIFIC_HOURLY_RATES\"`\n9. If needed, switch the holder to project-specific rates\n   - `PUT /project/hourlyRates/{id}`\n   - send:\n     - `project`\n     - `startDate`\n     - `hourlyRateModel: \"TYPE_PROJECT_SPECIFIC_HOURLY_RATES\"`\n10. Reuse or write the exact employee+activity rate\n   - if that holder read already exposes one exact employee+activity rate with the prompt hourly rate, reuse it and skip an extra write\n   - if it exposes one exact employee+activity rate with a different hourly rate, `PUT /project/hourlyRates/projectSpecificRates/{id}` once\n   - otherwise `POST /project/hourlyRates/projectSpecificRates`\n11. Register the hours\n   - `POST /timesheet/entry`\n   - send:\n     - `employee`\n     - `project`\n     - `activity`\n     - `date`\n     - `hours`\n     - `projectChargeableHours`\n   - keep each entry at `projectChargeableHours <= 24`\n   - if the prompt total exceeds `24`, plan one entry per distinct date before the first write\n   - if the resolved activity is non-chargeable, still do this write and continue with the invoice fallback when the prompt only scores the requested hours side effect plus the invoice side effect\n12. Resolve a valid outgoing VAT type for the invoice date\n   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`\n13. Create a real project-linked order line derived from the prompt hours and rate\n   - `POST /order`\n   - include:\n     - `customer`\n     - `project`\n     - `orderDate`\n     - `deliveryDate`\n     - one embedded `orderLines[]` row using the prompt hours and prompt rate\n14. Invoice that order without sending it\n   - `PUT /order/{id}/:invoice?invoiceDate=<date>&sendToCustomer=false`\n15. Only if that invoice write fails with the company-bank-account validation, repair the invoice bank account and retry the same order once\n\n## Recommended Shapes\n\nProject hourly-rate holder switch:\n\n```json\n{\n  \"project\": { \"id\": 54321 },\n  \"startDate\": \"2026-03-20\",\n  \"hourlyRateModel\": \"TYPE_PROJECT_SPECIFIC_HOURLY_RATES\"\n}\n```\n\nProject-specific rate create:\n\n```json\n{\n  \"projectHourlyRate\": { \"id\": 67890 },\n  \"employee\": { \"id\": 11111 },\n  \"activity\": { \"id\": 22222 },\n  \"hourlyRate\": 1750\n}\n```\n\nTimesheet entry:\n\n```json\n{\n  \"employee\": { \"id\": 11111 },\n  \"project\": { \"id\": 54321 },\n  \"activity\": { \"id\": 22222 },\n  \"date\": \"2026-03-20\",\n  \"hours\": 5,\n  \"projectChargeableHours\": 5\n}\n```\n\nFallback public invoice order:\n\n```json\n{\n  \"customer\": { \"id\": 12345 },\n  \"project\": { \"id\": 54321 },\n  \"orderDate\": \"2026-03-20\",\n  \"deliveryDate\": \"2026-03-20\",\n  \"orderLines\": [\n    {\n      \"description\": \"Design\",\n      \"count\": 5,\n      \"unitPriceExcludingVatCurrency\": 1750,\n      \"vatType\": { \"id\": 6 }\n    }\n  ]\n}\n```\n\nReplace VAT id `6` with the filtered outgoing VAT type actually returned for the invoice date.\n\n## Exact-Match Fast Path\n\n- For a prompt that gives:\n  - employee email\n  - project name plus customer organization number and/or name\n  - activity name\n  - hour count\n  - hourly rate\n- the public fast path is usually:\n  1. `GET /employee?...`\n  2. `GET /project?name=...&fields=*,customer(*)`\n  3. `GET /activity/>forTimeSheet?...`\n  4. if `activity.isChargeable=false` and prompt hours `<= 24`: `POST /timesheet/entry`\n  5. if `activity.isChargeable=false` and prompt hours `> 24`: one `POST /timesheet/entry` per planned date chunk, each `<= 24`\n  6. if `activity.isChargeable=false`: `GET /ledger/vatType?...`\n  7. if `activity.isChargeable=false`: `POST /order`\n  8. if `activity.isChargeable=false`: `PUT /order/{id}/:invoice?...sendToCustomer=false`\n  9. if `activity.isChargeable=true`: `GET /project/hourlyRates?...fields=*,projectSpecificRates(*,employee(*),activity(*))`\n  10. if `activity.isChargeable=true` and no holder exists yet: `POST /project/hourlyRates`\n  11. if needed: conditional `PUT /project/hourlyRates/{id}`\n  12. if `activity.isChargeable=true` and the exact rate is missing: `POST /project/hourlyRates/projectSpecificRates`\n  13. if `activity.isChargeable=true` and the exact rate exists but differs: `PUT /project/hourlyRates/projectSpecificRates/{id}`\n  14. if `activity.isChargeable=true` and prompt hours `<= 24`: `POST /timesheet/entry`\n  15. if `activity.isChargeable=true` and prompt hours `> 24`: one `POST /timesheet/entry` per planned date chunk, each `<= 24`\n  16. if `activity.isChargeable=true`: `GET /ledger/vatType?...`\n  17. if `activity.isChargeable=true`: `POST /order` with one real project-linked line using prompt hours x prompt rate\n  18. if `activity.isChargeable=true`: `PUT /order/{id}/:invoice?...sendToCustomer=false`\n- do not insert a default week-approval write\n- do not spend speculative attempts to make a project preliminary invoice include hours\n- do not stop the run just because the resolved activity is non-chargeable when the prompt only asks for the hours side effect plus the customer-facing invoice side effect\n\n## Verification Shape\n\n- `POST /project/hourlyRates/projectSpecificRates`\n  - expect `ResponseWrapperProjectSpecificRate`\n  - verify:\n    - `employee.id`\n    - `activity.id`\n    - `hourlyRate`\n- `POST /timesheet/entry`\n  - expect `ResponseWrapperTimesheetEntry`\n  - verify:\n    - `hours`\n    - `projectChargeableHours`\n    - `project.id`\n    - `activity.id`\n  - on the chargeable branch, also verify:\n    - `hourlyRate`\n    - `chargeable`\n  - on the non-chargeable fallback branch, expect:\n    - `chargeable=false`\n    - `hourlyRate=0`\n- `PUT /order/{id}/:invoice`\n  - expect `ResponseWrapperInvoice`\n  - verify:\n    - `customer.id`\n    - `amountExcludingVatCurrency`\n    - `amountCurrencyOutstanding`\n- optional `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)`\n  - use only if the invoice write response is too sparse for the scored fields\n\n## Avoidable Mistakes\n\n- Do not assume `PUT /timesheet/week/:approve` is required or even permitted for this task shape\n- Do not branch on `activity.chargeable`; the field from `/activity/>forTimeSheet` is `isChargeable`, and the wrong key can silently skip the rate path on billable activities\n- Do not try to attach a project-specific rate to a non-chargeable activity; the server returns `422 activity.id: Ikke fakturerbar.`\n- Do not ignore already-expanded `projectSpecificRates` and then blindly `POST /project/hourlyRates/projectSpecificRates`; that can waste a write or trigger a duplicate-rate validation branch in persistent/repeat contexts\n- Do not assume a successful `POST /timesheet/entry` on a chargeable activity proves the prompt rate was applied; without the exact employee+activity rate it can still return `chargeable=true` and `hourlyRate=0`\n- Do not add `GET /project/hourlyRates` on the non-chargeable branch just because the prompt names an hourly rate; the exact `Windkraft GmbH` / `Sicherheitsaudit` / `Design` production run re-confirmed that this would have been a wasted call once `/activity/>forTimeSheet` already returned `isChargeable=false`\n- Do not generalize the `0%`-only sandbox shortcut of omitting `orderLines[].vatType`; taxable accounts can still silently create a wrong no-VAT invoice, so the default scored path keeps `GET /ledger/vatType`\n- Do not send `projectChargeableHours > 24` in one entry; Tripletex rejects it with `422`\n- Do not try to finish a `>24`-hour total by stacking two same-day entries for the same employee + project + activity; the second write returns `409`\n- Do not assume `projectChargeableHours` overrides a non-chargeable activity; the timesheet entry can still come back with `chargeable=false` and `hourlyRate=0`\n- Do not stop the run solely because of that non-chargeable timesheet response when the prompt only scores requested hours registration plus the invoice side effect; the scoring-first fallback is still the timesheet write plus a manual project-linked order/invoice\n- Do not assume a positive project invoicing reserve means the public API can actually charge those hours into an invoice\n- Do not use `POST /order` or `POST /invoice` with a project but no real order lines as the invoicing write; both public paths were re-proven to fail for this task shape\n- Do not treat writable-looking nested `preliminaryInvoice.projectInvoiceDetails[].includeHours=true` as a working path; the server accepts or validates the payload but still persists `includeHours=false`\n- Do not rely on `PUT /invoice/{id}` or `PUT /invoice/details/{id}`; both were re-proven as method-not-allowed\n- Do not assume the fallback public invoice consumes the registered project-hour reserve; it creates the customer-facing invoice side effect but leaves `includeHours=false`\n- Do not add an unconditional `/ledger/account` preflight in the standard exact path when you have no separate first-invoice evidence; keep that branch conditional unless you intentionally take the fresh-account hedge\n",
+    "knownFailureModes": [
+      "## Do Not Use This Standard If",
+      "do not add a separate `GET /customer` when the project read already leaves one exact match",
+      "Tripletex accepts only one entry per `employee + project + activity + date`; do not plan two same-day writes for the same tuple",
+      "do not try to send `projectSpecificRates[]` embedded inside the `PUT /project/hourlyRates/{id}` payload as the only rate write; the model switch and the project-specific-rate create are separate writes",
+      "if the prompt hour total is `> 24`, pre-plan a multi-day split before the first write instead of discovering the `422`/`409` branch live",
+      "do not drop `GET /ledger/vatType` from the scored default just because a `0%`-only sandbox accepts an omitted line `vatType`; that shortcut can silently create the wrong VAT result on taxable accounts",
+      "do not insert a default `PUT /timesheet/week/:approve`; it can return `403` even for the token owner and is not part of the proven public fast path",
+      "when the resolved activity is non-chargeable and the prompt only asks for the hours side effect plus the invoice side effect, do not treat `chargeable=false` and `hourlyRate=0` as an automatic stop condition",
+      "`POST /project/hourlyRates/projectSpecificRates` on that activity is expected to fail with `422 activity.id: Ikke fakturerbar.`",
+      "only treat the task as blocked when the prompt explicitly scores the internal billability fields on the timesheet entry or true project-hour reserve consumption",
+      "do not send one oversized `POST /timesheet/entry`; Tripletex returns `422 projectChargeableHours: Kan ikke være over 24`",
+      "do not try to finish the same total with a second same-day entry for the same employee + project + activity; Tripletex returns `409 Det er allerede registrert timer ...`",
+      "update the existing invoice bank account with `PUT /ledger/account/{id}` and a valid unique `bankAccountNumber`",
+      "retry the same `PUT /order/{id}/:invoice?...` once",
+      "if `POST /order` echoes `orderLines=[]`, do not assume the embedded line failed; rely on the later invoice response first",
+      "`GET /activity/>forTimeSheet?...&fields=*` exposes the branch flag as `isChargeable`; do not key this task off a nonexistent `activity.chargeable`",
+      "`POST /project/hourlyRates/projectSpecificRates` fails with `422 activity.id: Ikke fakturerbar.` on a non-chargeable activity",
+      "for that same sandbox analog with rate `1450` and total hours `39`, `POST /timesheet/entry` with `projectChargeableHours=39` failed with `422 ... Kan ikke være over 24`, a second same-day write after one successful `24`-hour chunk failed with `409 Det er allerede registrert timer ...`, and the corrected 8-call branch `GET /employee` -> `GET /project` -> `GET /activity/>forTimeSheet` -> `POST /timesheet/entry` (`24`) -> `POST /timesheet/entry` (`15` on a different date) -> `GET /ledger/vatType` -> `POST /order` -> `PUT /order/:invoice` succeeded with `amountExcludingVatCurrency=56550`",
+      "the same persistent sandbox already had a valid invoice bank account number on the invoice account, so an unconditional `/ledger/account` preflight would have been an extra call there; keep the bank-account branch conditional unless you intentionally take the fresh-account hedge",
+      "Do not use for:"
+    ]
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Near-max Tier 2 cleanup target.",
+    "Task packet built from checked-in repo evidence for task 15.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 15.register-hours-then-project-order-invoice.v1."
+  ]
+}

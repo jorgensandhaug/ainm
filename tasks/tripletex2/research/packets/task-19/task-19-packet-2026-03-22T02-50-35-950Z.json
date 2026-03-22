@@ -1,0 +1,234 @@
+{
+  "schemaVersion": "tripletex2.research-packet.v1",
+  "packetId": "task-19-packet-2026-03-22T02-50-35-950Z",
+  "createdAt": "2026-03-22T02:50:35.950Z",
+  "taskId": "19",
+  "taskSlug": "onboard-employee-from-contract",
+  "taskName": "Onboard employee from contract",
+  "queueEntry": {
+    "taskId": "19",
+    "taskSlug": "onboard-employee-from-contract",
+    "taskName": "Onboard employee from contract",
+    "priority": 16,
+    "band": "watch",
+    "queueEligibility": "hold",
+    "bestKnownScore": 2.7273,
+    "maxScore": 6,
+    "notes": [
+      "Park unless a specific strategy idea appears."
+    ]
+  },
+  "activeStrategy": {
+    "strategyId": "19.onboard-employee-from-contract.v1",
+    "strategyPath": "src/tasks/task-19/strategies/onboard-employee-from-contract.ts",
+    "strategyStatus": "draft",
+    "strategyName": "Onboard employee from contract",
+    "summary": "Resolves or creates the target department, then creates the employee with nested employment details and the resolved occupation code from the contract.",
+    "hypothesis": "For contract-driven onboarding, the deterministic low-call branch is one division pre-read, one exact department lookup with create fallback, then one employee write with nested employmentDetails and optional employee standard time.",
+    "expectedCallProfile": {
+      "targetCalls": 3,
+      "maxCalls": 5
+    },
+    "stepOutline": [
+      "API call 1: GET /division?count=1&fields=id so division.id can be included only when the account exposes one.",
+      "API call 2: GET /department filtered by the exact department name and reuse the newest exact active match locally.",
+      "Conditional API call 3: POST /department only when the lookup finds no exact active department match.",
+      "API call 3 or 4: POST /employee with explicit userType=NO_ACCESS and one nested employmentDetails row including occupationCode.id.",
+      "Optional API call 4 or 5: POST /employee/standardTime when the contract includes employee-specific hoursPerDay."
+    ]
+  },
+  "availableStrategies": [
+    {
+      "strategyId": "19.onboard-employee-from-contract.v1",
+      "strategyPath": "src/tasks/task-19/strategies/onboard-employee-from-contract.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Onboard employee from contract",
+      "summary": "Resolves or creates the target department, then creates the employee with nested employment details and the resolved occupation code from the contract.",
+      "hypothesis": "For contract-driven onboarding, the deterministic low-call branch is one division pre-read, one exact department lookup with create fallback, then one employee write with nested employmentDetails and optional employee standard time.",
+      "expectedCallProfile": {
+        "targetCalls": 3,
+        "maxCalls": 5
+      },
+      "stepOutline": [
+        "API call 1: GET /division?count=1&fields=id so division.id can be included only when the account exposes one.",
+        "API call 2: GET /department filtered by the exact department name and reuse the newest exact active match locally.",
+        "Conditional API call 3: POST /department only when the lookup finds no exact active department match.",
+        "API call 3 or 4: POST /employee with explicit userType=NO_ACCESS and one nested employmentDetails row including occupationCode.id.",
+        "Optional API call 4 or 5: POST /employee/standardTime when the contract includes employee-specific hoursPerDay."
+      ]
+    }
+  ],
+  "baselineCallBudget": 3,
+  "optimizationObjective": {
+    "frontierSummary": "Current research target: Onboard employee from contract. Current best known score is 2.7273/6, leaving a gap of 3.2727. Known call frontier is 3 calls when correctness matches the current best evidence. The active pinned strategy to beat is 19.onboard-employee-from-contract.v1 with target 3 calls.",
+    "currentBestKnownScore": 2.7273,
+    "maxScore": 6,
+    "scoreGap": 3.2727,
+    "bestKnownCallBudget": 3,
+    "baselineCallBudget": 3,
+    "activeStrategyToBeat": {
+      "strategyId": "19.onboard-employee-from-contract.v1",
+      "strategyPath": "src/tasks/task-19/strategies/onboard-employee-from-contract.ts",
+      "strategyStatus": "draft",
+      "strategyName": "Onboard employee from contract",
+      "summary": "Resolves or creates the target department, then creates the employee with nested employment details and the resolved occupation code from the contract.",
+      "hypothesis": "For contract-driven onboarding, the deterministic low-call branch is one division pre-read, one exact department lookup with create fallback, then one employee write with nested employmentDetails and optional employee standard time.",
+      "expectedCallProfile": {
+        "targetCalls": 3,
+        "maxCalls": 5
+      },
+      "stepOutline": [
+        "API call 1: GET /division?count=1&fields=id so division.id can be included only when the account exposes one.",
+        "API call 2: GET /department filtered by the exact department name and reuse the newest exact active match locally.",
+        "Conditional API call 3: POST /department only when the lookup finds no exact active department match.",
+        "API call 3 or 4: POST /employee with explicit userType=NO_ACCESS and one nested employmentDetails row including occupationCode.id.",
+        "Optional API call 4 or 5: POST /employee/standardTime when the contract includes employee-specific hoursPerDay."
+      ]
+    },
+    "improvementRequirement": "A worthwhile challenger must improve beyond the current best known score of 2.7273/6, or match the current correctness and score at 3 API calls or fewer, or clearly explain from packet evidence and openapi.json why no plausible improvement was found. Beat or replace 19.onboard-employee-from-contract.v1 only if the evidence is stronger.",
+    "successRubric": [
+      "Read the packet first, then confirm the endpoint and payload assumptions in openapi.json, task-local files, and real run evidence before changing code.",
+      "Raise the current best known score above 2.7273/6.",
+      "If score does not improve, match correctness at 3 API calls or fewer.",
+      "Compare against the active pinned strategy 19.onboard-employee-from-contract.v1 before calling the new branch better.",
+      "Verify through the research OS command in contextLocator.proof.verificationCommand instead of writing strategy tests."
+    ]
+  },
+  "contextLocator": {
+    "researchInstructionsPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/AGENTS.md",
+    "taskSurface": {
+      "taskDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-19",
+      "taskResearchMemoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-19/RESEARCH.md",
+      "taskImplementationPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-19/task.ts"
+    },
+    "strategies": {
+      "strategiesDirectoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-19/strategies",
+      "activeStrategyPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-19/strategies/onboard-employee-from-contract.ts",
+      "availableStrategyPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/src/tasks/task-19/strategies/onboard-employee-from-contract.ts"
+      ]
+    },
+    "proof": {
+      "verificationCommand": "bun scripts/research_os.ts verify --packet /home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/packets/task-19/task-19-packet-2026-03-22T02-50-35-950Z.json --strategy <strategy-id>"
+    },
+    "runtimeEvidence": {
+      "openapiPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/openapi.json",
+      "candidateStorePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/candidate-strategies.json",
+      "researchQueuePath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/research/task-queue.json",
+      "recentArtifactPaths": [
+        "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-22/run-production-2026-03-22T01-21-01-712Z-8f3fb0a5.json"
+      ]
+    },
+    "offlineEvidence": {
+      "leaderboardHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/leaderboard-history.jsonl",
+      "promptLabelHistoryPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/prompt-task-labels.jsonl",
+      "additionalEvidencePaths": []
+    }
+  },
+  "candidateSummary": {
+    "totalCandidates": 0,
+    "statuses": {
+      "draft": 0,
+      "sandbox-pass": 0,
+      "sandbox-fail": 0,
+      "needs-review": 0,
+      "promote-later": 0
+    }
+  },
+  "tripletex2Evidence": {
+    "runCount": 1,
+    "recentArtifacts": [
+      {
+        "runId": "production-2026-03-22T01-21-01-712Z-8f3fb0a5",
+        "artifactPath": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex2/runs/2026-03-22/run-production-2026-03-22T01-21-01-712Z-8f3fb0a5.json",
+        "createdAt": "2026-03-22T01:21:01.712Z",
+        "runtimeStatus": "not-run",
+        "strategyId": "19.onboard-employee-from-contract.v1",
+        "apiCallCount": 0,
+        "failureMode": "unreadable-file"
+      }
+    ]
+  },
+  "productionRuns": [
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-213824329Z-6c62b426",
+      "timestamp": "2026-03-21T21:38:24.329Z",
+      "score": "18/22"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-203313206Z-a2367369",
+      "timestamp": "2026-03-21T20:33:13.206Z",
+      "score": "20/22"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-202346109Z-842e5dda",
+      "timestamp": "2026-03-21T20:23:46.109Z",
+      "score": "18/22"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-152833394Z-8da36fcc",
+      "timestamp": "2026-03-21T15:28:33.394Z",
+      "score": "18/22"
+    },
+    {
+      "path": "/home/anders/.openclaw/workspace/dev/ainm/tasks/tripletex/data/production/runs/prod-2026-03-21-133135201Z-a0449d7c",
+      "timestamp": "2026-03-21T13:31:35.201Z",
+      "score": "skipped"
+    }
+  ],
+  "legacyEvidence": {
+    "leaderboardSnapshots": [
+      {
+        "capturedAt": "2026-03-22T01:35:40.005Z",
+        "bestScore": 2.7273,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-22T01:33:53.064Z",
+        "bestScore": 2.7273,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-22-013352179Z-c290243c"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:39.614Z",
+        "bestScore": 2.7273,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      },
+      {
+        "capturedAt": "2026-03-21T23:44:05.219Z",
+        "bestScore": 2.7273,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-21-234149727Z-32d11eeb"
+      },
+      {
+        "capturedAt": "2026-03-21T23:43:45.674Z",
+        "bestScore": 2.7273,
+        "totalAttempts": 11,
+        "runId": "prod-2026-03-21-234345624Z-de7f6ef9"
+      }
+    ],
+    "promptLabelSampleCount": 4,
+    "recentAttributedRunIds": [
+      "prod-2026-03-21-213824329Z-6c62b426",
+      "prod-2026-03-21-203313206Z-a2367369",
+      "prod-2026-03-21-202346109Z-842e5dda",
+      "prod-2026-03-21-133135201Z-a0449d7c"
+    ],
+    "evidenceWarnings": [
+      "Legacy Tripletex1 prompt labels and run history are offline evidence only.",
+      "Legacy tx_task_id attribution can be semantically noisy; interpret it alongside trusted standards and playbooks rather than as live task truth."
+    ]
+  },
+  "taskContext": {
+    "knownFailureModes": []
+  },
+  "proof": {},
+  "operatorNotes": [
+    "Park unless a specific strategy idea appears.",
+    "Task packet built from checked-in repo evidence for task 19.",
+    "Legacy Tripletex1 leaderboard and attribution history are offline evidence only, not live runtime truth.",
+    "Current active deterministic strategy: 19.onboard-employee-from-contract.v1."
+  ]
+}

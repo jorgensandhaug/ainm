@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-request.v1",
+  "createdAt": "2026-03-22T02:41:29.853Z",
+  "mode": "sandbox",
+  "runId": "verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z",
+  "request": {
+    "prompt": "Research OS verifier run for task 15 (Register project hours and create project invoice). Strategy under test: 15.register-hours-direct-invoice.v2. Task understanding is pinned manually for this run. This prompt exists only to give the deterministic runtime a stable request fingerprint.",
+    "files": [],
+    "tripletexCredentials": {
+      "baseUrl": "https://kkpqfuj-amager.tripletex.dev/v2",
+      "credentialSource": "tripletex2.sandbox-env"
+    }
+  }
+}

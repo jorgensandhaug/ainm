@@ -26,36 +26,36 @@ test("task registrations seed every canonical task id exactly once", () => {
   assert.deepEqual(
     CANONICAL_TASK_REGISTRY.map((task) => task.txTaskId),
     [
-      "01",
-      "02",
-      "03",
-      "04",
-      "05",
-      "06",
-      "07",
-      "08",
-      "09",
-      "10",
-      "11",
-      "12",
-      "13",
-      "14",
-      "15",
-      "16",
-      "17",
-      "18",
-      "19",
-      "20",
-      "21",
-      "22",
-      "23",
-      "24",
-      "25",
-      "26",
-      "27",
-      "28",
-      "29",
-      "30",
+      "02", // 01 create-customer
+      "04", // 02 create-supplier
+      "05", // 03 create-department
+      "03", // 04 create-product
+      "08", // 05 create-project
+      "01", // 06 create-employee
+      "17", // 07 create-accounting-dimension-and-post-voucher
+      "06", // 08 create-and-send-invoice
+      "09", // 09 create-customer-invoice
+      "14", // 10 issue-full-credit-note
+      "10", // 11 create-order-invoice-and-register-payment
+      "12", // 12 run-payroll-with-bonus
+      "13", // 13 register-travel-expense
+      "15", // 14 set-project-fixed-price-and-invoice-milestone
+      "16", // 15 register-project-hours-and-create-project-invoice
+      "11", // 16 register-supplier-invoice
+      "07", // 17 register-customer-invoice-payment
+      "18", // 18 reverse-customer-invoice-payment
+      "19", // 19 onboard-employee-from-contract
+      "20", // 20 register-supplier-invoice-pdf
+      "21", // 21 onboard-employee-offer-letter
+      "22", // 22 register-receipt-expense-voucher
+      "23", // 23 reconcile-bank-statement
+      "24", // 24 correct-ledger-errors
+      "25", // 25 overdue-reminder-fee-and-partial-payment
+      "26", // 26 monthly-closing
+      "27", // 27 register-foreign-currency-payment-with-exchange-gain
+      "28", // 28 analyze-expense-increase-create-internal-projects
+      "29", // 29 full-project-lifecycle
+      "30", // 30 simplified-annual-closing
     ],
   );
 });
@@ -64,7 +64,7 @@ test("newly surfaced canonical tasks load real modules and strategies", async ()
   const taskSpec = getTaskSpec("03");
   assert.ok(taskSpec);
   assert.equal(taskSpec.implementationStatus, "implemented");
-  assert.equal(taskSpec.txTaskId, "03");
+  assert.equal(taskSpec.txTaskId, "05");
   assert.equal(taskSpec.inputSchemaId, "03.v1");
   assert.deepEqual(taskSpec.requiredFields, ["departmentNames"]);
 
@@ -92,8 +92,16 @@ test("canonical registry metadata matches the registered task specs", () => {
   for (const canonicalTask of CANONICAL_TASK_REGISTRY) {
     const taskSpec = getTaskSpec(canonicalTask.taskId);
     assert.ok(taskSpec, canonicalTask.taskId);
-    assert.equal(taskSpec?.taskName, canonicalTask.taskName);
-    assert.equal(taskSpec?.summary, canonicalTask.summary);
+    assert.equal(
+      taskSpec?.taskName,
+      canonicalTask.taskName,
+      `taskName mismatch for ${canonicalTask.taskId}`,
+    );
+    assert.equal(
+      taskSpec?.summary,
+      canonicalTask.summary,
+      `summary mismatch for ${canonicalTask.taskId}`,
+    );
   }
 });
 
@@ -101,7 +109,7 @@ test("implemented task remains the real registered task module", async () => {
   const taskSpec = getTaskSpec("08");
   assert.ok(taskSpec);
   assert.equal(taskSpec.implementationStatus, "implemented");
-  assert.equal(taskSpec.txTaskId, "08");
+  assert.equal(taskSpec.txTaskId, "06");
 
   const taskModule = await loadTaskModule("08");
   assert.ok(taskModule);
@@ -124,20 +132,20 @@ test("task 19 now loads the contract-onboarding strategy", async () => {
   );
 });
 
-test("task 21 now loads the deterministic ledger-correction strategy", async () => {
+test("task 21 loads the offer-letter onboarding strategy", async () => {
   const taskModule = await loadTaskModule("21");
-  assert.equal(taskModule.task.taskName, "Correct ledger errors");
+  assert.equal(taskModule.task.taskName, "Onboard employee from offer letter");
   assert.deepEqual(
     taskModule.strategies.map((strategy) => strategy.strategyId),
-    ["21.correct-ledger-errors.v1"],
+    ["21.onboard-employee-offer-letter.v1"],
   );
 });
 
 test("registry exposes bidirectional tx task id lookups", () => {
-  assert.equal(txTaskIdToSlug["03"], "create-department");
-  assert.equal(txTaskIdToSlug["08"], "create-and-send-invoice");
-  assert.equal(slugToTxTaskId["create-department"], "03");
-  assert.equal(slugToTxTaskId["create-and-send-invoice"], "08");
+  assert.equal(txTaskIdToSlug["05"], "create-department");
+  assert.equal(txTaskIdToSlug["06"], "create-and-send-invoice");
+  assert.equal(slugToTxTaskId["create-department"], "05");
+  assert.equal(slugToTxTaskId["create-and-send-invoice"], "06");
 
   for (const task of CANONICAL_TASK_REGISTRY) {
     assert.equal(txTaskIdToSlug[task.txTaskId], task.taskSlug);

@@ -201,6 +201,20 @@ export const strategy = {
       );
     }
 
+    // Receipt line amounts on Norwegian receipts are NET (before VAT) when the
+    // receipt shows "herav MVA" and total × 0.25 equals the stated MVA.  The LLM
+    // passes the receipt line price as-is.  Compute the actual VAT-inclusive gross
+    // using the effective statutory rate for the selected expense category.
+    const effectiveVatRatePercent =
+      selectedVatRatePercent ??
+      (expenseAccount.vatLocked
+        ? Number(expenseAccount.vatType?.percentage ?? 0)
+        : 0);
+    const actualGross =
+      effectiveVatRatePercent > 0
+        ? roundToTwo(grossAmount * (1 + effectiveVatRatePercent / 100))
+        : grossAmount;
+
     const voucherResponse = await ctx.tripletex.post<ResponseWrapper<VoucherSummary>>(
       "/ledger/voucher?sendToLedger=true",
       {
@@ -218,16 +232,16 @@ export const strategy = {
               ...(selectedVatTypeId
                 ? { vatType: { id: selectedVatTypeId } }
                 : {}),
-              amountGross: grossAmount,
-              amountGrossCurrency: grossAmount,
+              amountGross: actualGross,
+              amountGrossCurrency: actualGross,
             },
             {
               row: 2,
               date: voucherDate,
               description: input.lineDescription,
               account: { id: bankAccountId },
-              amountGross: -grossAmount,
-              amountGrossCurrency: -grossAmount,
+              amountGross: -actualGross,
+              amountGrossCurrency: -actualGross,
             },
           ],
         },
@@ -241,7 +255,7 @@ export const strategy = {
       expenseAccountId,
       bankAccountId,
       departmentId,
-      grossAmount,
+      grossAmount: actualGross,
     });
 
     const attachmentForm = new FormData();
@@ -281,7 +295,8 @@ export const strategy = {
         departmentName: input.departmentName,
         departmentCreated: department.created,
         voucherDate,
-        grossAmount,
+        netAmount: grossAmount,
+        grossAmount: actualGross,
         expenseAccountNumber,
         expenseAccountId,
         bankAccountNumber: BANK_ACCOUNT_NUMBER,
@@ -775,23 +790,28 @@ function numberWeight(
 }
 
 function looksLikeTravel(normalizedEvidence: string): boolean {
-  return /(tog|billett|reise|reisekost|transport|jernbane|fly|buss|taxi)/.test(
+  return /(tog|billett|reise|reisekost|transport|jernbane|fly|buss|taxi|overnatting|hotell)/.test(
     normalizedEvidence,
   );
 }
 
 function looksLikeMeetingExpense(normalizedEvidence: string): boolean {
-  return /(kaffemote|kaffemate|coffee.?meeting|intern.?mote|kurs|seminar)/.test(
+  return /(kaffemote|kaffemate|kundemote|coffee.?meeting|intern.?mote|kurs|seminar)/.test(
     normalizedEvidence,
   );
 }
 
 function looksLikeRepresentation(normalizedEvidence: string): boolean {
-  // Kaffemøte is a meeting expense (6860), NOT representation (7360).
+  // Meeting expenses (6860) and travel expenses (7140) are NOT representation.
+  // "bedriftskort" is a payment method, not an expense category — excluded.
+  // Bare "lunsj" is too ambiguous — only "forretningslunsj" is representation-specific.
   if (looksLikeMeetingExpense(normalizedEvidence)) {
     return false;
   }
-  return /(forretningslunsj|representasjon|restaurant|middag|lunsj|bedriftskort)/.test(
+  if (looksLikeTravel(normalizedEvidence)) {
+    return false;
+  }
+  return /(forretningslunsj|representasjon|restaurant|middag)/.test(
     normalizedEvidence,
   );
 }
@@ -801,6 +821,8 @@ function normalizeText(value: string): string {
     .normalize("NFKD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
+    .replace(/ø/g, "o")
+    .replace(/æ/g, "ae")
     .trim();
 }
 

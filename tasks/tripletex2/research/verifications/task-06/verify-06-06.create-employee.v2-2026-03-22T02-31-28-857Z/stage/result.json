@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-result.v1",
+  "completedAt": "2026-03-22T02:31:29.834Z",
+  "createdAt": "2026-03-22T02:31:28.861Z",
+  "runId": "verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z",
+  "taskId": "06",
+  "runtimeStatus": "completed",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z/artifacts/2026-03-22/run-verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z.json",
+  "sidecarPaths": [
+    "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t06-research-wave1/tasks/tripletex2/research/verifications/task-06/verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z/artifacts/2026-03-22/run-verify-06-06.create-employee.v2-2026-03-22T02-31-28-857Z.trace.json"
+  ]
+}

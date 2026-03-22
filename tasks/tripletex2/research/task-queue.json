@@ -81,13 +81,17 @@
       "researchLane": "execution-lane",
       "bestKnownScore": 3.5,
       "maxScore": 4,
+      "baselineCallBudget": 3,
+      "proofInputPath": "research/proofs/task-17/task-17-proof-input.json",
+      "verificationPlanId": "task-17.register-payment.v1",
       "notes": [
-        "Near-max Tier 2 cleanup target."
+        "Near-max Tier 2 cleanup target.",
+        "RESEARCH FINDING: txTaskId mapping may be incorrect — prod evidence shows contest tx_task_id 07 corresponds to payment prompts, not 17. The bestKnownScore 3.5/4 may be from the wrong contest task (dimension/voucher). Actual payment task (contest task 07) scores 2.0/2.0 (max) with 100% correctness."
       ]
     },
     {
       "taskId": "15",
-      "txTaskId": "15",
+      "txTaskId": "16",
       "taskSlug": "register-project-hours-and-create-project-invoice",
       "taskName": "Register project hours and create project invoice",
       "priority": 6,
@@ -96,13 +100,16 @@
       "researchLane": "execution-lane",
       "bestKnownScore": 3.3333,
       "maxScore": 4,
+      "baselineCallBudget": 7,
+      "proofInputPath": "research/proofs/task-15/task-15-proof-input.json",
+      "verificationPlanId": "task-15.register-hours-project-invoice.v1",
       "notes": [
         "Near-max Tier 2 cleanup target."
       ]
     },
     {
       "taskId": "10",
-      "txTaskId": "10",
+      "txTaskId": "14",
       "taskSlug": "issue-full-credit-note",
       "taskName": "Issue full credit note",
       "priority": 7,
@@ -111,20 +118,24 @@
       "researchLane": "execution-lane",
       "bestKnownScore": 3,
       "maxScore": 4,
+      "baselineCallBudget": 2,
+      "proofInputPath": "research/proofs/task-10/task-10-proof-input.json",
+      "verificationPlanId": "task-10.issue-full-credit-note.v1",
       "notes": [
-        "Execution-lane Tier 2 target."
+        "Execution-lane Tier 2 target.",
+        "HAZARD: tx_task_id 10 in leaderboard is order/invoice/payment, NOT credit notes. Real credit note evidence is under tx_task_id 14. bestKnownScore of 3 is from wrong leaderboard task; actual credit note score is 4/4."
       ]
     },
     {
       "taskId": "16",
-      "txTaskId": "16",
+      "txTaskId": "11",
       "taskSlug": "register-supplier-invoice",
       "taskName": "Register supplier invoice",
       "priority": 8,
       "band": "focus",
       "queueEligibility": "ready",
       "researchLane": "execution-lane",
-      "bestKnownScore": 3,
+      "bestKnownScore": 1,
       "maxScore": 4,
       "notes": [
         "Execution-lane Tier 2 target."
@@ -177,7 +188,7 @@
     },
     {
       "taskId": "11",
-      "txTaskId": "11",
+      "txTaskId": "10",
       "taskSlug": "create-order-invoice-and-register-payment",
       "taskName": "Create order, invoice, and register payment",
       "priority": 12,
@@ -255,15 +266,21 @@
     {
       "taskId": "21",
       "txTaskId": "21",
-      "taskSlug": "correct-ledger-errors-audit",
-      "taskName": "Correct ledger errors audit",
+      "taskSlug": "onboard-employee-offer-letter",
+      "taskName": "Onboard employee from offer letter",
       "priority": 17,
       "band": "watch",
-      "queueEligibility": "hold",
+      "queueEligibility": "ready",
       "bestKnownScore": 2.5714,
       "maxScore": 6,
+      "baselineCallBudget": 4,
+      "proofInputPath": "research/proofs/task-21/task-21-proof-input.json",
+      "verificationPlanId": "task-21.onboard-employee-offer-letter.v1",
       "notes": [
-        "Park unless a specific strategy idea appears."
+        "Task identity fixed 2026-03-22: was incorrectly labeled 'Correct ledger errors audit'.",
+        "Strategy 21.onboard-employee-offer-letter.v1 implemented with remunerationType=NOT_CHOSEN fix.",
+        "Expected to fix Check 5 (always fails) and reach 10/10 checks → approaching 6.0/6.",
+        "Needs sandbox verification, then production run to confirm."
       ]
     },
     {
@@ -380,7 +397,7 @@
     },
     {
       "taskId": "14",
-      "txTaskId": "14",
+      "txTaskId": "15",
       "taskSlug": "set-project-fixed-price-and-invoice-milestone",
       "taskName": "Set project fixed price and invoice milestone",
       "priority": 26,
