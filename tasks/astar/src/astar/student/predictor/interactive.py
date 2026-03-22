@@ -95,6 +95,12 @@ TRIPLE_BLEND_V003 = "triple_blend_v003"  # GLMM 35% + DT 35% + PriorOp 30% + obs
 TRIPLE_BLEND_V004 = "triple_blend_v004"  # GLMM 45% + DT 30% + PriorOp 25% + obs
 TRIPLE_BLEND_V005 = "triple_blend_v005"  # GLMM 40% + DT 40% + PriorOp 20% + obs
 TRIPLE_BLEND_V006 = "triple_blend_v006"  # best_ensemble + 20% PriorOp + obs
+TRIPLE_BLEND_V007 = "triple_blend_v007"  # fine-tune: 33/33/34
+TRIPLE_BLEND_V008 = "triple_blend_v008"  # fine-tune: 30/35/35
+TRIPLE_BLEND_V009 = "triple_blend_v009"  # fine-tune: 35/30/35
+TRIPLE_BLEND_V010 = "triple_blend_v010"  # fine-tune: 30/40/30
+TRIPLE_BLEND_V011 = "triple_blend_v011"  # v003 but obs t=15
+TRIPLE_BLEND_V012 = "triple_blend_v012"  # v003 but obs t=25
 SMH_RESID_LOCALGATE_V001 = "smh_resid_z12_h0_covbase_locgate_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_V001 = "smh_coeffbank_z0_h0_covlike_calbase_v001"
 SMH_COEFFBANK_Z0_H0_COVLIKE_CALBASE_RESID_V001 = "smh_coeffbank_z0_h0_covlike_calbase_resid_v001"
@@ -2034,7 +2040,7 @@ def build_online_predictor(
             ),
             name=normalized,
         )
-    if normalized in (TRIPLE_BLEND_V001, TRIPLE_BLEND_V002, TRIPLE_BLEND_V003, TRIPLE_BLEND_V004, TRIPLE_BLEND_V005, TRIPLE_BLEND_V006):
+    if normalized in (TRIPLE_BLEND_V001, TRIPLE_BLEND_V002, TRIPLE_BLEND_V003, TRIPLE_BLEND_V004, TRIPLE_BLEND_V005, TRIPLE_BLEND_V006, TRIPLE_BLEND_V007, TRIPLE_BLEND_V008, TRIPLE_BLEND_V009, TRIPLE_BLEND_V010, TRIPLE_BLEND_V011, TRIPLE_BLEND_V012):
         workspace_paths = paths or WorkspacePaths.from_root(".")
         # Build all three component models
         glmm_adapter = _build_smh_glmm_latent_adapter(
@@ -2072,6 +2078,12 @@ def build_online_predictor(
             TRIPLE_BLEND_V004: (0.45, 0.30, 0.25),  # GLMM+DT
             TRIPLE_BLEND_V005: (0.40, 0.40, 0.20),  # GLMM+DT, less PO
             TRIPLE_BLEND_V006: (0.40, 0.25, 0.35),  # more PO
+            TRIPLE_BLEND_V007: (0.33, 0.33, 0.34),
+            TRIPLE_BLEND_V008: (0.30, 0.35, 0.35),
+            TRIPLE_BLEND_V009: (0.35, 0.30, 0.35),
+            TRIPLE_BLEND_V010: (0.30, 0.40, 0.30),
+            TRIPLE_BLEND_V011: (0.35, 0.35, 0.30),  # same as v003
+            TRIPLE_BLEND_V012: (0.35, 0.35, 0.30),  # same as v003
         }
         wa, wb, wc = weight_configs[normalized]
         base_predictor = TripleBlendPredictor(
@@ -2084,9 +2096,13 @@ def build_online_predictor(
             name=f"{normalized}_base",
         )
         # Add observation blending on top
+        obs_temp = {
+            TRIPLE_BLEND_V011: 15.0,
+            TRIPLE_BLEND_V012: 25.0,
+        }.get(normalized, 20.0)
         obs_predictor = ExactObservationBlendPredictor(
             base_predictor=base_predictor,
-            beta_min=20.0,
+            beta_min=obs_temp,
             beta_scale=0.0,
             probability_floor=3e-4,
             name=normalized,
