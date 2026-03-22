@@ -1,0 +1,215 @@
+{
+  "schemaVersion": "tripletex2.run-artifact.v1",
+  "runId": "verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z",
+  "createdAt": "2026-03-22T02:41:29.853Z",
+  "mode": "sandbox",
+  "task": {
+    "taskId": "15",
+    "taskName": "Register project hours and create project invoice",
+    "taskSource": "manual-label"
+  },
+  "strategy": {
+    "strategyId": "15.register-hours-direct-invoice.v2",
+    "strategyName": "Register hours then direct invoice",
+    "strategyPath": "src/tasks/task-15/strategies/register-hours-direct-invoice.ts",
+    "strategyStatus": "draft"
+  },
+  "selection": {
+    "selectionConfigId": "active-strategies-2026-03-21-tier3-fallback-a.verify.15.15.register-hours-direct-invoice.v2",
+    "selectionConfigPath": "inline-override",
+    "requestedTaskId": "15"
+  },
+  "request": {
+    "requestFingerprint": "req:acc193920964470bc44cb542cb313c20cda81032414f7bdd7561747953c74b11",
+    "promptText": "Research OS verifier run for task 15 (Register project hours and create project invoice). Strategy under test: 15.register-hours-direct-invoice.v2. Task understanding is pinned manually for this run. This prompt exists only to give the deterministic runtime a stable request fingerprint.",
+    "promptSummary": "Research OS verifier run for task 15 (Register project hours and create project invoice). Strategy under test: 15.register-hours-direct-invoice.v2. Task unde...",
+    "files": [],
+    "credentialSource": "tripletex2.sandbox-env"
+  },
+  "input": {
+    "inputSchemaId": "15.v1",
+    "status": "resolved",
+    "source": "manual",
+    "value": {
+      "activityName": "Prosjektadministrasjon",
+      "customerOrganizationNumber": "907791616",
+      "employeeEmail": "codex.verify.1773957815637@example.org",
+      "entryDate": "2027-07-01",
+      "hourlyRateExcludingVatNok": 1450,
+      "hours": 39,
+      "invoiceDate": "2027-07-01",
+      "projectName": "Sandbox Hour Invoice Project 1774020541520"
+    }
+  },
+  "execution": {
+    "startedAt": "2026-03-22T02:41:29.936Z",
+    "completedAt": "2026-03-22T02:41:36.571Z",
+    "durationMs": 6635,
+    "deadlineMs": 300000,
+    "runtimeStatus": "completed",
+    "apiCallCount": 7,
+    "api4xxCount": 0,
+    "api5xxCount": 0,
+    "apiCalls": [
+      {
+        "index": 1,
+        "method": "GET",
+        "path": "/employee",
+        "query": {
+          "count": 10,
+          "email": "codex.verify.1773957815637@example.org",
+          "fields": "*"
+        },
+        "requestSummary": "lookup employee by email, count, fields",
+        "responseSummary": "employee list 1 item",
+        "status": 200,
+        "durationMs": 1154
+      },
+      {
+        "index": 2,
+        "method": "GET",
+        "path": "/project",
+        "query": {
+          "count": 50,
+          "fields": "*,customer(*)",
+          "name": "Sandbox Hour Invoice Project 1774020541520"
+        },
+        "requestSummary": "lookup project by name, count, fields",
+        "responseSummary": "project list 1 item",
+        "status": 200,
+        "durationMs": 221
+      },
+      {
+        "index": 3,
+        "method": "GET",
+        "path": "/activity/>forTimeSheet",
+        "query": {
+          "count": 50,
+          "date": "2027-07-01",
+          "employeeId": 18478235,
+          "fields": "*",
+          "filterExistingHours": false,
+          "projectId": 401959961,
+          "query": "Prosjektadministrasjon"
+        },
+        "requestSummary": "lookup activity by projectId, employeeId, date, query, filterExistingHours, count, fields",
+        "responseSummary": "activity list 1 item",
+        "status": 200,
+        "durationMs": 162
+      },
+      {
+        "index": 4,
+        "method": "POST",
+        "path": "/timesheet/entry",
+        "requestSummary": "create entry with employee, project, activity, date",
+        "responseSummary": "entryId 175914950",
+        "status": 201,
+        "durationMs": 1127,
+        "entityIds": {
+          "entryId": 175914950
+        }
+      },
+      {
+        "index": 5,
+        "method": "POST",
+        "path": "/timesheet/entry",
+        "requestSummary": "create entry with employee, project, activity, date",
+        "responseSummary": "entryId 175914952",
+        "status": 201,
+        "durationMs": 1398,
+        "entityIds": {
+          "entryId": 175914952
+        }
+      },
+      {
+        "index": 6,
+        "method": "GET",
+        "path": "/ledger/vatType",
+        "query": {
+          "fields": "*",
+          "typeOfVat": "OUTGOING",
+          "vatDate": "2027-07-01"
+        },
+        "requestSummary": "lookup vatType by typeOfVat, vatDate, fields",
+        "responseSummary": "vatType list 1 item",
+        "status": 200,
+        "durationMs": 120
+      },
+      {
+        "index": 7,
+        "method": "POST",
+        "path": "/invoice",
+        "requestSummary": "create invoice with invoiceDate, invoiceDueDate, customer, orders",
+        "responseSummary": "invoiceId 2147669500",
+        "status": 201,
+        "durationMs": 2442,
+        "entityIds": {
+          "invoiceId": 2147669500
+        }
+      }
+    ],
+    "result": {
+      "createdEntityIds": {
+        "invoiceId": 2147669500,
+        "orderId": 402058829
+      },
+      "notes": [
+        "Resolved activity is non-chargeable, so the strategy skipped project-hourly-rate writes and used the direct invoice path with an embedded order.",
+        "Split 39 hours across 2 dates to stay within Tripletex's 24-hour per-entry limit."
+      ],
+      "verification": {
+        "activityChargeable": false,
+        "activityId": 5588719,
+        "amountCurrencyOutstanding": 56550,
+        "amountExcludingVatCurrency": 56550,
+        "customerId": 108247218,
+        "employeeId": 18478235,
+        "hourlyRatesObserved": [
+          0,
+          0
+        ],
+        "invoiceDate": "2027-07-01",
+        "invoiceNumber": 525,
+        "projectId": 401959961,
+        "registeredHours": [
+          24,
+          15
+        ],
+        "timesheetDates": [
+          "2027-07-01",
+          "2027-07-02"
+        ],
+        "timesheetEntryIds": [
+          175914950,
+          175914952
+        ]
+      }
+    }
+  },
+  "attribution": {
+    "status": "not-needed"
+  },
+  "evaluation": {
+    "status": "not-available",
+    "rawNotes": [
+      "Sandbox and dry-run executions do not have live competition scoring in this wave."
+    ]
+  },
+  "sidecars": [
+    {
+      "sidecarId": "trace-1",
+      "kind": "sanitized-trace",
+      "path": "run-verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.trace.json",
+      "mediaType": "application/json",
+      "createdAt": "2026-03-22T02:41:29.853Z",
+      "sha256": "sha256:f92c096e1550ff5314e1a31408d3a25f001dfde8da83cf41b28469fe40fa476a",
+      "summary": "Sanitized trace for 15.register-hours-direct-invoice.v2."
+    }
+  ],
+  "analysis": {
+    "notes": [
+      "Research OS verifier ran one explicit challenger strategy (15.register-hours-direct-invoice.v2) in a reset sandbox.",
+      "Deterministic runtime started only after the task-understanding handoff."
+    ]
+  }
+}

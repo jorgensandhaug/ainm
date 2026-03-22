@@ -96,6 +96,9 @@
       "researchLane": "execution-lane",
       "bestKnownScore": 3.3333,
       "maxScore": 4,
+      "baselineCallBudget": 7,
+      "proofInputPath": "research/proofs/task-15/task-15-proof-input.json",
+      "verificationPlanId": "task-15.register-hours-project-invoice.v1",
       "notes": [
         "Near-max Tier 2 cleanup target."
       ]

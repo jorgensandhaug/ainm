@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "tripletex2.solve-stage-result.v1",
+  "completedAt": "2026-03-22T02:41:36.581Z",
+  "createdAt": "2026-03-22T02:41:29.853Z",
+  "runId": "verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z",
+  "taskId": "15",
+  "runtimeStatus": "completed",
+  "artifactPath": "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/artifacts/2026-03-22/run-verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.json",
+  "sidecarPaths": [
+    "/home/anders/.openclaw/workspace/dev/.worktrees/ainm/feat/tripletex-t15-research-wave1/tasks/tripletex2/research/verifications/task-15/verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z/artifacts/2026-03-22/run-verify-15-15.register-hours-direct-invoice.v2-2026-03-22T02-41-29-849Z.trace.json"
+  ]
+}
