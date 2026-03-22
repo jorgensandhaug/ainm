@@ -4611,11 +4611,13 @@ Key innovations that gave agent7 the +7.5 point improvement:
 **40+ variants tested. All within ±0.03 of 87.65. Architecture is genuinely saturated.**
 
 ### Current Champion
-- Model: `ffam_ensemble_v9` (95% ffam_mode_v234 + 5% ffam_knn_v1)
+- Model: `ffam_ensemble_a6_v1` (95% ffam_mode_a6_v19 + 5% ffam_knn_v1)
 - Policy: `exploration_r3`
-- Score: **87.6997** (full 8-round LORO dev)
-- Previous best: ffam_mode_v214 at 87.6540 (+0.0457 improvement from ensemble)
-- The kNN component adds cell-level diversity that the global mode approach misses
+- Score: **87.7110** (full 8-round LORO dev)
+- Improvement over agent7's best (87.70): **+0.0113**
+- Key innovation: slower MLP posterior training (lr=0.015, steps=800 vs lr=0.02, steps=500)
+  combined with 5% kNN ensemble
+- Previous best: ffam_ensemble_v9 at 87.6997
 
 ### Compared to Other Agents
 | Agent | Best Score | Architecture |
