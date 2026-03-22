@@ -90,6 +90,9 @@ Persistent-sandbox verification on 2026-03-20 showed:
 - the 2026-03-21 production Nynorsk run `Dalheim AS` / `950103175` / `Sikkerheitsrevisjon` / `randi.lunde@example.org` / `Analyse` / `30` hours / `850` used the old `POST /order` + `PUT /order/:invoice` optimistic branch, hit missing bank account, costed `10` calls with `1` error; the new `POST /invoice` + proactive bank check would have been `8` calls with `0` errors
 - persistent-sandbox re-proof on 2026-03-21 confirmed `POST /invoice?sendToCustomer=false` with embedded `orders[]` (containing `customer`, `project`, `orderLines`) works for existing entities, replacing `POST /order` + `PUT /order/:invoice` (saves 1 call); `orders[0].customer` must be set explicitly
 - persistent-sandbox re-proof on 2026-03-21 confirmed the new 7-call proactive path for >24h non-chargeable: `GET /employee` -> `GET /project` -> `GET /activity` -> `POST /timesheet/entry/list` -> parallel `GET /ledger/vatType` + `GET /ledger/account` -> `POST /invoice`, returning `amountExcludingVatCurrency=25500` (30h × 850), `0` errors; unconfigured adds `PUT /ledger/account` for `8` calls, `0` errors
+- persistent-sandbox re-proof on 2026-03-22 confirmed: `POST /invoice?sendToCustomer=false` does NOT depend on `POST /timesheet/entry` for existing entities — both succeed independently; this enables the 3-step layout where timesheet and invoice run in parallel
+- persistent-sandbox re-proof on 2026-03-22 confirmed: `GET /timesheet/entry` with `dateFrom=X&dateTo=X` returns 422 because `dateTo` is exclusive; fix: use `dateTo=X+1`
+- the 2026-03-22 production Norwegian run `Bergvik AS` / `989231898` / `Plattformintegrasjon` / `ingrid.nilsen@example.org` / `Analyse` / `5` hours / `1400` (5e5e2c8c) completed in 8 calls (3 writes + 5 reads, with bank fix), 0 avoidable errors, `amountExcludingVatCurrency=7000`, `amountCurrency=8750` (25% VAT); repeat of exact same prompt from 2026-03-20, confirming path stability; only issue was verification GET `dateFrom=dateTo` bug (422)
 
 ### Create From Scratch Variant
 
@@ -128,75 +131,36 @@ Production run for `Océan SARL` (07d50494) on 2026-03-21 completed in 12 calls,
 - sandbox re-proof on 2026-03-22 confirmed: `POST /timesheet/entry/list` and `POST /invoice` can run in parallel (invoice doesn't depend on timesheet), reducing sequential steps from 6 to 4 without changing total call count
 - optimized create-from-scratch flow: 5 + 2 + 2 + 2(parallel) = 11 calls in 4 sequential steps (or 12 with bank fix in step 3)
 
-## Minimal Safe Flow
+## Minimal Safe Flow (Optimized 3-Step Layout)
 
-1. Confirm these operations in `./openapi.json`
-   - `GET /employee`
-   - `GET /project`
-   - `GET /activity/>forTimeSheet`
-   - `GET /project/hourlyRates`
-   - `PUT /project/hourlyRates/{id}`
-   - `POST /project/hourlyRates/projectSpecificRates`
-   - `POST /timesheet/entry` or `POST /timesheet/entry/list` (for >24h batch)
-   - `GET /ledger/vatType`
-   - `GET /ledger/account`
-   - `POST /invoice`
-2. Resolve the employee
-   - `GET /employee?email=<email>&count=10&fields=*`
-   - exact-match locally because the email filter is containing
-3. Resolve the project and linked customer in one read
-   - `GET /project?name=<project-name>&count=50&fields=*,customer(*)`
-   - exact-match the project name locally
-   - exact-match the nested `customer.organizationNumber` and/or `customer.name` locally when the prompt gives them
-   - only fall back to a separate `GET /customer` if the project read is ambiguous or unexpectedly sparse
-5. Resolve the applicable activity through the project-timesheet endpoint
-   - `GET /activity/>forTimeSheet?projectId=<project-id>&employeeId=<employee-id>&date=<date>&query=<activity-name>&filterExistingHours=false&count=50&fields=*`
-   - branch on `activity.isChargeable`, not `activity.chargeable`
-6. If `activity.isChargeable===true`, continue with the rate path
-   - if `activity.isChargeable===false`, skip directly to the timesheet write and keep the exact branch at 7 calls
-7. Resolve the project hourly-rate holder
-   - `GET /project/hourlyRates?projectId=<project-id>&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))`
-8. If no holder exists yet, create it once
-   - `POST /project/hourlyRates`
-   - send:
-     - `project`
-     - `startDate`
-     - `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"`
-9. If needed, switch the holder to project-specific rates
-   - `PUT /project/hourlyRates/{id}`
-   - send:
-     - `project`
-     - `startDate`
-     - `hourlyRateModel: "TYPE_PROJECT_SPECIFIC_HOURLY_RATES"`
-10. Reuse or write the exact employee+activity rate
-   - if that holder read already exposes one exact employee+activity rate with the prompt hourly rate, reuse it and skip an extra write
-   - if it exposes one exact employee+activity rate with a different hourly rate, `PUT /project/hourlyRates/projectSpecificRates/{id}` once
-   - otherwise `POST /project/hourlyRates/projectSpecificRates`
-11. Register the hours
-   - if the prompt total is `<= 24`: `POST /timesheet/entry`
-   - if the prompt total is `> 24`: `POST /timesheet/entry/list` with all date chunks in one batch call
-   - send per entry:
-     - `employee`
-     - `project`
-     - `activity`
-     - `date`
-     - `hours`
-     - `projectChargeableHours`
-   - keep each entry at `projectChargeableHours <= 24`
-   - if the prompt total exceeds `24`, plan one entry per distinct date before the first write
-   - if the resolved activity is non-chargeable, still do this write and continue with the invoice fallback when the prompt only scores the requested hours side effect plus the invoice side effect
-12. Resolve VAT type and check bank account in parallel
-   - `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
-   - `GET /ledger/account?isBankAccount=true&fields=*` (parallel with the above)
-13. If the bank account lacks `bankAccountNumber`, fix it
-   - `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"`
-14. Create the invoice directly
-   - `POST /invoice?sendToCustomer=false`
-   - include:
-     - root `invoiceDate` and `invoiceDueDate`
-     - root `customer: { id }`
-     - embedded `orders: [{ customer: { id }, project: { id }, orderDate, deliveryDate, orderLines: [{ description, count, unitPriceExcludingVatCurrency, vatType: { id } }] }]`
-   - this replaces the older `POST /order` + `PUT /order/{id}/:invoice` two-call path
+**Step 1** (parallel, all free GETs — no dependencies):
+1. `GET /employee?email=<email>&count=10&fields=*` — exact-match locally because the email filter is containing
+2. `GET /project?name=<project-name>&count=50&fields=*,customer(*)` — exact-match project name and nested `customer.organizationNumber`/`customer.name` locally
+3. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=<date>&fields=*`
+4. `GET /ledger/account?isBankAccount=true&fields=*`
+
+**Step 2** (parallel — depends on employee.id + project.id from step 1):
+5. `GET /activity/>forTimeSheet?projectId=<project-id>&employeeId=<employee-id>&date=<date>&query=<activity-name>&filterExistingHours=false&count=50&fields=*` — branch on `activity.isChargeable`, not `activity.chargeable`
+6. If the bank account lacks `bankAccountNumber`: `PUT /ledger/account/{id}` with `bankAccountNumber: "12345678903"` (parallel with activity GET)
+
+**Step 2b** (chargeable branch only — if `activity.isChargeable=true`):
+7. `GET /project/hourlyRates?projectId=...&count=100&fields=*,projectSpecificRates(*,employee(*),activity(*))`
+8. Conditional: create holder (`POST /project/hourlyRates`) or switch model (`PUT /project/hourlyRates/{id}`)
+9. Conditional: create or update rate (`POST /project/hourlyRates/projectSpecificRates` or `PUT .../projectSpecificRates/{id}`)
+
+**Step 3** (parallel — timesheet and invoice have NO dependency on each other):
+10. Register hours:
+    - if `<= 24`: `POST /timesheet/entry`
+    - if `> 24`: `POST /timesheet/entry/list` with all date chunks in one batch
+    - send per entry: `employee`, `project`, `activity`, `date`, `hours`, `projectChargeableHours`
+    - keep each entry at `projectChargeableHours <= 24`
+11. `POST /invoice?sendToCustomer=false` with:
+    - root `invoiceDate` and `invoiceDueDate`
+    - root `customer: { id }`
+    - embedded `orders: [{ customer: { id }, project: { id }, orderDate, deliveryDate, orderLines: [{ description, count, unitPriceExcludingVatCurrency, vatType: { id } }] }]`
+
+**Call count**: 7 configured / 8 unconfigured bank, **3 sequential steps** (non-chargeable), 0 errors.
+Invoice does NOT depend on timesheet entries existing — sandbox-verified 2026-03-22 for existing entities.
 
 ## Recommended Shapes
 
@@ -258,31 +222,36 @@ Direct invoice (replaces POST /order + PUT /order/:invoice):
 
 Replace VAT id `6` with the filtered outgoing VAT type actually returned for the invoice date. Customer ID must appear in both root and `orders[0]`.
 
-## Exact-Match Fast Path
+## Exact-Match Fast Path (Optimized 3-Step Layout)
 
-- For a prompt that gives:
-  - employee email
-  - project name plus customer organization number and/or name
-  - activity name
-  - hour count
-  - hourly rate
-- the public fast path is usually:
-  1. `GET /employee?...`
-  2. `GET /project?name=...&fields=*,customer(*)`
-  3. `GET /activity/>forTimeSheet?...`
-  4. if `activity.isChargeable=false` and prompt hours `<= 24`: `POST /timesheet/entry`
-  5. if `activity.isChargeable=false` and prompt hours `> 24`: `POST /timesheet/entry/list` with all planned date chunks in one batch call, each entry `<= 24` hours
-  6. `GET /ledger/vatType?...` + `GET /ledger/account?isBankAccount=true&fields=*` (parallel)
-  7. if bank account lacks `bankAccountNumber`: `PUT /ledger/account/{id}` with `"12345678903"`
-  8. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, `invoiceDueDate`, `customer`, and embedded `orders[]` containing `customer`, `project`, and `orderLines`
-  9. if `activity.isChargeable=true`: `GET /project/hourlyRates?...fields=*,projectSpecificRates(*,employee(*),activity(*))`
-  11. if `activity.isChargeable=true` and no holder exists yet: `POST /project/hourlyRates`
-  12. if needed: conditional `PUT /project/hourlyRates/{id}`
-  13. if `activity.isChargeable=true` and the exact rate is missing: `POST /project/hourlyRates/projectSpecificRates`
-  14. if `activity.isChargeable=true` and the exact rate exists but differs: `PUT /project/hourlyRates/projectSpecificRates/{id}`
-  14. if `activity.isChargeable=true` and prompt hours `<= 24`: `POST /timesheet/entry`
-  15. if `activity.isChargeable=true` and prompt hours `> 24`: `POST /timesheet/entry/list` with all planned date chunks in one batch call, each entry `<= 24` hours
-  16. steps 6-8 apply to both chargeable and non-chargeable branches
+For a prompt giving: employee email, project name + customer org, activity name, hours, rate.
+
+### Non-chargeable activity, hours ≤ 24 (most common):
+
+**Step 1** (4 parallel free GETs):
+1. `GET /employee?email=...&count=10&fields=*`
+2. `GET /project?name=...&count=50&fields=*,customer(*)`
+3. `GET /ledger/vatType?typeOfVat=OUTGOING&vatDate=...&fields=*`
+4. `GET /ledger/account?isBankAccount=true&fields=*`
+
+**Step 2** (1-2 parallel calls):
+5. `GET /activity/>forTimeSheet?projectId=...&employeeId=...&date=...&query=...&filterExistingHours=false&count=50&fields=*`
+6. if bank account lacks `bankAccountNumber`: `PUT /ledger/account/{id}` with `"12345678903"` (parallel with activity GET)
+
+**Step 3** (2 parallel writes):
+7. `POST /timesheet/entry` (or `POST /timesheet/entry/list` for >24h)
+8. `POST /invoice?sendToCustomer=false` with root `invoiceDate`, `invoiceDueDate`, `customer`, and embedded `orders[]` containing `customer`, `project`, and `orderLines`
+
+**Call count**: 7 configured / 8 unconfigured bank, **3 sequential steps**, 0 errors.
+Invoice does NOT depend on timesheet — both can run in parallel (sandbox-verified 2026-03-22 for existing entities).
+
+### Chargeable activity branch:
+After step 2, add hourly-rate management before step 3:
+- `GET /project/hourlyRates?...&fields=*,projectSpecificRates(*,employee(*),activity(*))`
+- conditional rate holder create/switch + rate create/update
+- then proceed with timesheet + invoice in step 3
+
+### Rules:
 - do not insert a default week-approval write
 - do not spend speculative attempts to make a project preliminary invoice include hours
 - do not stop the run just because the resolved activity is non-chargeable when the prompt only asks for the hours side effect plus the customer-facing invoice side effect
@@ -342,3 +311,6 @@ Replace VAT id `6` with the filtered outgoing VAT type actually returned for the
 - Do not use `POST /order` + `PUT /order/{id}/:invoice` — use `POST /invoice?sendToCustomer=false` with embedded `orders[]` instead; it saves 1 call and is sandbox-verified for existing entities
 - Do not omit `customer` from `orders[0]` when using `POST /invoice`; the endpoint returns `422 orders.customer: Kan ikke være null.`
 - Do not omit `invoiceDueDate` from the root `POST /invoice` payload; it returns `422`
+- Do not use `dateFrom=X&dateTo=X` in `GET /timesheet/entry` verification — `dateTo` is exclusive, so same date returns 422; use `dateTo=X+1` (next day); sandbox-verified 2026-03-22
+- Do move `GET /ledger/vatType` and `GET /ledger/account` into step 1 (parallel with employee + project) — they have no dependencies; placing them later adds unnecessary sequential steps
+- Do parallelize `POST /timesheet/entry` and `POST /invoice` at step 3 — invoice does NOT depend on timesheet entries existing; sandbox-verified 2026-03-22 for existing entities

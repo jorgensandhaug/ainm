@@ -103,11 +103,13 @@ Run 2026-03-22 (Bjørn Neset, Nynorsk prompt, 2nd instance): 4 calls, 1 error (a
 
 Run 2026-03-22 (Edward Harris, English prompt): 2 calls, 0 errors — optimal pre-read run (20daf6b5); GET /department found 745977, POST /employee with dept+employment→201; all fields confirmed from POST response (dateOfBirth 1987-11-09, email edward.harris@example.org, startDate 2026-07-06); 15th create-employee run overall, 3rd optimal 2-call pre-read run; dept-required rate now 9/15 (60%)
 
+Run 2026-03-22 (Solveig Johansen, Norwegian Bokmål prompt): 2 calls, 0 errors — optimal pre-read run (de91aeca); GET /department found 1020861, POST /employee with dept+employment→201; all fields confirmed from POST response (dateOfBirth 1993-05-15, email solveig.johansen@example.org, startDate 2026-01-18); 16th create-employee run overall, 4th optimal 2-call pre-read run
+
 ## Avoidable Mistakes
 
 - Do not omit `userType`
 - Do not use `POST /employee?fields=*` without `employments(*)` — the nested expansion is required to get `startDate` in the response
-- Do not skip the `GET /department` pre-read; at 60%+ department-required rate (9/15 runs needed it), pre-reading saves calls and errors on average; 3 production runs have now achieved the optimal 2 calls / 0 errors with pre-read
+- Do not skip the `GET /department` pre-read; at 56%+ department-required rate (9/16 runs needed it), pre-reading saves calls and errors on average; 4 production runs have now achieved the optimal 2 calls / 0 errors with pre-read
 - CRITICAL: `department` is a top-level employee field — do NOT put it inside `employments[]`; the employment object only accepts `division`, not `department`; placing `department` inside employment triggers code 16000 "Request mapping failed" ("Feltet eksisterer ikke i objektet."); sandbox-verified on 2026-03-22; the André Almeida run (e9e115f1) wasted 2 calls on this exact mistake
 - CRITICAL: always follow the CURRENT trusted standard flow, not a cached older version — the trusted standard may have been updated between runs
 - Do not pre-read `/division` — 0/13 production runs needed it; only repair if `422` on `employments.division.id`
