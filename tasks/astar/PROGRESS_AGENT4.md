@@ -3555,3 +3555,63 @@ Observations from other seeds directly reveal the round's dynamics.
 - Agent3: 85.29
 - Agent1: 83.79
 - query_residual_v11: 79.39
+
+### V2 with activity heatmaps — NEGATIVE
+- Added multi-scale Gaussian-blurred activity heatmaps + settlement proximity
+- Results: ev1=84.97, ev5=87.18, ev15=87.96, ev30=88.49
+- All slightly WORSE than v1 — extra features add noise with limited training data
+- **Conclusion: v1 cross-seed model remains the best architecture**
+
+## FINAL SESSION SUMMARY
+
+### Architecture: GT-Evidence Cross-Seed Ensemble
+
+This is a **per-cell gradient-boosted tree ensemble** that predicts year-50 class probabilities for each cell of a 40x40 game map. It combines:
+
+1. **LightGBM + CatBoost geometric mean ensemble** (6 models each, per-class)
+2. **Static map features** (~60 features per cell: terrain, neighborhood, distance, position)
+3. **Evidence features** from observed year-50 viewports (~40 features: observed classes + spatial propagation)
+4. **Cross-seed features** (~19 features: aggregate stats from other seeds' observations)
+5. **Ground-truth-targeted training** with entropy-weighted loss
+6. **Data augmentation** with varying evidence quality (1-15 replays)
+7. **Low probability floor** (0.0003)
+
+### Key Innovation Trajectory
+
+| Step | Innovation | Score Impact |
+|------|-----------|-------------|
+| 1 | Cellwise LightGBM (GT only) | 66.50 baseline |
+| 2 | Replay-augmented training | +0.24 → 66.74 |
+| 3 | Evidence features (spatial propagation) | +5.22 → 71.96 |
+| 4 | Mixed evidence training | +0.39 → 72.35 |
+| 5 | Settlement statistics | +3.91 → 76.26 |
+| 6 | GT-targeted training | +1.90 → 78.16 |
+| 7 | Low probability floor (0.0003) | +3.89 → 82.05 |
+| 8 | CatBoost ensemble | +0.49 → 82.54 |
+| 9 | Geometric mean blend | +0.11 → 82.65 |
+| 10 | **Cross-seed features** | **+2.46 → 85.11** |
+
+**Total improvement: +18.61 points over the initial baseline!**
+
+### Per-Round Performance (ev1, best for live deployment)
+
+Each round held out for evaluation:
+| Round | Score |
+|-------|-------|
+| 36e581f1 (hardest) | ~73 |
+| 71451d74 | ~87 |
+| 76909e29 | ~89 |
+| 8e839974 | ~88 |
+| ae78003a | ~83 |
+| c5cdf100 | ~87 |
+| f1dac9a9 (2nd hardest) | ~70 |
+| fd3c92ff | ~84 |
+
+### What Makes This Work
+
+1. **Nonlinear feature interactions**: LightGBM/CatBoost capture complex conditional patterns
+2. **Spatial evidence propagation**: Neighborhood features propagate observed cell information
+3. **Cross-round regime detection**: Cross-seed features reveal hidden round parameters
+4. **Score-aligned training**: Entropy-weighted GT loss directly optimizes for KL scoring metric
+5. **Low probability floor**: Allows precise predictions at deterministic cells (+3.89 points alone!)
+6. **Model diversity**: LGB+CatBoost geometric mean reduces prediction variance
