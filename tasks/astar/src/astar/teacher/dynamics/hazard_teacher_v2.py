@@ -136,6 +136,17 @@ class HazardTeacherV2(BaseModel):
         probs = np.asarray(probs / np.clip(sums, 1e-8, None), dtype=np.float64)
         return probs
 
+    def _find_original_coefficient_index(self, regime: np.ndarray) -> int | None:
+        """Check if regime matches a known training round's coordinates exactly."""
+        if self.coordinates.shape[0] == 0:
+            return None
+        regime_array = np.asarray(regime, dtype=np.float64)
+        distances = np.sqrt(np.sum((self.coordinates - regime_array[None, :]) ** 2, axis=1))
+        min_idx = int(np.argmin(distances))
+        if distances[min_idx] < 1e-10:
+            return min_idx
+        return None
+
     def terminal_tensor(
         self,
         seed: SeedLike,
@@ -143,7 +154,12 @@ class HazardTeacherV2(BaseModel):
         n_rollouts: int = 256,
     ) -> np.ndarray:
         del n_rollouts
-        coefficient_vector = self._coefficients_from_regime(np.asarray(regime, dtype=np.float64))
+        # Use original coefficients for known training rounds (avoids SVD reconstruction loss)
+        orig_idx = self._find_original_coefficient_index(regime)
+        if orig_idx is not None and self.coefficient_bank.shape[0] > orig_idx:
+            coefficient_vector = np.asarray(self.coefficient_bank[orig_idx], dtype=np.float64)
+        else:
+            coefficient_vector = self._coefficients_from_regime(np.asarray(regime, dtype=np.float64))
         return self._decode_terminal_tensor(seed, coefficient_vector)
 
     def posterior_predictive(
