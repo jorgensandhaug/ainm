@@ -866,11 +866,10 @@ function pickExactPartyByOrganizationNumber<
   const nameMatches = orgMatches.filter((v) =>
     sameText(v.name ?? "", preferredName),
   );
-  if (nameMatches.length === 1) return nameMatches[0];
+  if (nameMatches.length >= 1) return nameMatches[0];
 
-  throw new Error(
-    `Expected exactly one ${label} with organization number ${organizationNumber}, but found ${orgMatches.length}.`,
-  );
+  // Multiple org matches but no name match — use the first one
+  return orgMatches[0];
 }
 
 // ── Employee resolution ──
