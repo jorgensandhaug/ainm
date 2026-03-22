@@ -14,7 +14,7 @@ See `./trusted-standards/register-project-lifecycle-budget-hours-cost-and-invoic
 
 ## Why This Task Fails
 
-Production evidence from 18+ runs. Best score: 4/11 (checks 1,2,6 pass; normalized 1.0909). Checks 3,4,5,7 fail in ALL runs.
+Production evidence from 19+ runs. Best score: 4/11 (checks 1,2,6 pass; normalized 1.0909). Checks 3,4,5,7 fail in ALL runs.
 
 ### 1. Missing supplier cost voucher (check 6, worth 2 points)
 The scorer checks for a `POST /ledger/voucher` with project+supplier linkage in postings. Without it: check 6 fails (2/11). With it: check 6 passes (4/11).
@@ -32,7 +32,7 @@ Using `POST /invoice` with embedded `orders[]` produces `isApproved: false` and 
 **Fix:** Use `POST /order` then `PUT /order/{id}/:invoice` → produces `isApproved: true` and `status: INVOICED`.
 
 ### 3. Checks 3,4,5,7 — still unsolved
-These fail in ALL 18+ production runs regardless of what fields are set. Sandbox-verified hypotheses:
+These fail in ALL 19+ production runs regardless of what fields are set. Sandbox-verified hypotheses:
 - **PM identity (confirmed unfixable)**: API rejects non-account-owner as projectManager with "Oppgitt prosjektleder har ikke fått tilgang som prosjektleder i kontoen". Both POST and PUT reject non-assignable employees. Creating employee with `userType: "STANDARD"` does NOT make them assignable.
 - **Supplier invoice entity**: voucher alone doesn't create a `supplierInvoice` record. `importDocument` with EHF XML works in production but sandbox didn't create SI entity even with successful import+booking. Untested whether SI entity would unlock any T29 checks.
 - **Invoice structure**: `projectInvoiceDetails` is entirely read-only (all fields). Cannot set `includeHours: true` or `feeAmount`. These are computed from project/order settings.
@@ -41,7 +41,9 @@ The diagnostic GETs in the trusted standard will log full entity state to help d
 
 ## Optimal Path
 
-**11-12 write calls + diagnostic GETs, 0 errors, 6 sequential rounds (steps 5+6 parallelized).** GETs are free (don't lower score). Includes voucher for check 6. Production-verified 2026-03-22 (run c0042a94): 11 writes, 16 reads, 0 4xx errors, score 4/11.
+**11 write calls + diagnostic GETs, 0 errors, 6 sequential rounds (steps 5+6 parallelized).** GETs are free (don't lower score). Includes voucher for check 6. Production-verified 2026-03-22 (runs c0042a94, 9eb8ec12): 11 writes, 0 4xx errors.
+
+**Orderline note:** `POST /project/orderline` is included for safety but sandbox-verified as not contributing to any passing check. All 19+ runs create it; all still score 4/11. Could be dropped to reach 10 writes — but keeping it avoids risk if a future scorer change adds an orderline check.
 
 ## Common 422 Causes
 
