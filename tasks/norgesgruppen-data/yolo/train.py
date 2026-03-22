@@ -29,6 +29,8 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--freeze", type=int, default=0, help="Number of model layers to freeze.")
+    parser.add_argument("--cls-weight", type=float, default=0.5, help="Classification loss weight.")
+    parser.add_argument("--multi-scale", type=float, default=0.0, help="Multi-scale training factor.")
     parser.add_argument("--run-tag", default="cls", help="Extra run name prefix for traceability.")
     parser.add_argument("--data", default="data/yolo/data.yaml", help="Path to YOLO data.yaml")
     parser.add_argument("--device", default=None, help="Device(s), e.g. '0' or '0,1' for multi-GPU.")
@@ -79,6 +81,8 @@ def main() -> None:
         deterministic=True,
         workers=args.workers,
         freeze=args.freeze,
+        cls=args.cls_weight,
+        multi_scale=args.multi_scale,
     )
 
 
