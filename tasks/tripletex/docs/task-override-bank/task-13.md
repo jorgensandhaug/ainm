@@ -12,27 +12,24 @@ Register a domestic travel expense for an existing employee (identified by email
 2. **Immediately write and execute** a TypeScript script with `bun`. Do NOT read any other files (not AGENTS.md, not openapi.json, not the playbook)
 3. The trusted standard has the exact API flow, payload shape, per-diem rules, and recovery branches
 
-## The TWO fixes that matter most (both untested in 24 production runs)
-
-### FIX 1: perDiemCompensations count = OVERNIGHTS (days - 1)
+## Critical: count = OVERNIGHTS (days - 1) — the ONLY untested variable
 
 - "3 dager" → count=**2**, "4 dagar" → count=**3**, "5 dager" → count=**4**
 - The rateType "Overnatting" expects overnight count, not day count
-- **24 production runs ALL used count=days and ALL scored 4.5/8** — count was the ONLY parameter never varied
+- **25 production runs ALL used count=days and ALL scored 4.5/8** — count is the ONLY parameter never varied
+- Rate (800 vs auto-1012), vatType (0 vs 12), lifecycle (deliver-only / +approve / +createVouchers) were ALL tested — NONE changed the score
+- Run 07918ee7 was the FIRST with count=overnights — score pending
 - Do NOT set `rate` or `amount` — let the system auto-fill 1012 (government rate)
 - The prompt's "dagsats 800 kr" is context, NOT what to send to the API
 - Set `isCompensationFromRates: true`
 - Use `rateType: { id: 25888, rateCategory: { id: 740 } }`, `overnightAccommodation: "HOTEL"`
 
-### FIX 2: createVouchers after approval — NEVER SKIP
+## Full lifecycle: deliver → approve → createVouchers (all steps mandatory)
 
-- ALL 22+ production runs **omitted** `PUT /travelExpense/:createVouchers` — this is the #1 hypothesis for checks 2,3,6
-- Without createVouchers: `voucher=null`, `isCompleted=false`, no ledger postings
-- With createVouchers: `voucher != null`, `isCompleted=true`, 7 accounting postings
-- Approval is a PREREQUISITE (422 "Reiseregningen er ikke godkjent" without it)
+- createVouchers alone does NOT fix the score (proven by attempts 23-24: still 4.5/8 with full lifecycle)
+- But it IS part of the correct flow: without it, `voucher=null` and `isCompleted=false`
+- Approval is a PREREQUISITE for createVouchers (422 "Reiseregningen er ikke godkjent" without it)
 - Do NOT use `overrideApprovalFlow=true` on approve (returns 403)
-
-## Full lifecycle (all steps mandatory)
 
 1. **Round 1 — parallel GETs**: `GET /employee?email=...`, `GET /travelExpense/costCategory?count=1000&fields=*`, `GET /travelExpense/paymentType?count=1000&fields=*`
 2. **Round 2 — conditional**: `GET /company/{id}?fields=*,address(*)` only if employee lacks address (for `departureFrom`)
