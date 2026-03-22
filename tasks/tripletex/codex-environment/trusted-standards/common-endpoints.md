@@ -739,9 +739,10 @@ Use this as the exact endpoint-shape reference for the most common Tripletex res
 - `/ledger/voucherType`
   - `GET` search — supports `?name=<exact name>&count=1&fields=*` filter for targeted lookup (e.g. `?name=Lønnsbilag`)
   - voucherType ids are **account-specific** — do NOT hardcode them
-  - for payroll Lønnsbilag vouchers: use `voucherType: { name: "Lønnsbilag" }` inline in `POST /ledger/voucher` — saves 1 call vs GET lookup; NOTE: name-based resolution stores null voucherType on readback (sandbox-verified 2026-03-22), but the scorer does NOT check voucherType — it checks posting amounts and accounts; production runs with null type scored 4/4
-  - for supplier-invoice Leverandørfaktura vouchers: use `voucherType: { name: "Leverandørfaktura" }` inline in `POST /ledger/voucher` — same behavior: stores null on readback but scorer doesn't check it; saves 1 call vs GET lookup
-  - general rule: `POST /ledger/voucher` accepts `voucherType: { name: "..." }` for any standard voucher type — it is silently accepted and the voucher is created, but the voucherType field stores null on readback; this is harmless because the scorer checks posting amounts and accounts, not voucherType; prefer inline name over id-based lookup to save 1 call
+  - **GETs are free** — always use `GET /ledger/voucherType?name=<exact>&count=1&fields=id,name` to resolve the id, then use `voucherType: { id }` on `POST /ledger/voucher`; this correctly persists the voucherType on readback
+  - `voucherType: { name: "..." }` is silently accepted but stores null on readback — avoid this now that GETs are free
+  - for payroll: `GET /ledger/voucherType?name=Lønnsbilag&count=1&fields=id,name` in step 1 (free, parallel with other reads)
+  - for supplier invoice: `GET /ledger/voucherType?name=Leverandørfaktura&count=1&fields=id,name` (free)
 
 ## Ledger Voucher
 - `/ledger/voucher`

@@ -352,6 +352,27 @@ for (const [periodId, { period, csvIndices }] of periodMap) {
 - **Fallback**: if close fails with 422 balance mismatch, read balance sheet: `GET /balanceSheet?dateFrom=${period.start}&dateTo=${period.end}&accountNumberFrom=1920&accountNumberTo=1920&count=1&fields=*` → use `values[0].balanceOut`. Costs 1 extra call.
 - **Fallback 2**: if bank reconciliation endpoints return `403`, skip Steps 7-8 entirely — Check 2 (2/10) still works.
 
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. The pre-built script should log key state after each write. Additionally verify:
+
+After customer payments:
+```
+GET /invoice/{id}?fields=id,invoiceNumber,amountCurrencyOutstanding,customer(id,name)
+```
+Confirm `amountCurrencyOutstanding === 0` for full payments, or reduced by the partial amount.
+
+After bank reconciliation close:
+```
+GET /bank/reconciliation/{id}?fields=*
+```
+Confirm `isClosed === true` and `bankAccountClosingBalanceCurrency` matches the expected per-period closing balance.
+
+After bank statement import:
+```
+GET /bank/statement?accountId=...&fields=*
+```
+Confirm the imported statement exists and has the expected transaction count.
+
 ## Call count (updated 2026-03-22)
 
 - **Full flow formula**: 6 reads + 1 opening balance + N customer payments + 1 combined voucher + 1 bank import + 1 GET postings + P create recons + L POST matches + P PUT close recons = **10 + N + L + 2P** (where N = customer payments, L = CSV lines, P = number of distinct accounting periods)

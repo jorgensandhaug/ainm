@@ -40,11 +40,18 @@
 - from `PUT /ledger/voucher/{id}/:reverse`:
   - `value.id` of the reverse voucher
 
-## Verification
-- for exact-match scored runs, the default fast path is no verification read after the successful reverse write
-- only do one decisive invoice re-read after the reversal when the prompt explicitly requires balance proof or the locate step left enough ambiguity that the extra read materially reduces risk
-- on that optional re-read, verify `amountCurrencyOutstanding` or `amountOutstanding` equals the expected reopened balance captured from the first invoice read, not the prompt lookup amount
-- do not spend an extra voucher read if the optional invoice verification already proves the scored state
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the reverse write, ALWAYS verify:
+
+```
+GET /invoice/{invoiceId}?fields=*,customer(*),orderLines(*),postings(*,voucher(*),account(*))
+```
+Log: invoiceId, amountCurrencyOutstanding, amountOutstanding, customer, and all postings including the new reverse voucher. Confirm the outstanding amount reopened to the expected balance captured from the first invoice read.
+
+Optionally also verify the reverse voucher itself:
+```
+GET /ledger/voucher/{reverseVoucherId}?fields=id,number,date,description,postings(row,account(number,name),amountGross)
+```
 
 ## Known Recovery Branches
 - if the first invoice read yields multiple paid invoices, narrow locally with the prompt identifiers before writing

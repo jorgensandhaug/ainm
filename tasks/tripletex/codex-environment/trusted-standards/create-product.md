@@ -52,9 +52,13 @@
 - `value.id`
 - returned product number/name/price/vat fields
 
-## Verification
-- zero extra calls if write response proves scored fields
-- if a VAT lookup was needed, keep it to one decisive `GET`
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the write, verify:
+
+```
+GET /product/{id}?fields=*,vatType(*)
+```
+Log: id, number, name, priceExcludingVatCurrency, priceIncludingVatCurrency, vatType (id, percentage). Confirm all scored fields match the prompt.
 
 ## Known Recovery Branches
 - if product create rejects VAT type, re-check against filtered `OUTGOING` VAT list only

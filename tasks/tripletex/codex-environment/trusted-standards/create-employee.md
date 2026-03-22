@@ -48,12 +48,16 @@
 - `value.employments[0].startDate` — the employment start date, proving all scored state in one response
 - no verification GET is needed when using `?fields=*,employments(*)`
 
-## Verification
-- zero extra calls when using `POST /employee?fields=*,employments(*)` — the response includes the full employment object with `startDate`
-- for the exact prompt shape `name + birth date + email + start date`, the minimum safe success path is **2 calls**: `GET /department` + `POST /employee?fields=*,employments(*)`
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. The write response with `?fields=*,employments(*)` already proves most state, but ALWAYS verify:
+
+```
+GET /employee/{id}?fields=*,employments(*),department(id,name)
+```
+Log: id, firstName, lastName, dateOfBirth, email, department, employments[0].startDate. Confirm all scored fields.
+
 - CRITICAL: `POST /employee?fields=*` (without the nested expansion) still returns sparse `employments` (id + url only, no `startDate`); the `employments(*)` part is essential
 - sandbox verification on 2026-03-21 confirmed that `POST /employee?fields=*,employments(*)` returns the full response with all employee identity fields AND full employment objects including `startDate`
-- sandbox verification on 2026-03-21 confirmed that `POST /employee?fields=employments(*)` also returns `startDate` but omits top-level employee fields like `firstName`; always use `fields=*,employments(*)` to get both
 
 ## Total Calls
 - 2 calls in the common path (GET /department + POST /employee?fields=*,employments(*)), 0 errors

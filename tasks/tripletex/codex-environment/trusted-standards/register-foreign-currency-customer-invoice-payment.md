@@ -151,6 +151,23 @@ Sandbox proof (2026-03-21): NOK invoice `2147609133` (`amount=amountCurrency=256
 
 Sandbox proof (2026-03-21): manual agio voucher with `row: 1` on accounts 1920/8060 created successfully (voucher `609118154`), invoice remained closed (`amountOutstanding=0`), 8060 posting verified with correct amount. Using `row: 0` → 422 for ALL accounts (1920, 8060, 7100, 7140, etc.) — this is NOT account-specific but a universal Tripletex restriction on row 0.
 
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After every write, verify:
+
+After payment write (Call 3):
+```
+GET /invoice/{id}?fields=*,currency(*),customer(*),postings(*,voucher(*),account(*))
+```
+Log: invoiceId, amountCurrencyOutstanding, amountOutstanding, currency.code, and all postings including payment voucher. Confirm `amountCurrencyOutstanding === 0` and `amountOutstanding === 0`.
+
+For EUR invoices, also verify the auto-booked FX posting on 8060/8160 appears in the postings.
+
+After manual agio/disagio voucher (Call 5, NOK fallback only):
+```
+GET /ledger/voucher/{voucherId}?fields=id,number,date,description,postings(row,account(number,name),amountGross,amountGrossCurrency)
+```
+Log: voucherId, postings with account numbers (8060 or 8160 and bank account), amounts. Confirm the FX difference amount matches `promptEurAmount * |settlementRate - originalRate|`.
+
 ## Canonical Call Count
 - standalone EUR invoice payment with no cached payment type: `3` calls
 - standalone NOK fallback with manual agio: `5` calls (invoice + paymentType + payment + accountLookup + agioVoucher)

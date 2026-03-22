@@ -39,12 +39,18 @@ For exact matches, do not spend extra time re-reading `./trusted-standards/commo
 - `value.id` or `values[].id`
 - returned `name`, `displayName`, `isInactive`
 
-## Verification
-- zero extra calls by default
-- trust `201` write wrapper
-- for batch create, trust `values[]`
-- do not reject a successful batch write just because top-level `fullResultSize` is `0`
-- do not add a follow-up `GET /department` or split the work into repeated `POST /department` calls for a plain multi-create prompt
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After the write, verify:
+
+```
+GET /department/{id}?fields=*
+```
+Log: id, name, departmentNumber, isInactive. Confirm all fields match the prompt.
+
+For batch create, verify: `GET /department?isInactive=false&count=100&fields=*` — log all created departments.
+
+Do not reject a successful batch write just because top-level `fullResultSize` is `0`.
+Do not split the work into repeated `POST /department` calls for a plain multi-create prompt.
 
 ## Known Recovery Branches
 - none for the standard create shape

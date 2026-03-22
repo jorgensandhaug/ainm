@@ -54,26 +54,29 @@ GETs are FREE — only POST/PUT/DELETE count for efficiency. This script uses 1 
 
 ## The One Thing That Will Fail Your Run
 
-**Check 3 (missing VAT) has failed in ALL 13+ production runs.** The error voucher is misidentified.
+**Check 3 (missing VAT) detection has THREE layers of traps.**
 
-### The trap (two layers)
+### The trap (three layers)
 
 **Layer 1** (original): Two vouchers on `MV_ACCT` with same amount. One correctly booked (has 2710), one is the error (no 2710). Taking the first match picks the wrong one.
 
 **Layer 2** (discovered Run 14): The error voucher is a **multi-line voucher**. The `MV_ACCT` posting has `vatType=0` (no VAT — this is the error), but ANOTHER posting in the same voucher has `vatType≠0`, which auto-generates a 2710 posting from that other line. The voucher-level `has2710` check sees that 2710 and **incorrectly classifies the error voucher as "correctly booked"**.
 
+**Layer 3** (discovered Run 463433ee): The error voucher on `MV_ACCT` has `vatType=1` applied (not 0). The gross was entered as the excl-VAT amount but treated as incl-VAT by Tripletex, so VAT was under-calculated. Description says "uten MVA" / "without VAT" but vatType=1 was used. Both Layer 1 (vatType=0) and Layer 2 (no-2710) detection return 0 candidates.
+
 ### The fix (in the template)
 
-The template uses **posting-level vatType** as PRIMARY detection:
-- Find vouchers where the `MV_ACCT` posting has `vatType.id === 0` → this is the error
-- Falls back to voucher-level `!has2710` for single-line vouchers
-- This handles both Layer 1 and Layer 2 scenarios
+The template uses **4-layer detection priority**:
+1. **Layer 1**: Posting-level `vatType.id === 0` on MV_ACCT posting (catches Layers 1+2)
+2. **Layer 2**: Voucher-level `!has2710` (catches simple single-line vouchers)
+3. **Layer 3**: Description keywords (`uten MVA`, `utan MVA`, `without VAT`, `ohne MwSt`, `sin IVA`, `sem IVA`, `sans TVA`)
+4. **Layer 4**: Amount match (MV_ACCT posting gross == MV_EXCL_VAT)
 
-**Do not modify the detection logic. Do not replace it with voucher-level has2710 alone.**
+**Do not modify the detection logic. Do not replace it with a simpler approach.**
 
 ## Production History
 
 - 13+ runs, best score 2.25/6 (checks 1,2,4 pass; Check 3 always fails)
 - Run 14 (2026-03-22): 3 calls, 0 errors, discovered Layer 2 trap (multi-line vouchers)
-- All previous runs used voucher-level `has2710` → misidentified error voucher → Check 3 FAIL
-- Template now uses posting-level vatType detection (sandbox-verified 2026-03-22)
+- Run 463433ee (2026-03-22): 1 POST, 0 errors, 6/6 — discovered Layer 3 trap (vatType=1 error voucher)
+- Template now uses 4-layer detection (sandbox-verified 2026-03-22)

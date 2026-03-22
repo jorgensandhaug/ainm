@@ -1,0 +1,1 @@
+The score-reflection summary has been written to the canonical path. The trusted standard was also updated by a concurrent process with the Layer 3+4 detection improvements and new pitfall #10, which aligns with the findings documented in the reflection.

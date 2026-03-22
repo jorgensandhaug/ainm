@@ -75,4 +75,4 @@ Persistent-sandbox verification on 2026-03-21 showed:
 - Do not use three separate `POST /project/projectActivity` calls; inline `projectActivities` in the `POST /project/list` payload
 - Do not use bare `account.name` by reflex on ledger-facing naming tasks
 - Do not switch to `amountCurrency` or absolute values unless the prompt explicitly changes the ranking criterion
-- Do not add verification reads after `POST /project/list` when the write response already proves the created ids and links
+- GETs are free — add verification reads after `POST /project/list` to log created project ids, names, activities, and manager linkage

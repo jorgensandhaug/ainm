@@ -86,22 +86,22 @@
   - totals and outstanding amount
   - `projectInvoiceDetails`
 
-## Verification
-- trust the timesheet write response (`POST /timesheet/entry` or `POST /timesheet/entry/list`) to verify:
-  - `hours`
-  - `projectChargeableHours`
-  - `activity.id`
-  - `project.id`
-- when the resolved activity is chargeable, also verify:
-  - `hourlyRate`
-  - `chargeable`
+## Verification (GETs are FREE — use them)
+GETs do not count against the score. After every write, verify:
+
+After timesheet write:
+```
+GET /timesheet/entry?employeeId=...&projectId=...&activityId=...&dateFrom=...&dateTo=...&fields=*
+```
+Log: hours, projectChargeableHours, activity.id, project.id, chargeable, hourlyRate.
+
+After invoice write:
+```
+GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*,product(*))),customer(*),projectInvoiceDetails(*)
+```
+Log: invoiceNumber, customer, amountExcludingVatCurrency, amountCurrencyOutstanding, orders[0].id, orderLines, projectInvoiceDetails.
+
 - when the resolved activity is non-chargeable and the prompt only asks for the hours side effect plus the invoice side effect, do not treat `chargeable=false` and `hourlyRate=0` as an automatic stop condition
-- trust the invoice write response to verify:
-  - `customer.id`
-  - `orders[0].id`
-  - `amountExcludingVatCurrency`
-  - `amountCurrencyOutstanding`
-- add a follow-up `GET /invoice/{id}?fields=*,orders(*,project(*),orderLines(*)),orderLines(*)` only if the invoice write response is too sparse for the scored fields
 
 ## Known Recovery Branches
 - if the activity returned by `/activity/>forTimeSheet` is non-chargeable:

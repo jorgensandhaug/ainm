@@ -188,51 +188,73 @@ async function main() {
 
   // === DETECT & BUILD: Missing VAT ===
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // THIS IS THE #1 FAILURE POINT — 13/13 production runs failed here.
+  // THIS IS THE #1 FAILURE POINT — detection has THREE layers of traps.
   //
-  // THE TRAP (two layers):
-  //   Layer 1: Two vouchers on MV_ACCT with same amount — one correctly
-  //     booked (vatType=1), one error (vatType=0). First match is wrong.
-  //   Layer 2: Error voucher is multi-line. Another posting has vatType≠0,
-  //     auto-generating a 2710 posting. Voucher-level has2710 sees it and
-  //     INCORRECTLY classifies the error voucher as "correctly booked".
+  // Layer 1: Two vouchers on MV_ACCT with same amount — one correctly
+  //   booked (vatType=1), one error (vatType=0). First match is wrong.
+  // Layer 2: Error voucher is multi-line. Another posting has vatType≠0,
+  //   auto-generating a 2710 posting. Voucher-level has2710 sees it and
+  //   INCORRECTLY classifies the error voucher as "correctly booked".
+  // Layer 3 (discovered Run 463433ee): Error voucher on MV_ACCT has
+  //   vatType=1 applied (not 0), so both primary and secondary detection
+  //   fail. The gross was entered as the excl-VAT amount but treated as
+  //   incl-VAT → VAT under-calculated. Description says "uten MVA" but
+  //   vatType=1 was used. ALL candidates have vatType≠0 AND has2710.
   //
-  // FIX: Use POSTING-LEVEL vatType on MV_ACCT as PRIMARY detection.
-  //   vatType=0 on the MV_ACCT posting = no VAT applied = the error.
+  // DETECTION PRIORITY:
+  //   1. Posting-level vatType=0 on MV_ACCT (catches Layer 1+2)
+  //   2. Voucher-level no-2710 (catches simple single-line vouchers)
+  //   3. Description keywords ("uten MVA", "without VAT", etc.)
+  //   4. Amount match (gross == MV_EXCL_VAT on MV_ACCT posting)
+  //   5. Last resort: first candidate
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   const has2710 = (v: any) => v.postings.some((p: any) => getAcctNumber(p) === 2710);
   const onMvAcct = (v: any) => v.postings.some((p: any) => getAcctNumber(p) === MV_ACCT);
   const allMvCandidates = active.filter(onMvAcct);
 
-  // PRIMARY: posting-level vatType on MV_ACCT (vatType=0 = no VAT = the error)
+  // LAYER 1 (PRIMARY): posting-level vatType on MV_ACCT (vatType=0 = no VAT = the error)
   const mvByVatType = allMvCandidates.filter((v: any) => {
     const mvP = v.postings.find((p: any) => getAcctNumber(p) === MV_ACCT);
     return mvP && (mvP.vatType?.id === 0 || !mvP.vatType?.id);
   });
-  // FALLBACK: voucher-level no-2710 (catches simple single-line vouchers)
+  // LAYER 2 (SECONDARY): voucher-level no-2710 (catches simple single-line vouchers)
   const mvByNo2710 = allMvCandidates.filter((v: any) => !has2710(v));
+  // LAYER 3 (TERTIARY): description keywords across all prompt languages
+  const mvDescPattern = /uten MVA|utan MVA|without VAT|ohne MwSt|ohne Mehrwertsteuer|sin IVA|sem IVA|sans TVA/i;
+  const mvByDesc = allMvCandidates.filter((v: any) => mvDescPattern.test(v.description ?? ""));
+  // LAYER 4 (QUATERNARY): amount match — MV_ACCT posting gross == MV_EXCL_VAT
+  const mvByAmount = allMvCandidates.filter((v: any) => v.postings.some((p: any) =>
+    getAcctNumber(p) === MV_ACCT && Math.abs(p.amountGross) === MV_EXCL_VAT));
 
-  console.log(`\nMissing VAT: ${allMvCandidates.length} total on ${MV_ACCT}, byVatType0=${mvByVatType.length}, byNo2710=${mvByNo2710.length}`);
+  console.log(`\nMissing VAT: ${allMvCandidates.length} total on ${MV_ACCT}, byVatType0=${mvByVatType.length}, byNo2710=${mvByNo2710.length}, byDesc=${mvByDesc.length}, byAmount=${mvByAmount.length}`);
   for (const c of allMvCandidates) {
     const mvP = c.postings.find((p: any) => getAcctNumber(p) === MV_ACCT);
     const h = has2710(c);
-    console.log(`  V#${c.number}(id=${c.id}) mvPostingVat=${mvP?.vatType?.id} has2710=${h}`);
+    console.log(`  V#${c.number}(id=${c.id}) "${c.description}" mvPostingVat=${mvP?.vatType?.id} has2710=${h}`);
     for (const p of c.postings) {
       console.log(`    acct=${getAcctNumber(p)} gross=${p.amountGross} net=${p.amount} vat=${p.vatType?.id}`);
     }
   }
 
   let mvVoucher: any = null;
+  const pickFromPool = (pool: any[]) =>
+    pool.find((v: any) => v.postings.some((p: any) =>
+      getAcctNumber(p) === MV_ACCT && Math.abs(p.amountGross) === MV_EXCL_VAT)) ?? pool[0];
+
   if (mvByVatType.length > 0) {
-    mvVoucher = mvByVatType.find((v: any) => v.postings.some((p: any) =>
-      getAcctNumber(p) === MV_ACCT && Math.abs(p.amountGross) === MV_EXCL_VAT)) ?? mvByVatType[0];
-    console.log(`  Selected via posting-level vatType=0: voucher ${mvVoucher.id} (V#${mvVoucher.number})`);
+    mvVoucher = pickFromPool(mvByVatType);
+    console.log(`  Selected via Layer 1 (vatType=0): voucher ${mvVoucher.id} (V#${mvVoucher.number})`);
   } else if (mvByNo2710.length > 0) {
-    mvVoucher = mvByNo2710.find((v: any) => v.postings.some((p: any) =>
-      getAcctNumber(p) === MV_ACCT && Math.abs(p.amountGross) === MV_EXCL_VAT)) ?? mvByNo2710[0];
-    console.log(`  Selected via voucher-level no-2710: voucher ${mvVoucher.id} (V#${mvVoucher.number})`);
+    mvVoucher = pickFromPool(mvByNo2710);
+    console.log(`  Selected via Layer 2 (no-2710): voucher ${mvVoucher.id} (V#${mvVoucher.number})`);
+  } else if (mvByDesc.length > 0) {
+    mvVoucher = pickFromPool(mvByDesc);
+    console.log(`  Selected via Layer 3 (description): voucher ${mvVoucher.id} (V#${mvVoucher.number})`);
+  } else if (mvByAmount.length > 0) {
+    mvVoucher = mvByAmount[0];
+    console.log(`  Selected via Layer 4 (amount match): voucher ${mvVoucher.id} (V#${mvVoucher.number})`);
   } else {
-    console.error("  WARNING: No clear error voucher — all candidates have vatType≠0 AND has2710");
+    console.error("  WARNING: No detection matched — using first candidate");
     mvVoucher = allMvCandidates[0];
   }
   if (!mvVoucher) throw new Error(`Missing-VAT voucher not found (${MV_ACCT}/${MV_EXCL_VAT})`);
@@ -389,11 +411,23 @@ main().catch(e => { console.error("FATAL:", e.message); process.exit(1); });
 | 7 | Account 2400 without `supplier.id` | 422 `Leverandør mangler` | Copy `supplier.id` from original 2400 posting |
 | 8 | Duplicate detection: signature grouping only | Crashes when dup is the only entry | Check description "duplikat" FIRST |
 | 9 | Hardcode `vatType:{id:1}` on corrections | 422 on locked accounts | Always copy from original posting |
+| 10 | Missing-VAT: error voucher has vatType=1 with gross=excl-VAT amount | Both vatType=0 and no-2710 detection fail — wrong voucher selected | Use description keywords ("uten MVA") and amount match as Layers 3+4 |
 
 ## Verification
 
 Sandbox-verified 2026-03-22: posting-level vatType detection correctly identifies error vouchers
 even when other postings in the same voucher generate 2710 from their own VAT lines.
+
+### Production Run 463433ee (2026-03-22, 1 POST, 0 errors, 6/6)
+- Accounts: 6860→6590 (5100), dup 6500 (4400), MV 7300 (11050), WA 7100 (22650→5100)
+- **Layer 3 edge case**: ALL 3 vouchers on 7300 had vatType=1 AND has2710=true
+- Error voucher V#29 "Varekjøp uten MVA" had vatType=1 (not 0) with gross=11050
+- Both Layer 1 (vatType=0) and Layer 2 (no-2710) returned 0 candidates
+- Script fell through to WARNING → took wrong voucher V#6 (wrong contra 1920 vs correct 2400)
+- Check 3 still PASSED because 2710 total (29437.5) >> threshold (2762.5)
+- FIX: Added Layer 3 (description-based) and Layer 4 (amount-based) detection
+- Layer 3 would have matched "Varekjøp uten MVA" → correct voucher V#29
+- Layer 4 would have matched gross=11050 on 7300 → correct voucher V#29
 
 ### Production Run 14 (2026-03-22, 3 calls, 0 errors)
 - Accounts: 7140→7100 (5850), dup 7300 (1200), MV 6540 (13000), WA 7100 (19050→7100)
@@ -401,4 +435,4 @@ even when other postings in the same voucher generate 2710 from their own VAT li
 - OLD voucher-level `has2710` method: fell into Case B (0/12 previous runs passed)
 - NEW posting-level vatType method would correctly filter by `vatType.id===0` on the 6540 posting
 - Root cause of previous Check 3 failures: multi-line vouchers where 2710 comes from other postings, not from MV_ACCT
-- Fix applied in this template: primary detection via posting-level vatType, fallback via voucher-level has2710
+- Fix applied in this template: primary detection via posting-level vatType, Layers 3+4 as additional fallbacks

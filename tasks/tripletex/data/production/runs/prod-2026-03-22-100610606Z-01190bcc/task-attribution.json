@@ -1,0 +1,18 @@
+{
+  "run_id": "prod-2026-03-22-100610606Z-01190bcc",
+  "request_id": "6d3d6805",
+  "prompt_raw": "Einer Ihrer Kunden hat eine uberfallige Rechnung. Finden Sie die uberfallige Rechnung und buchen Sie eine Mahngebuhr von 40 NOK. Soll Forderungen (1500), Haben Mahngebuhren (3400). Erstellen Sie außerdem eine Rechnung über die Mahngebühr an den Kunden und senden Sie diese. Registrieren Sie zusätzlich eine Teilzahlung von 5000 NOK auf der überfälligen Rechnung.",
+  "completion_reason": "completed",
+  "task_complete_timestamp": "2026-03-22T10:08:11Z",
+  "leaderboard_url": "https://api.ainm.no/tripletex/leaderboard/f675e571-6864-4f33-beca-fab40636d516",
+  "leaderboard_delay_ms": 30000,
+  "poll_window_ms": 120000,
+  "poll_interval_ms": 15000,
+  "before_captured_at": "2026-03-22T10:06:10.660Z",
+  "after_captured_at": "2026-03-22T10:08:42.124Z",
+  "diff_entry_count": 1,
+  "inference_status": "unique_attempt_delta",
+  "tx_task_id": "25",
+  "attempt_delta": 1,
+  "generated_at": "2026-03-22T10:08:42.125Z"
+}

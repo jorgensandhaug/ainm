@@ -107,7 +107,7 @@
   - CRITICAL: `remunerationType: "MONTHLY_WAGE"` is required for `monthlySalary` to be stored; without it, `monthlySalary` silently stays 0
   - sandbox proof on 2026-03-21: inline `employmentDetails` in `POST /employee/employment` persists `remunerationType=MONTHLY_WAGE`, `monthlySalary`, and `annualSalary` correctly; payroll transaction succeeded with correct `grossAmount`
   - sandbox proof on 2026-03-21: passing only `monthlySalary` without `remunerationType: "MONTHLY_WAGE"` resulted in `monthlySalary: 0`, `annualSalary: 0`, all types `NOT_CHOSEN`
-- for the explicit manual-voucher fallback branch (DEPRECATED — see Exact-Match Fast Path above; prefer 8-call salary path):
+- for the explicit manual-voucher fallback branch (DEPRECATED — see Exact-Match Fast Path above; prefer 5-write salary path):
   - if used despite deprecation: resolve account ids through `GET /ledger/account?number=5000,1920&fields=*`
   - on `POST /ledger/voucher`, send `voucherType: null`
   - CRITICAL: postings MUST use `amountGross` and `amountGrossCurrency` (NOT just `amount`); `amount` alone is silently stored as 0; sandbox-verified 2026-03-21
