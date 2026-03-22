@@ -2819,6 +2819,34 @@ Score: 80.37
 - **Final best: QR recalibrated at 80.90** (+5.71 over original 75.19)
   - temperature=1.0, prior_blend=0.0, beta_min=6.0, teacher_blend=0.0
   - signal_scale=0.10, cells_per_seed=512, samples_per_round=2, exploration_r3
+  - ridge_lambda sweep running (4.0, 6.0, 8.0, 12.0) — results pending
+
+### Complete Parameter History
+
+| Parameter | Original | Final | Source |
+|-----------|----------|-------|--------|
+| temperature | 1.15 | **1.0** | Agent4 |
+| prior_blend | 0.35 | **0.0** | Agents 3&4 |
+| beta_min | 8.0 | **6.0** | Agent4 |
+| beta_scale | 24.0 | 24.0 | unchanged |
+| teacher_blend | 0.12 | **0.0** | Agent3 |
+| signal_scale | 0.12 | **0.10** | own sweep |
+| min_delta_scale | 0.4 | 0.4 | unchanged |
+| cells_per_seed | 256 | **512** | own sweep |
+| ridge_lambda | 8.0 | 8.0 | pending sweep |
+| samples_per_round | 1 | **2** | Agent3 |
+| policy | coverage | **exploration_r3** | Agent7 |
+
+### Score Progression
+
+| Model/Change | Mean Score | Delta |
+|-------------|-----------|-------|
+| Original hybrid_lowrank_queryres | 75.19 | — |
+| + expansion-conditioned stacking | 77.35 | +2.16 |
+| + calibration fix (t=1.0, p=0.0, b=6) | 80.37 | +3.02 |
+| + cells_per_seed=512 | 80.56 | +0.19 |
+| + signal_scale=0.10 | **80.90** | +0.34 |
+| **Total improvement** | **80.90** | **+5.71** |
   - Or tristack e30_c05/e30_c10 at 77.39 (marginal improvement)
   - Architecture: 65% QR + 35% expansion-conditioned kNN in logit space
   - Uses 1D expansion rate for regime conditioning
