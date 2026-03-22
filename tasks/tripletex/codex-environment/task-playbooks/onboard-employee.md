@@ -42,6 +42,7 @@ Evidence: All 5 task 21 production runs sent MONTHLY_WAGE for tilbudsbrev and al
 | STYRK 2511 | `301` | AUTORISERT REGNSKAPSFØRER |
 | STYRK 3323 | `2507` | INNKJØPSASSISTENT |
 | STYRK 3313 | `4677` | REGNSKAPSMEDARBEIDER |
+| Markedsanalytiker | `3544` | MARKEDSANALYTIKER |
 | STYRK 3512 | `752` | BRUKERSTØTTE IKT |
 
 ### Known WRONG mappings (failed in production):
@@ -73,8 +74,8 @@ Total: 4 calls (hardcoded occ code) or 5 calls (dynamic lookup)
 
 ## Sandbox Verification Status
 - E2E verified 2026-03-22: production-faithful Raphaël Moreau (Seniorutvikler) + Randi Stølsvik (HR-rådgiver) both pass 10/10 checks, 4 calls, 0 errors with NOT_CHOSEN
-- All 10 hardcoded occupation code mappings verified 2026-03-22
-- 17 total production runs; 15 of last 16 used 3-5 calls with 0 errors
+- All 11 hardcoded occupation code mappings verified 2026-03-22 (Markedsanalytiker → 3544 added after prod-fd3075b7)
+- 18 total production runs; 16 of last 17 used 3-5 calls with 0 errors
 
 ## Guessed Check Mapping (10 checks, 14 max raw)
 
@@ -103,6 +104,7 @@ All pre-fix runs scored 12/14 (Check 5 failed = remunerationType MONTHLY_WAGE in
 | 0523d6a8 | Seniorutvikler | 4 | 0 | 12/14 | Correct occ code (SYSTEMUTVIKLER) + Check 5 |
 | aff0bd66 | Regnskapssjef | 5 | 0 | 12/14 | Wrong occ code (KONSERNREGNSKAPSSJEF) + Check 5 |
 | 659ca714 | HR-rådgiver | 5 | 0 | 12/14 | Correct occ code (PERSONALRÅDGIVER) + Check 5 |
+| fd3075b7 | Markedsanalytiker | 5 | 0 | TBD | Dynamic lookup (3544); NOT_CHOSEN; 80%, 780000, 6.0hrs; Spanish prompt |
 
 ### Task 19 (arbeidskontrakt/contract) — 15 checks, 22 max raw
 

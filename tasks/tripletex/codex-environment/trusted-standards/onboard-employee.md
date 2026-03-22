@@ -100,6 +100,7 @@ These ids are reference data — same across ALL Tripletex accounts. If the job 
 | STYRK 2511 (no job title) | `301` | AUTORISERT REGNSKAPSFØRER |
 | STYRK 3323 (no job title) | `2507` | INNKJØPSASSISTENT |
 | STYRK 3313 (no job title) | `4677` | REGNSKAPSMEDARBEIDER |
+| Markedsanalytiker | `3544` | MARKEDSANALYTIKER |
 | STYRK 3512 (no job title) | `752` | BRUKERSTØTTE IKT |
 
 ### Wrong mappings that FAILED in production (do not use these):
@@ -139,5 +140,6 @@ Then find the row whose `nameNO` is an EXACT match (case-insensitive). Do NOT ta
 
 ## Sandbox Verification Status
 - End-to-end verified 2026-03-22: both production-faithful scenarios (Raphaël Moreau / Seniorutvikler + Randi Stølsvik / HR-rådgiver) pass 10/10 checks, 4 calls, 0 errors with `remunerationType: "NOT_CHOSEN"`
-- All 10 hardcoded occupation code mappings verified correct in sandbox 2026-03-22
-- 17 total production runs; 15 of last 16 used 3-5 calls with 0 errors
+- All 11 hardcoded occupation code mappings verified correct in sandbox 2026-03-22 (Markedsanalytiker → 3544 added after prod-fd3075b7)
+- 18 total production runs; 16 of last 17 used 3-5 calls with 0 errors
+- prod-fd3075b7: Carmen Pérez / Markedsanalytiker / Spanish prompt / 5 calls 0 errors (dynamic lookup; would be 4 with hardcoded table)
