@@ -393,6 +393,27 @@ const reconByMonth: Record<string, any> = Object.fromEntries(reconEntries);
 console.log(`Recons created: ${Object.entries(reconByMonth).map(([m,r]) => `${m} → id=${r?.id} v=${r?.version}`).join(", ")}`);
 
 // Build match pairs grouped by month for BATCH matching
+// 3-layer deterministic matching: inv-ref → amount+OB-exclusion → amount-only fallback
+
+// Layer 1 index: map invoiceNumber → posting (from posting descriptions)
+// Customer payment postings have: "Betaling: Faktura nummer {N} til {name} ({ref})"
+const invNumToPostings: Map<number, any[]> = new Map();
+for (const p of allPostings1920) {
+  const m = (p.description || "").match(/Faktura nummer (\d+)/);
+  if (m) {
+    const n = parseInt(m[1]);
+    if (!invNumToPostings.has(n)) invNumToPostings.set(n, []);
+    invNumToPostings.get(n)!.push(p);
+  }
+}
+
+// Map CSV line index → invoice number (from payment plan built in Step 3)
+const csvIdxToInvNum: Map<number, number> = new Map();
+for (let j = 0; j < paymentPlan.length; j++) {
+  const csvIdx = csvLines.indexOf(customerLines[j]);
+  if (csvIdx >= 0) csvIdxToInvNum.set(csvIdx, paymentPlan[j].invNum);
+}
+
 const usedPostingIds = new Set<number>();
 const matchesByMonth: Record<string, { txnIds: number[], postingIds: number[] }> = {};
 
@@ -401,10 +422,35 @@ for (let i = 0; i < csvLines.length; i++) {
   if (!txnId) { console.log(`  No txn ID for CSV line ${i} — skipping`); continue; }
 
   const csvAmount = csvLines[i].inn > 0 ? csvLines[i].inn : csvLines[i].ut;
-  const matchPosting = allPostings1920.find((p: any) =>
-    Math.abs(p.amount - csvAmount) < 0.01 && !usedPostingIds.has(p.id)
-  );
-  if (!matchPosting) { console.log(`  No posting match for line ${i}: amount=${csvAmount} "${csvLines[i].desc}"`); continue; }
+  let matchPosting: any = undefined;
+
+  // Layer 1: Invoice-number match (customer lines only — deterministic)
+  const invNum = csvIdxToInvNum.get(i);
+  if (invNum !== undefined) {
+    const candidates = invNumToPostings.get(invNum) || [];
+    matchPosting = candidates.find((p: any) => !usedPostingIds.has(p.id));
+    if (matchPosting) console.log(`  L1 inv-ref match: CSV[${i}] invNum=${invNum} → posting ${matchPosting.id}`);
+  }
+
+  // Layer 2: Amount + OB exclusion (non-customer lines, or if L1 missed)
+  if (!matchPosting) {
+    matchPosting = allPostings1920.find((p: any) =>
+      Math.abs(p.amount - csvAmount) < 0.01 &&
+      !usedPostingIds.has(p.id) &&
+      !/balanse/i.test(p.description || "")
+    );
+    if (matchPosting) console.log(`  L2 amount match: CSV[${i}] amount=${csvAmount} → posting ${matchPosting.id}`);
+  }
+
+  // Layer 3: Pure amount fallback (last resort — current behavior)
+  if (!matchPosting) {
+    matchPosting = allPostings1920.find((p: any) =>
+      Math.abs(p.amount - csvAmount) < 0.01 && !usedPostingIds.has(p.id)
+    );
+    if (matchPosting) console.log(`  L3 fallback match: CSV[${i}] amount=${csvAmount} → posting ${matchPosting.id}`);
+  }
+
+  if (!matchPosting) { console.log(`  NO MATCH for CSV[${i}]: amount=${csvAmount} "${csvLines[i].desc}"`); continue; }
   usedPostingIds.add(matchPosting.id);
 
   const lineMonth = csvLines[i].date.substring(0, 7);

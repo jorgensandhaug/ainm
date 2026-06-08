@@ -349,11 +349,11 @@ GET /ledger/voucher/{voucherId}?fields=id,attachment(id,fileName)
 
 | Run | Branch | amountGross | Score | Root cause |
 |---|---|---|---|---|
-| e89025d1 | B (Tastatur 6900) | 8625 (×1.25) | 7/10 | Wrong amount |
-| 3373fbc9 | C (Togbillett 8750) | 10937.50 (×1.25) | 7/10 | Wrong vatType + amount |
-| 4c7f5f3e | D (Kaffemøte 6600) | — | 0/10 | Wrong account (7360) |
-| 01420e60 | A (Kundemøte lunsj) | — | 0/10 | Missing sendToLedger |
-| 67d4ddca | C (Overnatting) | — | 0/10 | Missing sendToLedger |
-| 1519c2a7 | C (Togbillett) | — | 0/10 | Missing sendToLedger |
-| 70014f3c | A (Forretningslunsj 13200) | 13200 | pending | Clean: 0 errors, all verified |
-| 822ad6b6 | B (Kontorstoler 3000) | — | blocked | Expired proxy token (403) |
+| e89025d1 | B (Tastatur 6900) | 8625 (×1.25) | 7/10 | Wrong amount — Check 3 failed |
+| 3373fbc9 | C (Togbillett 8750) | 10937.50 (×1.25) | 7/10 | Wrong vatType(1 not 12) + wrong amount — Check 3 failed |
+| 4c7f5f3e | D (Kaffemøte 6600) | 8250 (×1.25) | 0/10 | Wrong account (7360 not 6860) + wrong amount; sendToLedger=true was present |
+| 01420e60 | A (Kundemøte lunsj) | 14050 | 0/10 | Missing sendToLedger — confirmed in trace |
+| 67d4ddca | C (Overnatting) | 4850 | 0/10 | Missing sendToLedger — confirmed in trace; vatType=12 was correct |
+| 1519c2a7 | C (Togbillett) | 11350 | 0/10 | Missing sendToLedger — probable (all 5 checks failed) |
+| 70014f3c | A (Forretningslunsj) | 13200 | 11/13 ambig | Ambiguous T17/T22; scored 6-check rubric (T17 format); Check 3 failed; 0 errors, 3 writes |
+| 822ad6b6 | B (Kontorstoler 3000) | — (never ran) | blocked | 403 expired proxy token on first call; script was structurally correct |
